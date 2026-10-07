@@ -1,21 +1,30 @@
 import Phaser from "phaser";
 import "./style.css";
-import { askAi, createProject, getProject, saveScene } from "./api/client";
+import { askAi, createProject, getProject, listProjects, onUnauthorized, saveScene } from "./api/client";
 import { EditorScene } from "./game/EditorScene";
 import { WORLD_HEIGHT, WORLD_WIDTH, type Kind } from "./model/GameObject";
 import { SceneModel } from "./model/SceneModel";
+import { setupAuthPanel } from "./ui/AuthPanel";
 
 const model = new SceneModel();
 const scene = new EditorScene(model);
 
-new Phaser.Game({
-  type: Phaser.AUTO,
-  parent: "game",
-  width: WORLD_WIDTH,
-  height: WORLD_HEIGHT,
-  backgroundColor: "#10141b",
-  scene: [scene],
-});
+// The Phaser game is created after the first login, when the editor is visible.
+let game: Phaser.Game | null = null;
+
+function startGame(): void {
+  if (game !== null) {
+    return;
+  }
+  game = new Phaser.Game({
+    type: Phaser.AUTO,
+    parent: "game",
+    width: WORLD_WIDTH,
+    height: WORLD_HEIGHT,
+    backgroundColor: "#10141b",
+    scene: [scene],
+  });
+}
 
 let projectId: number | null = null;
 
@@ -62,6 +71,35 @@ function addObject(kind: Kind): void {
     y: 100 + ((count * 35) % 400),
   });
 }
+
+const auth = setupAuthPanel({
+  onLoggedIn: async (user) => {
+    startGame();
+    model.replaceAll([]);
+    setProject(null);
+    setStatus(`Welcome, ${user.username}.`);
+    await run(async () => {
+      // Open the user's most recently updated project, if there is one.
+      const projects = await listProjects();
+      if (projects.length > 0) {
+        model.replaceAll(projects[0].scene);
+        setProject(projects[0].id);
+        setStatus(`Welcome back, ${user.username}. Opened "${projects[0].name}".`);
+      } else {
+        setStatus(`Welcome, ${user.username}. Create your first project.`);
+      }
+    });
+  },
+  onLoggedOut: () => {
+    model.replaceAll([]);
+    scene.selectedId = null;
+    setProject(null);
+    setStatus("");
+  },
+});
+
+// A 401 on a request that carried a token means the session expired.
+onUnauthorized(() => auth.expire());
 
 bind("new-project", async () => {
   const project = await createProject("My game");
@@ -117,4 +155,4 @@ bind("redo", () => {
 });
 
 setProject(null);
-setStatus("Ready.");
+void auth.restoreSession();
