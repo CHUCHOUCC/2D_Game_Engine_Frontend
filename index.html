@@ -10,27 +10,49 @@
     <main>
       <h1>2D Game Editor</h1>
 
-      <div class="toolbar">
-        <button id="new-project" class="primary">New project</button>
-        <button id="save">Save</button>
-        <button id="load">Load</button>
-        <span id="project"></span>
+      <section id="auth-panel" hidden>
+        <h2>Log in or create an account</h2>
+        <form id="auth-form">
+          <input id="auth-username" type="text" placeholder="Username (only to register)" autocomplete="username" maxlength="50" />
+          <input id="auth-email" type="email" placeholder="Email" autocomplete="email" required />
+          <input id="auth-password" type="password" placeholder="Password (8+ characters)" autocomplete="current-password" required />
+          <div class="auth-buttons">
+            <button id="auth-login" type="submit" class="primary">Log in</button>
+            <button id="auth-register" type="button">Register</button>
+          </div>
+        </form>
+        <p id="auth-message"></p>
+      </section>
+
+      <div id="user-bar" class="toolbar" hidden>
+        <span>Logged in as <strong id="user-name"></strong></span>
+        <span class="spacer"></span>
+        <button id="logout">Log out</button>
       </div>
 
-      <div class="toolbar">
-        <button id="add-box">+ Box</button>
-        <button id="add-coin">+ Coin</button>
-        <button id="add-enemy">+ Enemy</button>
-        <button id="delete">Delete</button>
-        <button id="undo">Undo</button>
-        <button id="redo">Redo</button>
-      </div>
+      <div id="editor" hidden>
+        <div class="toolbar">
+          <button id="new-project" class="primary">New project</button>
+          <button id="save">Save</button>
+          <button id="load">Load</button>
+          <span id="project"></span>
+        </div>
 
-      <div id="game"></div>
+        <div class="toolbar">
+          <button id="add-box">+ Box</button>
+          <button id="add-coin">+ Coin</button>
+          <button id="add-enemy">+ Enemy</button>
+          <button id="delete">Delete</button>
+          <button id="undo">Undo</button>
+          <button id="redo">Redo</button>
+        </div>
 
-      <div class="toolbar" style="margin-top: 8px">
-        <input id="prompt" type="text" placeholder="Ask the AI, e.g. put a coin at 120 340" maxlength="500" />
-        <button id="ask-ai" class="primary">Ask AI</button>
+        <div id="game"></div>
+
+        <div class="toolbar" style="margin-top: 8px">
+          <input id="prompt" type="text" placeholder="Ask the AI, e.g. put a coin at 120 340" maxlength="500" />
+          <button id="ask-ai" class="primary">Ask AI</button>
+        </div>
       </div>
 
       <p id="status"></p>
