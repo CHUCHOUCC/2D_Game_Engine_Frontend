@@ -106,9 +106,10 @@ Goal 2, **score counter**: `src/model/ScoreCounter.ts` that receives game events
 `{ type: "enemy" }`) through your `Queue`, and keeps a score (+1 per coin). Tests included.
 Task A will connect it to Play mode later.
 
-Goal 3, **project list**: a panel that lists the user's projects (`GET /projects`) with an
-**Open** button that loads the chosen one. Add `listProjects()` to `src/api/client.ts` and put the UI in
-`src/ui/ProjectList.ts`. Show the project name and last update.
+Goal 3, **project list**: a panel that lists the user's projects with an **Open** button that
+loads the chosen one. `listProjects()` already exists in `src/api/client.ts` (see how
+`src/ui/AuthPanel.ts` and `src/main.ts` use it). Put the UI in `src/ui/ProjectList.ts`
+and show the project name and last update. The editor is only visible after logging in.
 
 Done when: the Queue and ScoreCounter tests pass, and the list shows the projects created in the editor.
 
@@ -117,7 +118,13 @@ Done when: the Queue and ScoreCounter tests pass, and the list shows the project
 - Connect `ScoreCounter` (Task B) to `PlayScene` (Task A).
 - Add a short "How to use" section to `README.md`.
 
-## 7. If you get stuck
+## 7. Login
+
+The app now has a login screen (`src/ui/AuthPanel.ts`). The token is kept in `sessionStorage` and sent
+by `src/api/client.ts`; if the backend answers 401 the user goes back to the login screen.
+To test locally you need an account: use **Register** on the login screen.
+
+## 8. If you get stuck
 
 1. Run `npm test` and read the first error.
 2. Check the browser console (F12) and the Network tab.
