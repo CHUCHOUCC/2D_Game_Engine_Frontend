@@ -2,12 +2,39 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>2d-game-engine-frontend</title>
+    <title>2D Game Editor</title>
+    <link rel="icon" href="data:," />
   </head>
   <body>
-    <div id="app"></div>
+    <main>
+      <h1>2D Game Editor</h1>
+
+      <div class="toolbar">
+        <button id="new-project" class="primary">New project</button>
+        <button id="save">Save</button>
+        <button id="load">Load</button>
+        <span id="project"></span>
+      </div>
+
+      <div class="toolbar">
+        <button id="add-box">+ Box</button>
+        <button id="add-coin">+ Coin</button>
+        <button id="add-enemy">+ Enemy</button>
+        <button id="delete">Delete</button>
+        <button id="undo">Undo</button>
+        <button id="redo">Redo</button>
+      </div>
+
+      <div id="game"></div>
+
+      <div class="toolbar" style="margin-top: 8px">
+        <input id="prompt" type="text" placeholder="Ask the AI, e.g. put a coin at 120 340" maxlength="500" />
+        <button id="ask-ai" class="primary">Ask AI</button>
+      </div>
+
+      <p id="status"></p>
+    </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
