@@ -24,6 +24,7 @@ export class EditorScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.drawnVersion = -1; // the scene starts again when we come back from Play
     this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0x1d2430);
 
     this.input.on("pointerdown", (_pointer: Phaser.Input.Pointer, hit: Phaser.GameObjects.GameObject[]) => {

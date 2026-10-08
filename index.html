@@ -35,10 +35,12 @@
           <button id="new-project" class="primary">New project</button>
           <button id="save">Save</button>
           <button id="load">Load</button>
+          <button id="play">Play</button>
+          <button id="edit" hidden>Edit</button>
           <span id="project"></span>
         </div>
 
-        <div class="toolbar">
+        <div class="toolbar edit-only">
           <button id="add-box">+ Box</button>
           <button id="add-coin">+ Coin</button>
           <button id="add-enemy">+ Enemy</button>
@@ -54,7 +56,7 @@
           <ul id="projects"></ul>
         </section>
 
-        <div class="toolbar" style="margin-top: 8px">
+        <div class="toolbar edit-only" style="margin-top: 8px">
           <input id="prompt" type="text" placeholder="Ask the AI, e.g. put a coin at 120 340" maxlength="500" />
           <button id="ask-ai" class="primary">Ask AI</button>
         </div>

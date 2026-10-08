@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import "./style.css";
 import { askAi, createProject, getProject, listProjects, onUnauthorized, saveScene } from "./api/client";
 import { EditorScene } from "./game/EditorScene";
+import { PlayScene } from "./game/PlayScene";
 import { WORLD_HEIGHT, WORLD_WIDTH, type Kind } from "./model/GameObject";
 import { SceneModel } from "./model/SceneModel";
 import { setupAuthPanel } from "./ui/AuthPanel";
@@ -9,6 +10,7 @@ import { setupProjectList } from "./ui/ProjectList";
 
 const model = new SceneModel();
 const scene = new EditorScene(model);
+const playScene = new PlayScene(model);
 
 // The Phaser game is created after the first login, when the editor is visible.
 let game: Phaser.Game | null = null;
@@ -23,7 +25,7 @@ function startGame(): void {
     width: WORLD_WIDTH,
     height: WORLD_HEIGHT,
     backgroundColor: "#10141b",
-    scene: [scene],
+    scene: [scene, playScene],
   });
 }
 
@@ -102,6 +104,7 @@ const auth = setupAuthPanel({
     });
   },
   onLoggedOut: () => {
+    showEditMode();
     projectList.clear();
     model.replaceAll([]);
     scene.selectedId = null;
@@ -151,6 +154,28 @@ bind("ask-ai", async () => {
   setStatus(`The AI updated the scene (${project.scene.length} objects).`);
 });
 
+function showPlayMode(): void {
+  game?.scene.stop("editor");
+  game?.scene.start("play");
+  document.body.classList.add("playing");
+  (document.getElementById("play") as HTMLElement).hidden = true;
+  (document.getElementById("edit") as HTMLElement).hidden = false;
+  setStatus("Playing: arrow keys to move.");
+}
+
+function showEditMode(): void {
+  game?.scene.stop("play");
+  game?.scene.start("editor");
+  document.body.classList.remove("playing");
+  (document.getElementById("play") as HTMLElement).hidden = false;
+  (document.getElementById("edit") as HTMLElement).hidden = true;
+}
+
+bind("play", showPlayMode);
+bind("edit", () => {
+  showEditMode();
+  setStatus("Back to editing.");
+});
 bind("add-box", () => addObject("box"));
 bind("add-coin", () => addObject("coin"));
 bind("add-enemy", () => addObject("enemy"));
