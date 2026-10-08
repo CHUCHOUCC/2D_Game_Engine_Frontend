@@ -29,9 +29,17 @@ export class PlayScene extends Phaser.Scene {
 
   create(): void {
     this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0x1d2430);
-    this.keys = this.input.keyboard!.createCursorKeys();
-    this.restartKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.R);
-    this.attackKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    const keyboard = this.input.keyboard!;
+    this.keys = keyboard.createCursorKeys();
+    this.restartKey = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+    this.attackKey = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    // Phaser blocks the keys it uses for the whole page. Give them back when the play
+    // ends, or the prompt box in the editor cannot type spaces or the letter R.
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      const { KeyCodes } = Phaser.Input.Keyboard;
+      keyboard.removeCapture([KeyCodes.UP, KeyCodes.DOWN, KeyCodes.LEFT, KeyCodes.RIGHT, KeyCodes.SPACE, KeyCodes.SHIFT, KeyCodes.R]);
+      keyboard.removeAllKeys(true);
+    });
     this.scoreText = this.add.text(12, 10, "", { color: "#ffffff", fontSize: "20px" }).setDepth(10);
     this.add
       .text(WORLD_WIDTH - 12, 10, "Arrows: move · Space: attack · R: restart", { color: "#9fb0c8", fontSize: "14px" })
