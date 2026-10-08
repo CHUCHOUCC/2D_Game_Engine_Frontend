@@ -108,6 +108,8 @@ input[type="text"] {
 #auth-message { margin: 10px 0 0; min-height: 1.4em; font-size: 0.9rem; color: var(--muted); }
 #auth-message.error { color: var(--error); }
 
+.playing .edit-only { display: none; }
+
 #project-list { margin-top: 16px; }
 #project-list h2 { font-size: 1rem; margin: 0 0 8px; }
 #projects { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
