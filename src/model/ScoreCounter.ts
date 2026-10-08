@@ -1,18 +1,22 @@
 import { Queue } from "../structures/Queue";
 
 /** Something that happened while playing. */
-export type GameEvent = { type: "coin" } | { type: "enemy" };
+export type GameEvent = { type: "coin" } | { type: "defeated" } | { type: "hit" };
+
+export const COIN_POINTS = 1;
+export const DEFEAT_POINTS = 5;
+export const PLAYER_MAX_HEALTH = 3;
 
 /**
- * Receives game events through a Queue and turns them into a score.
+ * Receives game events through a Queue and turns them into score and health.
  * Events wait in the queue until `process()` handles them in arrival order.
  */
 export class ScoreCounter {
   private pending = new Queue<GameEvent>();
   private points = 0;
-  private lost = false;
+  private lives = PLAYER_MAX_HEALTH;
 
-  /** Put an event in the queue. It does not change the score yet. */
+  /** Put an event in the queue. It does not change anything yet. */
   receive(event: GameEvent): void {
     this.pending.enqueue(event);
   }
@@ -22,9 +26,11 @@ export class ScoreCounter {
     let event = this.pending.dequeue();
     while (event !== undefined) {
       if (event.type === "coin") {
-        this.points += 1;
+        this.points += COIN_POINTS;
+      } else if (event.type === "defeated") {
+        this.points += DEFEAT_POINTS;
       } else {
-        this.lost = true;
+        this.lives = Math.max(0, this.lives - 1);
       }
       event = this.pending.dequeue();
     }
@@ -34,14 +40,19 @@ export class ScoreCounter {
     return this.points;
   }
 
-  /** True after an enemy event was processed. */
+  /** Health left for the player. */
+  health(): number {
+    return this.lives;
+  }
+
+  /** True when the player has no health left. */
   isGameOver(): boolean {
-    return this.lost;
+    return this.lives === 0;
   }
 
   reset(): void {
     this.pending.clear();
     this.points = 0;
-    this.lost = false;
+    this.lives = PLAYER_MAX_HEALTH;
   }
 }
