@@ -107,3 +107,11 @@ input[type="text"] {
 
 #auth-message { margin: 10px 0 0; min-height: 1.4em; font-size: 0.9rem; color: var(--muted); }
 #auth-message.error { color: var(--error); }
+
+#project-list { margin-top: 16px; }
+#project-list h2 { font-size: 1rem; margin: 0 0 8px; }
+#projects { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+#projects li { display: flex; align-items: center; gap: 12px; padding: 6px 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; }
+#projects .project-name { flex: 1; }
+#projects .project-date { color: var(--muted); font-size: 0.85rem; }
+#projects .empty { color: var(--muted); }

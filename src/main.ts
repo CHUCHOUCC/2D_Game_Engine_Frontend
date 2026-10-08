@@ -5,6 +5,7 @@ import { EditorScene } from "./game/EditorScene";
 import { WORLD_HEIGHT, WORLD_WIDTH, type Kind } from "./model/GameObject";
 import { SceneModel } from "./model/SceneModel";
 import { setupAuthPanel } from "./ui/AuthPanel";
+import { setupProjectList } from "./ui/ProjectList";
 
 const model = new SceneModel();
 const scene = new EditorScene(model);
@@ -72,6 +73,15 @@ function addObject(kind: Kind): void {
   });
 }
 
+const projectList = setupProjectList((id) => {
+  void run(async () => {
+    const project = await getProject(id);
+    model.replaceAll(project.scene);
+    setProject(project.id);
+    setStatus(`Opened "${project.name}".`);
+  });
+});
+
 const auth = setupAuthPanel({
   onLoggedIn: async (user) => {
     startGame();
@@ -88,9 +98,11 @@ const auth = setupAuthPanel({
       } else {
         setStatus(`Welcome, ${user.username}. Create your first project.`);
       }
+      await projectList.refresh();
     });
   },
   onLoggedOut: () => {
+    projectList.clear();
     model.replaceAll([]);
     scene.selectedId = null;
     setProject(null);
@@ -106,6 +118,7 @@ bind("new-project", async () => {
   model.replaceAll(project.scene);
   setProject(project.id);
   setStatus(`Created project #${project.id}.`);
+  await projectList.refresh();
 });
 
 bind("save", async () => {
@@ -113,6 +126,7 @@ bind("save", async () => {
   if (id === null) return;
   const project = await saveScene(id, model.toJson());
   setStatus(`Saved ${project.scene.length} objects.`);
+  await projectList.refresh();
 });
 
 bind("load", async () => {
