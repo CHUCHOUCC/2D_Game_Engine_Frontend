@@ -177,3 +177,19 @@ def coin() -> list:
     palette = {"o": "a8741a", "y": "f6c945", "Y": "fff1a8"}
     frames = [from_grid(f, palette) for f in COIN_FRAMES]
     return side_by_side([frames[0], frames[1], frames[2], frames[1]])
+
+SLIME_FRAMES = [
+    ["................", "................", "................", "................", "......oooo......",
+     "....oollllo.....", "...olllbbbbo....", "..olbbbbbbbbo...", "..olbwwbbwwbo...", ".olbbwkbbwkbbo..",
+     ".obbbbbbbbbbbo..", ".obbbbbbbbbbbo..", ".obbbbbbbbbbbo..", "..oobbbbbbboo...", "....ooooooo.....",
+     "................"],
+    ["................", "................", "................", "................", "................",
+     "................", ".....oooooo.....", "...oollllllo....", "..olbbwwbbwwbo..", ".olbbbwkbbwkbbo.",
+     "obbbbbbbbbbbbbbo", "obbbbbbbbbbbbbbo", "obbbbbbbbbbbbbbo", ".oobbbbbbbbbboo.", "...oooooooooo...",
+     "................"],
+]
+
+
+def slime() -> list:
+    palette = {"o": "5a1730", "b": "c2335a", "l": "e8698a", "w": "ffffff", "k": "1b1b2f"}
+    return side_by_side([from_grid(f, palette) for f in SLIME_FRAMES])
