@@ -235,3 +235,14 @@ export class PlayScene extends Phaser.Scene {
     coin.disableBody(false, false);
     if (this.tracker.isOver()) this.end(this.tracker.outcome()!);
   }
+
+  private hurt(source: "spike" | "enemy", from: Sprite): void {
+    const now = this.time.now;
+    if (now < this.invulnerableUntil || this.finished) return;
+    this.invulnerableUntil = now + INVULNERABLE_MS;
+    this.stunnedUntil = now + 160;
+    const angle = Phaser.Math.Angle.Between(from.x, from.y, this.player.x, this.player.y);
+    this.player.setVelocity(Math.cos(angle) * 420, Math.sin(angle) * 420);
+    this.cameras.main.shake(120, 0.006);
+    if (this.tracker.takeDamage(source, this.player.x, this.player.y)) this.end("lost");
+  }
