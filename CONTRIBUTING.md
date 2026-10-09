@@ -111,3 +111,9 @@ python tools/make_textures.py
 
 It rewrites `public/textures/*.png`. Keep the sizes listed in `src/model/GameObject.ts` (`SIZES`),
 because the AI service uses the same numbers to place obstacles.
+
+## 9. If you get stuck
+
+1. Run `npm test` and read the first error.
+2. Check the browser console (F12) and the Network tab.
+3. Ask in the group chat with the **exact error text** and what you already tried.
