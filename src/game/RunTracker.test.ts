@@ -82,3 +82,10 @@ test("RunTracker builds the result the backend expects", () => {
     ],
   });
 });
+
+test("RunTracker reports one death for a lost run and quit when unfinished", () => {
+  const lost = tracker().run;
+  for (let i = 0; i < 3; i++) lost.takeDamage("enemy");
+  expect(lost.result().deaths).toBe(1);
+  expect(tracker().run.result().outcome).toBe("quit");
+});
