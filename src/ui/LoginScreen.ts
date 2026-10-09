@@ -34,3 +34,18 @@ export class LoginScreen {
       void this.send();
     });
   }
+
+  setMode(mode: Mode): void {
+    this.mode = mode;
+    const register = mode === "register";
+    byId("tab-login").classList.toggle("is-active", !register);
+    byId("tab-register").classList.toggle("is-active", register);
+    byId("tab-login").setAttribute("aria-selected", String(!register));
+    byId("tab-register").setAttribute("aria-selected", String(register));
+    byId("field-username").hidden = !register;
+    byId("strength").hidden = !register;
+    this.password.autocomplete = register ? "new-password" : "current-password";
+    this.submit.querySelector(".btn-label")!.textContent = register ? "Crear cuenta" : "Iniciar sesión";
+    this.setMessage("");
+    this.showStrength();
+  }
