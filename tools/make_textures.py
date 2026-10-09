@@ -241,3 +241,27 @@ def path_tile() -> list:
     for y in range(16):
         rows.append("".join("p" if (x * 5 + y * 3) % 9 else "P" for x in range(16)))
     return from_grid(rows, {"p": "d9c08a", "P": "c2a76f"})
+
+SPRITES = {
+    "player": player,
+    "box": box,
+    "wall": wall,
+    "tree": tree,
+    "spike": spike,
+    "coin": coin,
+    "enemy-slime": slime,
+    "grass": grass,
+    "house": house,
+    "path": path_tile,
+}
+
+
+def main() -> None:
+    OUT.mkdir(parents=True, exist_ok=True)
+    for name, draw in SPRITES.items():
+        write_png(OUT / f"{name}.png", draw())
+        print(f"textures/{name}.png")
+
+
+if __name__ == "__main__":
+    main()
