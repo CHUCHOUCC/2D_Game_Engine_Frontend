@@ -22,3 +22,14 @@ export function applyTheme(setting: ThemeSetting): void {
 query?.addEventListener("change", () => {
   if (current === "system") applyTheme("system");
 });
+
+/** Theme chosen last time on this device, used before the account settings arrive. */
+export function storedTheme(): ThemeSetting {
+  try {
+    const value = localStorage.getItem("engine-theme");
+    if (value === "light" || value === "dark" || value === "system") return value;
+  } catch {
+    // ignore
+  }
+  return "dark";
+}
