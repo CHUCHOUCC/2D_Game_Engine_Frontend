@@ -38,3 +38,10 @@ test("TokenStore reports when the access token is about to expire", () => {
   now = 850_000;
   expect(tokens.expiresSoon(60_000)).toBe(true);
 });
+
+test("TokenStore restores the tokens from storage", () => {
+  const { storage, tokens } = store();
+  tokens.save(PAIR);
+  const again = new TokenStore(storage as unknown as Storage, () => 1_000);
+  expect(again.refresh).toBe("r1");
+});
