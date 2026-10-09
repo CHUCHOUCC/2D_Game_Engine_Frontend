@@ -119,3 +119,14 @@ export class LoginScreen {
     this.message.textContent = text;
     this.message.classList.toggle("is-error", isError);
   }
+
+  show(note = ""): void {
+    this.screen.hidden = false;
+    this.setMessage(note, note !== "");
+    this.email.focus();
+  }
+
+  hide(): void {
+    this.screen.hidden = true;
+  }
+}
