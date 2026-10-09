@@ -60,3 +60,9 @@ export class RunTracker {
   outcome(): Outcome | null {
     return this.result_;
   }
+
+  private record(kind: string, x?: number, y?: number): void {
+    if (this.events.size() < MAX_EVENTS) {
+      this.events.add({ kind, x: x === undefined ? undefined : Math.round(x), y: y === undefined ? undefined : Math.round(y), at_ms: this.elapsedMs() });
+    }
+  }
