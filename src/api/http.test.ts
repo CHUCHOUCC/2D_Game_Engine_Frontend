@@ -80,3 +80,8 @@ test("HttpClient refreshes before a request when the access token is about to ex
   expect(calls.map((c) => c.url.split("/").pop())).toEqual(["refresh", "projects"]);
   expect(calls[1].auth).toBe("Bearer fresh");
 });
+
+test("HttpClient turns backend errors into Spanish messages", async () => {
+  const { client } = setup(() => json(409, { detail: "Email already registered" }), false);
+  await expect(client.request("/auth/register")).rejects.toMatchObject({ status: 409, message: "Ese correo ya tiene una cuenta." });
+});
