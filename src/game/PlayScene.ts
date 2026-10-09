@@ -284,3 +284,8 @@ export class PlayScene extends Phaser.Scene {
       difficulty: this.difficulty,
     });
   }
+
+  /** Called by the "Salir" button. */
+  quit(): void {
+    this.end("quit");
+  }
