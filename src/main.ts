@@ -308,3 +308,9 @@ async function leaveApp(callBackend: boolean, note = ""): Promise<void> {
   byId("app").hidden = true;
   login.show(note);
 }
+
+http.whenSessionLost(() => void leaveApp(false, "Tu sesión terminó. Vuelve a iniciar sesión."));
+
+window.setInterval(() => {
+  if (http.tokens.refresh !== null && http.tokens.expiresSoon(120_000)) void http.refreshTokens();
+}, 30_000);
