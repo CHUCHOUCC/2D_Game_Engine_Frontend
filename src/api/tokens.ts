@@ -62,3 +62,24 @@ export class TokenStore {
   expiresSoon(marginMs = 60_000): boolean {
     return this.current !== null && this.msUntilExpiry() < marginMs;
   }
+
+  private read(): Stored | null {
+    try {
+      const raw = this.storage?.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw) as Stored;
+      return typeof data.access === "string" && typeof data.refresh === "string" ? data : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private write(): void {
+    try {
+      if (this.current === null) this.storage?.removeItem(STORAGE_KEY);
+      else this.storage?.setItem(STORAGE_KEY, JSON.stringify(this.current));
+    } catch {
+      // storage may be blocked; the tokens then live only in memory
+    }
+  }
+}
