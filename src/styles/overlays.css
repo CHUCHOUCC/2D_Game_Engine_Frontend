@@ -1,0 +1,24 @@
+.hud {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(8, 11, 18, 0.78);
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+  box-shadow: var(--shadow);
+}
+.hud-item { display: inline-flex; align-items: center; gap: 6px; }
+.hud-item .meter { width: 70px; }
+.hud-icon { width: 20px; height: 20px; object-fit: cover; object-position: left; image-rendering: pixelated; }
+.hud-icon-sheet { width: 20px; }
+.hud-help { color: #9fb0c8; font-weight: 400; font-size: 12px; }
+#hud-hearts { color: #ff5f7a; letter-spacing: 2px; font-size: 16px; }
