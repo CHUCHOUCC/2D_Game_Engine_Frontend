@@ -45,3 +45,17 @@ test("HttpClient refreshes on 401 and retries with the new token", async () => {
   expect(calls[1].body).toEqual({ refresh_token: "old-refresh" });
   expect(tokens.refresh).toBe("new-refresh");
 });
+
+test("HttpClient runs a single refresh for parallel requests", async () => {
+  let refreshes = 0;
+  const { client } = setup((url, init) => {
+    if (url.endsWith("/auth/refresh")) {
+      refreshes += 1;
+      return json(200, { access_token: "new-access", refresh_token: "r2", token_type: "bearer", expires_in: 900 });
+    }
+    const auth = (init.headers as Record<string, string>)["Authorization"];
+    return auth === "Bearer new-access" ? json(200, {}) : json(401, {});
+  });
+  await Promise.all([client.request("/a"), client.request("/b"), client.request("/c")]);
+  expect(refreshes).toBe(1);
+});
