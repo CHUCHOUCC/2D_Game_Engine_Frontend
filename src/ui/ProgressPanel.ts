@@ -34,3 +34,12 @@ export async function refreshProgress(): Promise<void> {
   }
   renderAchievements(achievements.map((a) => a.code));
 }
+
+function renderAchievements(codes: string[]): void {
+  const unlocked = new Set(codes);
+  byId("achievements").replaceChildren(
+    ...Object.keys(ALL_ACHIEVEMENTS).map((code) =>
+      make("span", unlocked.has(code) ? "badge" : "badge is-locked", `${unlocked.has(code) ? "🏆" : "🔒"} ${achievementName(code)}`),
+    ),
+  );
+}
