@@ -20,12 +20,14 @@ import { countByKind, hasPlayer, nextObjectId, SceneModel } from "./model/SceneM
 import { AiPanel } from "./ui/AiPanel";
 import { byId, errorText } from "./ui/dom";
 import { setHudVisible, showHud } from "./ui/Hud";
+import { IdleTimer } from "./ui/IdleTimer";
 import { Inspector } from "./ui/Inspector";
 import { hideLoader, showLoader } from "./ui/loader";
 import { LoginScreen } from "./ui/LoginScreen";
 import { askNewProject } from "./ui/NewProjectDialog";
 import { Palette } from "./ui/Palette";
 import { refreshProgress } from "./ui/ProgressPanel";
+import { SecurityPanel } from "./ui/SecurityPanel";
 import { ProjectList } from "./ui/ProjectList";
 import { showResult } from "./ui/ResultDialog";
 import { SettingsPanel } from "./ui/SettingsPanel";
@@ -38,6 +40,7 @@ let savedVersion = 0;
 let playing = false;
 let runId: number | null = null;
 let difficulty = 0.5;
+let currentUser: UserDto | null = null;
 
 function setStatus(message: string, kind: "info" | "error" | "success" = "info"): void {
   const status = byId("status");
@@ -274,9 +277,22 @@ const settings = new SettingsPanel((value) =>
   host.setEditorOptions({ showGrid: value.show_grid, snapToGrid: value.snap_to_grid, gridSize: value.grid_size }),
 );
 
+const security = new SecurityPanel(
+  () => currentUser,
+  () => void leaveApp(false, "Cerraste la sesión en todos tus dispositivos."),
+);
+byId("btn-settings").addEventListener("click", () => void security.refresh());
+
+// Closes a session left open on a shared computer.
+const idle = new IdleTimer({
+  onWarning: () => toast("Tu sesión se cerrará en 2 minutos por inactividad.", "info", 10_000),
+  onTimeout: () => void leaveApp(true, "Cerramos tu sesión por inactividad."),
+});
+
 const login = new LoginScreen(enterApp);
 
 async function enterApp(user: UserDto): Promise<void> {
+  currentUser = user;
   showLoader("Preparando tu espacio de trabajo…");
   login.hide();
   byId("app").hidden = false;
@@ -287,15 +303,19 @@ async function enterApp(user: UserDto): Promise<void> {
   const projects = await projectList.refresh().catch(() => []);
   openProject(projects[0] ?? null);
   void refreshProgress();
+  idle.start();
   hideLoader();
   toast(`¡Hola, ${user.username}!`, "success");
 }
 
 async function leaveApp(callBackend: boolean, note = ""): Promise<void> {
   if (callBackend) {
-    if (isDirty() && !window.confirm("Hay cambios sin guardar. ¿Salir igualmente?")) return;
+    // An idle timeout cannot wait for an answer: nobody is there to give it.
+    if (note === "" && isDirty() && !window.confirm("Hay cambios sin guardar. ¿Salir igualmente?")) return;
     await logOut();
   }
+  idle.stop();
+  currentUser = null;
   if (playing) {
     setPlaying(false);
     host.edit();

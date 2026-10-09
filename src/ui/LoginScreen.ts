@@ -1,6 +1,7 @@
 import { getMe, logIn, registerAccount, type UserDto } from "../api/client";
 import { byId, errorText } from "./dom";
 import { hideLoader, showLoader } from "./loader";
+import { passwordProblem } from "./passwordPolicy";
 import { passwordStrength } from "./passwordStrength";
 
 type Mode = "login" | "register";
@@ -77,9 +78,16 @@ export class LoginScreen {
       this.email.setAttribute("aria-invalid", "true");
       return "Escribe un correo válido.";
     }
-    if (this.password.value.length < (this.mode === "register" ? 8 : 1)) {
+    if (this.mode === "login" && this.password.value === "") {
       this.password.setAttribute("aria-invalid", "true");
-      return this.mode === "register" ? "La contraseña necesita al menos 8 caracteres." : "Escribe tu contraseña.";
+      return "Escribe tu contraseña.";
+    }
+    if (this.mode === "register") {
+      const problem = passwordProblem(this.password.value, this.email.value.trim(), this.username.value.trim());
+      if (problem !== null) {
+        this.password.setAttribute("aria-invalid", "true");
+        return problem;
+      }
     }
     return null;
   }

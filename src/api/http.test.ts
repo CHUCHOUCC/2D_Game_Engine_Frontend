@@ -98,5 +98,6 @@ test("HttpClient reports network failures and returns nothing for 204", async ()
 test("friendlyMessage covers validation and AI errors", () => {
   expect(friendlyMessage(422, "whatever")).toBe("Hay datos no válidos en el formulario.");
   expect(friendlyMessage(502, "x")).toBe("La IA no respondió. Inténtalo de nuevo.");
-  expect(friendlyMessage(418, "teapot")).toBe("teapot");
+  expect(friendlyMessage(418, "teapot")).toBe("Algo salió mal (código 418). Inténtalo de nuevo.");
+  expect(friendlyMessage(429, "anything")).toBe("Demasiadas peticiones. Espera un momento.");
 });

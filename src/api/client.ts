@@ -205,3 +205,26 @@ export function getSettings(): Promise<SettingsDto> {
 export function saveSettings(settings: SettingsDto): Promise<SettingsDto> {
   return http.request<SettingsDto>("/me/settings", { method: "PUT", body: JSON.stringify(settings) });
 }
+
+export interface ActivityDto {
+  action: string;
+  created_at: string;
+}
+
+/** Change the password; the backend ends every other session of the account. */
+export function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  return http.request<void>("/auth/password", {
+    method: "POST",
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  });
+}
+
+/** Revoke every refresh token of the account (all devices), then forget ours. */
+export async function logOutEverywhere(): Promise<void> {
+  await http.request<void>("/auth/logout-all", { method: "POST" });
+  http.tokens.clear();
+}
+
+export function myActivity(): Promise<ActivityDto[]> {
+  return http.request<ActivityDto[]>("/me/activity");
+}

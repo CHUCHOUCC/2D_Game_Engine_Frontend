@@ -8,9 +8,16 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "textures": "python tools/make_textures.py"
+    "textures": "python tools/make_textures.py",
+    "stack": "node scripts/local-stack.mjs",
+    "stack:preview": "node scripts/local-stack.mjs --preview",
+    "e2e": "playwright test",
+    "e2e:report": "playwright show-report"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@electric-sql/pglite-socket": "^0.2.11",
+    "@playwright/test": "^1.64.0",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
     "vitest": "^5.0.3"

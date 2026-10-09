@@ -17,14 +17,33 @@ const MESSAGES: Record<string, string> = {
   "Invalid refresh token": "Tu sesión terminó. Vuelve a iniciar sesión.",
   "Project not found": "No se encontró el proyecto.",
   "AI service is not configured": "La IA no está configurada en el servidor.",
+  "Too many requests, slow down": "Vas demasiado rápido. Espera un momento y vuelve a intentarlo.",
+  "Request body too large": "Los datos enviados son demasiado grandes.",
+  "Current password is wrong": "La contraseña actual no es correcta.",
+  "Password is too common": "Esa contraseña es demasiado común.",
+  "Password repeats too few characters": "La contraseña repite demasiados caracteres.",
+  "Password cannot be only numbers": "La contraseña no puede tener solo números.",
+  "Password cannot contain your email or username": "La contraseña no puede contener tu correo ni tu usuario.",
+  "Password must have at least 8 characters": "La contraseña necesita al menos 8 caracteres.",
+  "New password must be different": "La nueva contraseña debe ser distinta de la actual.",
+  "Version not found": "No se encontró esa versión.",
+  "Unknown template": "Esa plantilla no existe.",
+  "Run not found or already finished": "La partida ya había terminado.",
+  "Internal server error": "Error interno del servidor. Inténtalo de nuevo.",
 };
 
+/** Spanish text for an error. The backend speaks English; the user never sees it. */
 export function friendlyMessage(status: number, detail: string): string {
   if (MESSAGES[detail]) return MESSAGES[detail];
   if (status === 0) return "No se pudo conectar con el servidor.";
+  if (status === 401) return "Tu sesión terminó. Vuelve a iniciar sesión.";
+  if (status === 403) return "No tienes permiso para hacer esto.";
+  if (status === 404) return "No se encontró lo que buscabas.";
+  if (status === 413) return "Los datos enviados son demasiado grandes.";
   if (status === 422) return "Hay datos no válidos en el formulario.";
+  if (status === 429) return "Demasiadas peticiones. Espera un momento.";
   if (status === 502 || status === 503) return "La IA no respondió. Inténtalo de nuevo.";
-  return detail || `Error ${status}`;
+  return `Algo salió mal (código ${status}). Inténtalo de nuevo.`;
 }
 
 type Fetch = typeof fetch;

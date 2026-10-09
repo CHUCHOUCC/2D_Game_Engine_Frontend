@@ -20,17 +20,17 @@
     <section id="login-screen" class="login" hidden>
       <div class="login-art" aria-hidden="true">
         <div class="login-art-scene">
-          <span class="sprite sprite-house" style="left: 14%; top: 22%"></span>
-          <span class="sprite sprite-tree" style="left: 52%; top: 18%"></span>
-          <span class="sprite sprite-tree" style="left: 60%; top: 30%"></span>
-          <span class="sprite sprite-wall" style="left: 30%; top: 62%"></span>
-          <span class="sprite sprite-wall" style="left: 34%; top: 62%"></span>
-          <span class="sprite sprite-wall" style="left: 38%; top: 62%"></span>
-          <span class="sprite sprite-box" style="left: 70%; top: 58%"></span>
-          <span class="sprite sprite-coin" style="left: 46%; top: 44%"></span>
-          <span class="sprite sprite-coin" style="left: 76%; top: 40%"></span>
-          <span class="sprite sprite-enemy" style="left: 64%; top: 72%"></span>
-          <span class="sprite sprite-player" style="left: 22%; top: 48%"></span>
+          <span class="sprite sprite-house at-1"></span>
+          <span class="sprite sprite-tree at-2"></span>
+          <span class="sprite sprite-tree at-3"></span>
+          <span class="sprite sprite-wall at-4"></span>
+          <span class="sprite sprite-wall at-5"></span>
+          <span class="sprite sprite-wall at-6"></span>
+          <span class="sprite sprite-box at-7"></span>
+          <span class="sprite sprite-coin at-8"></span>
+          <span class="sprite sprite-coin at-9"></span>
+          <span class="sprite sprite-enemy at-10"></span>
+          <span class="sprite sprite-player at-11"></span>
         </div>
         <div class="login-art-copy">
           <h2>Crea, juega y deja que la IA aprenda.</h2>
@@ -213,6 +213,40 @@
           <legend>Sonido</legend>
           <label class="field-inline"><span>Música</span><input id="set-music" type="range" min="0" max="100" /></label>
           <label class="field-inline"><span>Efectos</span><input id="set-sfx" type="range" min="0" max="100" /></label>
+        </fieldset>
+        <fieldset class="setting">
+          <legend>Seguridad</legend>
+          <form id="password-form" class="form form-compact" autocomplete="off">
+            <label class="field">
+              <span>Contraseña actual</span>
+              <span class="password">
+                <input id="current-password" type="password" autocomplete="current-password" required maxlength="128" />
+                <button class="eye" type="button" data-toggle-password="current-password" aria-label="Mostrar contraseña" aria-pressed="false">
+                  <svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                  <svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+                </button>
+              </span>
+            </label>
+            <label class="field">
+              <span>Nueva contraseña</span>
+              <span class="password">
+                <input id="new-password" type="password" autocomplete="new-password" required minlength="8" maxlength="128" />
+                <button class="eye" type="button" data-toggle-password="new-password" aria-label="Mostrar contraseña" aria-pressed="false">
+                  <svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                  <svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+                </button>
+              </span>
+            </label>
+            <p id="password-message" class="form-message" role="alert"></p>
+            <button id="btn-change-password" class="btn btn-block" type="submit">
+              <span class="btn-spinner" aria-hidden="true"></span>
+              <span class="btn-label">Cambiar contraseña</span>
+            </button>
+          </form>
+          <button id="btn-logout-all" class="btn btn-danger btn-block security-logout-all" type="button">Cerrar sesión en todos los dispositivos</button>
+          <h4 class="activity-title">Actividad reciente</h4>
+          <ul id="activity" class="activity"></ul>
+          <p class="hint">Por seguridad, la sesión se cierra tras 30 minutos sin actividad.</p>
         </fieldset>
         <fieldset class="setting">
           <legend>Atajos</legend>
