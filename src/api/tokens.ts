@@ -44,3 +44,21 @@ export class TokenStore {
     this.current = null;
     this.write();
   }
+
+  get access(): string | null {
+    return this.current?.access ?? null;
+  }
+
+  get refresh(): string | null {
+    return this.current?.refresh ?? null;
+  }
+
+  /** Milliseconds until the access token expires (negative once expired). */
+  msUntilExpiry(): number {
+    return this.current === null ? -1 : this.current.expiresAt - this.now();
+  }
+
+  /** True when the access token expires within the next `marginMs`. */
+  expiresSoon(marginMs = 60_000): boolean {
+    return this.current !== null && this.msUntilExpiry() < marginMs;
+  }
