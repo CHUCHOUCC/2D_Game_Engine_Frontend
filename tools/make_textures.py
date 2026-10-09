@@ -193,3 +193,15 @@ SLIME_FRAMES = [
 def slime() -> list:
     palette = {"o": "5a1730", "b": "c2335a", "l": "e8698a", "w": "ffffff", "k": "1b1b2f"}
     return side_by_side([from_grid(f, palette) for f in SLIME_FRAMES])
+
+
+
+def grass() -> list:
+    rows = []
+    for y in range(16):
+        row = ""
+        for x in range(16):
+            value = (x * 7 + y * 13 + x * y) % 11
+            row += "G" if value == 0 else ("d" if value == 5 else "g")
+        rows.append(row)
+    return from_grid(rows, {"g": "4c9a3f", "G": "5bb24c", "d": "3f8434"})
