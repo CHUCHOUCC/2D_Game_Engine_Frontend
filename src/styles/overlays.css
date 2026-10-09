@@ -63,3 +63,16 @@
 .segmented button.is-active { background: var(--bg-elevated); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); }
 .shortcuts { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0; font-size: 13px; }
 .shortcuts dd { margin: 0; color: var(--text-muted); }
+
+.dialog {
+  width: min(460px, calc(100vw - 32px));
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+.dialog::backdrop { background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); }
+.dialog h3 { font-size: 18px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
