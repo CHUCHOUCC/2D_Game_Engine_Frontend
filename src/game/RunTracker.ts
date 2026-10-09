@@ -110,3 +110,21 @@ export class RunTracker {
     this.result_ = outcome;
     this.endedAt = this.now();
   }
+
+  result(): RunResultDto {
+    const outcome = this.result_ ?? "quit";
+    const events: RunResultDto["events"] = [];
+    for (const event of this.events) events.push(event);
+    return {
+      outcome,
+      score: this.score(),
+      coins_collected: this.coinsCollected,
+      coins_total: this.coinsTotal,
+      enemies_defeated: this.enemiesDefeated,
+      damage_taken: this.damageTaken,
+      deaths: outcome === "lost" ? 1 : 0,
+      duration_ms: Math.min(this.elapsedMs(), 3_600_000),
+      events,
+    };
+  }
+}
