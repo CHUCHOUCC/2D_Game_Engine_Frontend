@@ -25,3 +25,14 @@ export const SIZES: Record<Kind, [number, number]> = {
   coin: [16, 16],
   enemy: [28, 28],
 };
+
+export const KIND_INFO: Record<Kind, { name: string; hint: string }> = {
+  player: { name: "Jugador", hint: "Punto de inicio. Solo uno por escena." },
+  box: { name: "Caja", hint: "Se puede empujar." },
+  wall: { name: "Pared", hint: "Bloquea el paso." },
+  house: { name: "Casa", hint: "Edificio sólido de 3 × 3 casillas." },
+  tree: { name: "Árbol", hint: "Decoración sólida." },
+  spike: { name: "Pinchos", hint: "Quita vida al tocarlos." },
+  coin: { name: "Moneda", hint: "Recógelas todas para ganar." },
+  enemy: { name: "Enemigo", hint: "Te persigue. Espacio para atacar." },
+};
