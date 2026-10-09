@@ -1,0 +1,7 @@
+.login {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(380px, 1fr);
+  background: var(--bg);
+}
