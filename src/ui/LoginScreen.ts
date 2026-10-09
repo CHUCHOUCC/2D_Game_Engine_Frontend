@@ -57,3 +57,12 @@ export class LoginScreen {
     this.eye.setAttribute("aria-label", visible ? "Ocultar contraseña" : "Mostrar contraseña");
     this.password.focus();
   }
+
+  private showStrength(): void {
+    if (this.mode !== "register") return;
+    const strength = passwordStrength(this.password.value);
+    const fill = byId("strength-fill");
+    fill.style.width = `${this.password.value ? (strength.score + 1) * 20 : 0}%`;
+    fill.style.background = strength.color;
+    byId("strength-label").textContent = this.password.value ? strength.label : "Escribe una contraseña";
+  }
