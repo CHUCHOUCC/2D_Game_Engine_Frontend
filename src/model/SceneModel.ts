@@ -1,6 +1,6 @@
 import { LinkedList } from "../structures/LinkedList";
 import { Stack } from "../structures/Stack";
-import type { GameObject } from "./GameObject";
+import type { GameObject, Kind } from "./GameObject";
 
 /** An action that can be undone and redone. */
 type Command =
