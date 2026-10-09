@@ -48,3 +48,7 @@ export class GameHost {
     this.game?.scene.stop("play");
     this.game?.scene.start("play", { difficulty });
   }
+
+  quitPlay(): void {
+    if (this.game?.scene.isActive("play")) this.playScene.quit();
+  }
