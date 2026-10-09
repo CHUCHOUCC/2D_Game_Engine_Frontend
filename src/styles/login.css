@@ -35,3 +35,13 @@
 .sprite-tree { background-image: url("/textures/tree.png"); }
 .sprite-wall { background-image: url("/textures/wall.png"); }
 .sprite-box { background-image: url("/textures/box.png"); }
+
+.sprite-coin, .sprite-player, .sprite-enemy { background-repeat: no-repeat; }
+.sprite-coin { background-image: url("/textures/coin.png"); background-size: 400% 100%; animation: sheet4 0.8s steps(4) infinite, float 2s ease-in-out infinite; }
+.sprite-player { background-image: url("/textures/player.png"); background-size: 400% 100%; animation: sheet4 0.6s steps(4) infinite, walk 9s linear infinite alternate; }
+.sprite-enemy { background-image: url("/textures/enemy-slime.png"); background-size: 200% 100%; animation: sheet2 0.7s steps(2) infinite; }
+
+@keyframes sheet4 { from { background-position: 0 0; } to { background-position: -256px 0; } }
+@keyframes sheet2 { from { background-position: 0 0; } to { background-position: -128px 0; } }
+@keyframes float { 50% { translate: 0 -8px; } }
+@keyframes walk { to { translate: 260px 0; } }
