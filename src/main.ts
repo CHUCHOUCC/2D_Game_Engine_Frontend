@@ -190,3 +190,48 @@ const aiPanel = new AiPanel(
     if (isDirty()) await save();
   },
 );
+
+async function play(): Promise<void> {
+  if (projectId === null) {
+    toast("Crea o abre un proyecto para jugar.", "error");
+    return;
+  }
+  palette.pick(null);
+  if (isDirty()) await save();
+  const run = await startRun(projectId);
+  runId = run.id;
+  difficulty = run.difficulty;
+  setPlaying(true);
+  host.play(difficulty);
+}
+
+function setPlaying(value: boolean): void {
+  playing = value;
+  byId("app").classList.toggle("is-playing", value);
+  byId("btn-play").hidden = value;
+  byId("btn-stop").hidden = !value;
+  setHudVisible(value);
+  setStatus(value ? "Jugando: flechas o WASD para moverte, Espacio para atacar." : "Editando.");
+}
+
+async function runFinished(result: RunResultDto): Promise<void> {
+  let learned: FinishDto | null = null;
+  if (projectId !== null && runId !== null) {
+    learned = await finishRun(projectId, runId, result).catch(() => null);
+  }
+  runId = null;
+  void refreshProgress();
+  void aiPanel.refresh();
+  const choice = await showResult(result, learned);
+  if (choice === "again") {
+    await attempt(async () => {
+      const run = await startRun(projectId!);
+      runId = run.id;
+      difficulty = run.difficulty;
+      host.restart(difficulty);
+    });
+  } else {
+    setPlaying(false);
+    host.edit();
+  }
+}
