@@ -60,3 +60,29 @@ export class EditorScene extends Phaser.Scene {
     this.setupInput();
     this.setupPanAndZoom();
   }
+
+  private setupCamera(): void {
+    const camera = this.cameras.main;
+    camera.setBackgroundColor("rgba(0,0,0,0)");
+    this.fitView();
+    this.scale.on(Phaser.Scale.Events.RESIZE, () => this.fitView());
+  }
+
+  /** Zoom so the whole world is visible and centre it. */
+  fitView(): void {
+    const camera = this.cameras.main;
+    camera.setZoom(Phaser.Math.Clamp(fitZoom(this.scale.width, this.scale.height), MIN_ZOOM, MAX_ZOOM));
+    camera.centerOn(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
+    this.events_.onZoom(camera.zoom);
+  }
+
+  /** Change zoom by a factor, keeping the world point under the pointer still. */
+  zoomBy(factor: number, screenX = this.scale.width / 2, screenY = this.scale.height / 2): void {
+    const camera = this.cameras.main;
+    const before = camera.getWorldPoint(screenX, screenY);
+    camera.setZoom(Phaser.Math.Clamp(camera.zoom * factor, MIN_ZOOM, MAX_ZOOM));
+    const after = camera.getWorldPoint(screenX, screenY);
+    camera.scrollX += before.x - after.x;
+    camera.scrollY += before.y - after.y;
+    this.events_.onZoom(camera.zoom);
+  }
