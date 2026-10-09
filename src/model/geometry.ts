@@ -16,3 +16,9 @@ export function clampToWorld(x: number, y: number, kind: Kind): [number, number]
     Math.min(WORLD_HEIGHT - h / 2, Math.max(h / 2, y)),
   ];
 }
+
+/** Largest zoom that shows the whole world inside a viewport, with a small margin. */
+export function fitZoom(viewWidth: number, viewHeight: number, margin = 24): number {
+  const zoom = Math.min((viewWidth - margin * 2) / WORLD_WIDTH, (viewHeight - margin * 2) / WORLD_HEIGHT);
+  return Math.max(0.1, Math.round(zoom * 100) / 100);
+}
