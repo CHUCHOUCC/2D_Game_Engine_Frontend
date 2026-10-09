@@ -235,3 +235,37 @@ async function runFinished(result: RunResultDto): Promise<void> {
     host.edit();
   }
 }
+
+function bind(id: string, handler: () => void | Promise<void>): void {
+  byId(id).addEventListener("click", () => void attempt(async () => handler()));
+}
+
+bind("btn-save", save);
+bind("btn-undo", () => void model.undo());
+bind("btn-redo", () => void model.redo());
+bind("btn-play", play);
+bind("btn-stop", () => host.quitPlay());
+bind("btn-new-project", newProject);
+bind("zoom-in", () => host.editor.zoomBy(1.2));
+bind("zoom-out", () => host.editor.zoomBy(1 / 1.2));
+bind("zoom-fit", () => host.editor.fitView());
+bind("btn-logout", () => leaveApp(true));
+
+bindShortcuts(
+  {
+    save: () => void attempt(save),
+    undo: () => void model.undo(),
+    redo: () => void model.redo(),
+    remove: () => removeObject(),
+    play: () => void attempt(play),
+    cancel: () => {
+      palette.pick(null);
+      host.editor.select(null);
+    },
+  },
+  () => !playing && byId("app").hidden === false,
+);
+
+window.addEventListener("beforeunload", (event) => {
+  if (isDirty()) event.preventDefault();
+});
