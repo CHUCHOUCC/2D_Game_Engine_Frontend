@@ -49,3 +49,11 @@ export class LoginScreen {
     this.setMessage("");
     this.showStrength();
   }
+
+  private togglePassword(): void {
+    const visible = this.password.type === "password";
+    this.password.type = visible ? "text" : "password";
+    this.eye.setAttribute("aria-pressed", String(visible));
+    this.eye.setAttribute("aria-label", visible ? "Ocultar contraseña" : "Mostrar contraseña");
+    this.password.focus();
+  }
