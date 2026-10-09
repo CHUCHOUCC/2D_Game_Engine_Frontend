@@ -166,3 +166,17 @@ export class EditorScene extends Phaser.Scene {
       this.input.setDefaultCursor("default");
     }
   }
+
+  setOptions(options: EditorOptions): void {
+    this.options = options;
+    if (this.grid !== undefined) this.drawGrid();
+  }
+
+  private drawGrid(): void {
+    this.grid.clear();
+    if (!this.options.showGrid) return;
+    const size = this.options.gridSize;
+    this.grid.lineStyle(1, 0x000000, 0.18);
+    for (let x = size; x < WORLD_WIDTH; x += size) this.grid.lineBetween(x, 0, x, WORLD_HEIGHT);
+    for (let y = size; y < WORLD_HEIGHT; y += size) this.grid.lineBetween(0, y, WORLD_WIDTH, y);
+  }
