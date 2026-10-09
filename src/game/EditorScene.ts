@@ -119,3 +119,26 @@ export class EditorScene extends Phaser.Scene {
     });
 
   }
+
+  private setupPanAndZoom(): void {
+    this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
+      if (this.panning !== null) {
+        const camera = this.cameras.main;
+        camera.scrollX = this.panning.scrollX - (pointer.x - this.panning.x) / camera.zoom;
+        camera.scrollY = this.panning.scrollY - (pointer.y - this.panning.y) / camera.zoom;
+      }
+      if (this.ghost !== null && this.placing !== null) {
+        const [x, y] = this.placePoint(pointer.worldX, pointer.worldY, this.placing);
+        this.ghost.setPosition(x, y);
+      }
+      this.events_.onPointer(Math.round(pointer.worldX), Math.round(pointer.worldY));
+    });
+
+    this.input.on("pointerup", () => {
+      this.panning = null;
+    });
+
+    this.input.on("wheel", (pointer: Phaser.Input.Pointer, _over: unknown, _dx: number, dy: number) => {
+      this.zoomBy(dy > 0 ? 0.9 : 1.1, pointer.x, pointer.y);
+    });
+  }
