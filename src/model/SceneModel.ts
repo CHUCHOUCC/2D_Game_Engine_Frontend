@@ -145,3 +145,11 @@ export class SceneModel {
     this.version += 1;
   }
 }
+
+/** True when the scene already has its (only) player spawn point. */
+export function hasPlayer(model: SceneModel): boolean {
+  for (const object of model) {
+    if (object.kind === "player") return true;
+  }
+  return false;
+}
