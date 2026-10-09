@@ -75,3 +75,24 @@ export class PlayScene extends Phaser.Scene {
   preload(): void {
     loadTextures(this);
   }
+
+  create(): void {
+    createAnimations(this);
+    this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    this.add.tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, "grass").setDepth(-10);
+    this.solids = this.physics.add.staticGroup();
+    this.spikes = this.physics.add.staticGroup();
+    this.coins = this.physics.add.staticGroup();
+    this.boxes = this.physics.add.group();
+    this.enemies = this.physics.add.group();
+
+    const scene: GameObject[] = [];
+    for (const object of this.model) scene.push({ ...object });
+    this.tracker = new RunTracker(scene);
+    for (const object of scene) this.spawn(object);
+    this.createPlayer(scene.find((o) => o.kind === "player") ?? DEFAULT_SPAWN);
+    this.addColliders();
+    this.setupKeys();
+    this.setupCamera();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.releaseKeys());
+  }
