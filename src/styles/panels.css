@@ -46,3 +46,23 @@
 .palette-icon { width: 32px; height: 32px; background-repeat: no-repeat; background-size: 100% 100%; image-rendering: pixelated; }
 .palette-icon.is-sheet-4 { background-size: 400% 100%; }
 .palette-icon.is-sheet-2 { background-size: 200% 100%; }
+
+.project-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+.project-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.project-row:hover { background: var(--panel-2); }
+.project-row.is-current { border-color: var(--accent); background: var(--accent-soft); }
+.project-row strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-row small { color: var(--text-muted); font-size: 11px; }
+.project-actions { display: flex; gap: 2px; opacity: 0; transition: opacity var(--transition); }
+.project-row:hover .project-actions, .project-row.is-current .project-actions { opacity: 1; }
+.project-actions .btn { min-height: 26px; width: 26px; font-size: 13px; }
+.empty { color: var(--text-muted); font-size: 13px; padding: 8px 0; }
