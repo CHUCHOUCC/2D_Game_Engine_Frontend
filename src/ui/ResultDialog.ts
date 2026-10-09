@@ -39,3 +39,21 @@ function numbers(result: RunResultDto): HTMLElement {
   }
   return grid;
 }
+
+function aiSummary(learned: FinishDto | null): HTMLElement {
+  const box = make("div", "result-ai");
+  if (learned === null) {
+    box.textContent = "No se pudo guardar la partida.";
+    return box;
+  }
+  const text = learned.learned
+    ? `La IA aprendió de esta partida. Nueva dificultad: ${difficultyLabel(learned.difficulty)} (${Math.round(learned.difficulty * 100)}%).`
+    : "Partida guardada. La IA no estaba disponible para aprender esta vez.";
+  box.append(make("p", "", text));
+  if (learned.achievements.length > 0) {
+    const list = make("div", "achievements");
+    for (const code of learned.achievements) list.append(make("span", "badge", `🏆 ${achievementName(code)}`));
+    box.append(list);
+  }
+  return box;
+}
