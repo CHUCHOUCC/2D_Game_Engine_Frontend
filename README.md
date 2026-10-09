@@ -66,3 +66,20 @@ only to send it to the backend as JSON.
 | `P` | Play |
 | `Esc` | Stop placing / leave the game |
 | Right-click drag, wheel | Move and zoom the map |
+
+## Run it
+
+```bash
+npm install
+cp .env.example .env     # set VITE_API_URL if the backend is not on localhost:8000
+npm run dev              # http://localhost:5173
+npm test                 # unit tests (Vitest)
+npm run build            # production build in dist/
+npm run textures         # redraw the texture pack
+```
+
+| Variable | Meaning | Default |
+|---|---|---|
+| `VITE_API_URL` | Base URL of the backend | `http://localhost:8000` |
+
+The backend must allow this site's origin in its `FRONTEND_ORIGINS` variable (CORS).
