@@ -100,3 +100,14 @@ Rules of thumb:
 sends the access token, refreshes it a little before it expires and, if the backend still answers
 401, sends the user back to the login screen. Both tokens live in `sessionStorage`, so closing the
 tab ends the session. To test locally, create an account with **Crear cuenta**.
+
+## 8. Changing the textures
+
+Each sprite is a small text grid in `tools/make_textures.py`. Edit the grid or the colors and run:
+
+```bash
+python tools/make_textures.py
+```
+
+It rewrites `public/textures/*.png`. Keep the sizes listed in `src/model/GameObject.ts` (`SIZES`),
+because the AI service uses the same numbers to place obstacles.
