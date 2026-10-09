@@ -31,3 +31,10 @@ test("RunTracker wins when every coin is collected", () => {
   expect(run.outcome()).toBe("won");
   expect(run.score()).toBe(2);
 });
+
+test("RunTracker wins a level without coins by defeating every enemy", () => {
+  const { run } = tracker([{ id: "e1", kind: "enemy", x: 1, y: 1 }]);
+  run.defeatEnemy();
+  expect(run.outcome()).toBe("won");
+  expect(run.score()).toBe(5);
+});
