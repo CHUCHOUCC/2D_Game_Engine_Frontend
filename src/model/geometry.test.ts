@@ -19,3 +19,9 @@ test("clampToWorld keeps the whole object inside", () => {
   expect(clampToWorld(5000, 5000, "coin")).toEqual([1592, 952]);
   expect(clampToWorld(400, 300, "box")).toEqual([400, 300]);
 });
+
+test("fitZoom shows the whole world", () => {
+  expect(fitZoom(1648, 1008)).toBe(1);
+  expect(fitZoom(848, 528)).toBe(0.5);
+  expect(fitZoom(10, 10)).toBe(0.1);
+});
