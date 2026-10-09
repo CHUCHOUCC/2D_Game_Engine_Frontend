@@ -30,3 +30,17 @@ export class TokenStore {
     this.now = now;
     this.current = this.read();
   }
+
+  save(pair: TokenPair): void {
+    this.current = {
+      access: pair.access_token,
+      refresh: pair.refresh_token,
+      expiresAt: this.now() + pair.expires_in * 1000,
+    };
+    this.write();
+  }
+
+  clear(): void {
+    this.current = null;
+    this.write();
+  }
