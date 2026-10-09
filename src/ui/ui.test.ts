@@ -11,3 +11,10 @@ test("passwords under 8 characters are very weak", () => {
   expect(passwordStrength("abc").score).toBe(0);
   expect(passwordStrength("abc").label).toBe("Muy débil");
 });
+
+test("length and character variety raise the score", () => {
+  expect(passwordStrength("gatoverde").score).toBe(1);
+  expect(passwordStrength("gatoverde12").score).toBe(2);
+  expect(passwordStrength("Gatoverde12").score).toBe(3);
+  expect(passwordStrength("Gatoverde12!largo").score).toBe(4);
+});
