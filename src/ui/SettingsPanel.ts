@@ -79,3 +79,19 @@ export class SettingsPanel {
       saveSettings(this.settings).catch(() => toast("No se pudieron guardar los ajustes.", "error"));
     }, 500);
   }
+
+  async load(): Promise<SettingsDto> {
+    try {
+      this.settings = { ...DEFAULT_SETTINGS, ...(await getSettings()) };
+    } catch {
+      // keep the local defaults if the backend is unreachable
+    }
+    applyTheme(this.settings.theme);
+    this.onChange(this.settings);
+    return this.settings;
+  }
+
+  get value(): SettingsDto {
+    return this.settings;
+  }
+}
