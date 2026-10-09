@@ -22,3 +22,20 @@ export function showResult(result: RunResultDto, learned: FinishDto | null): Pro
     dialog.addEventListener("close", () => resolve(dialog.returnValue === "again" ? "again" : "edit"), { once: true });
   });
 }
+
+function numbers(result: RunResultDto): HTMLElement {
+  const grid = make("div", "result-grid");
+  const items: [string, string][] = [
+    [String(result.score), "Puntos"],
+    [`${result.coins_collected}/${result.coins_total}`, "Monedas"],
+    [String(result.enemies_defeated), "Enemigos"],
+    [String(result.damage_taken), "Golpes recibidos"],
+    [formatTime(result.duration_ms), "Tiempo"],
+  ];
+  for (const [value, label] of items) {
+    const box = make("div", "stat");
+    box.append(make("strong", "", value), make("span", "", label));
+    grid.append(box);
+  }
+  return grid;
+}
