@@ -110,3 +110,26 @@ def wall() -> list:
         light = brick.replace("r", "R")
         rows += [light, brick, brick, "m" * 16]
     return from_grid(rows, {"m": "9a948c", "r": "a4483a", "R": "c45c4a"})
+
+TREE = [
+    "......dddd......",
+    "....ddGGggdd....",
+    "...dGGGgggggd...",
+    "..dGGgggggggd...",
+    "..dGgggggGggdd..",
+    ".dGggggGGgggggd.",
+    ".dgggggggggGggd.",
+    ".dggGgggggggggd.",
+    "..dgggggggggdd..",
+    "...ddggggggdd...",
+    ".....ddtTdd.....",
+    "......tTT.......",
+    "......tTT.......",
+    "......tTT.......",
+    ".....ttTTT......",
+    "................",
+]
+
+
+def tree() -> list:
+    return from_grid(TREE, {"d": "24642a", "g": "3f9b3a", "G": "6cc24a", "t": "6b4423", "T": "4a2e17"})
