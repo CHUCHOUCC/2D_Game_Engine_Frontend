@@ -215,3 +215,20 @@ export class EditorScene extends Phaser.Scene {
     sprite.setData("kind", object.kind);
     sprite.setInteractive({ draggable: true, useHandCursor: true });
   }
+
+  select(id: string | null): void {
+    this.selectedId = id;
+    this.drawSelection();
+    this.events_.onSelect(id);
+  }
+
+  private drawSelection(): void {
+    this.selection.clear();
+    if (this.selectedId === null) return;
+    const image = this.drawnImages().find((i) => i.getData("objectId") === this.selectedId);
+    if (image === undefined) return;
+    const [w, h] = SIZES[image.getData("kind") as Kind];
+    this.selection.lineStyle(2, 0xffffff, 1).strokeRect(image.x - w / 2 - 3, image.y - h / 2 - 3, w + 6, h + 6);
+    this.selection.lineStyle(1, 0x4f8cff, 1).strokeRect(image.x - w / 2 - 5, image.y - h / 2 - 5, w + 10, h + 10);
+  }
+}
