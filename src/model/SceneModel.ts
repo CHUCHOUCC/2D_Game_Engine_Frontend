@@ -160,3 +160,12 @@ export function nextObjectId(model: SceneModel, kind: Kind): string {
   while (model.find(`${kind}-${n}`) !== undefined) n += 1;
   return `${kind}-${n}`;
 }
+
+/** How many objects of each kind the scene has (only kinds that appear). */
+export function countByKind(model: SceneModel): Partial<Record<Kind, number>> {
+  const counts: Partial<Record<Kind, number>> = {};
+  for (const object of model) {
+    counts[object.kind] = (counts[object.kind] ?? 0) + 1;
+  }
+  return counts;
+}
