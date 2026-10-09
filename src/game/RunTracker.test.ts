@@ -47,3 +47,14 @@ test("RunTracker loses when health runs out", () => {
   expect(run.outcome()).toBe("lost");
   expect(run.damageTaken).toBe(3);
 });
+
+test("RunTracker ignores events after the run is over", () => {
+  const { run } = tracker();
+  run.finish("quit");
+  run.collectCoin();
+  run.defeatEnemy();
+  expect(run.takeDamage("enemy")).toBe(false);
+  expect(run.score()).toBe(0);
+  run.finish("won");
+  expect(run.outcome()).toBe("quit");
+});
