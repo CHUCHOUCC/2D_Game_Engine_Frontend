@@ -36,3 +36,7 @@ export const KIND_INFO: Record<Kind, { name: string; hint: string }> = {
   coin: { name: "Moneda", hint: "Recógelas todas para ganar." },
   enemy: { name: "Enemigo", hint: "Te persigue. Espacio para atacar." },
 };
+
+export function isKind(value: unknown): value is Kind {
+  return typeof value === "string" && (KINDS as readonly string[]).includes(value);
+}
