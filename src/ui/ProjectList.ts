@@ -51,3 +51,25 @@ export class ProjectList {
     });
     return button;
   }
+
+  private async duplicate(project: ProjectDto): Promise<void> {
+    try {
+      const copy = await duplicateProject(project.id);
+      toast(`Copiado como "${copy.name}".`, "success");
+      await this.refresh();
+    } catch (error) {
+      toast(errorText(error), "error");
+    }
+  }
+
+  private async remove(project: ProjectDto): Promise<void> {
+    if (!window.confirm(`¿Eliminar "${project.name}"? No se puede deshacer.`)) return;
+    try {
+      await deleteProject(project.id);
+      toast("Proyecto eliminado.", "success");
+      this.onDeleted(project.id);
+      await this.refresh();
+    } catch (error) {
+      toast(errorText(error), "error");
+    }
+  }
