@@ -62,3 +62,28 @@ export class AiPanel {
       await this.refresh(id);
     });
   }
+
+  async refresh(id: number | null = this.getProjectId()): Promise<void> {
+    const root = byId("ai-model");
+    if (id === null) {
+      root.replaceChildren(make("span", "", "Abre un proyecto para ver lo que aprendió la IA."));
+      return;
+    }
+    let model: AiModelDto;
+    try {
+      model = await aiModel(id);
+    } catch {
+      root.replaceChildren(make("span", "", "La IA aún no está disponible."));
+      return;
+    }
+    const meter = make("span", "meter");
+    const fill = make("span");
+    fill.style.width = `${Math.round(model.difficulty * 100)}%`;
+    meter.append(fill);
+    const line = make("span");
+    line.append("Dificultad: ", make("strong", "", difficultyLabel(model.difficulty)));
+    const runs = make("span", "", model.samples_seen === 0
+      ? "Juega una partida para que la IA empiece a aprender."
+      : `Aprendió de ${model.samples_seen} partida${model.samples_seen === 1 ? "" : "s"}.`);
+    root.replaceChildren(line, meter, runs);
+  }
