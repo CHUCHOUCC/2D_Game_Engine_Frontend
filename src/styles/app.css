@@ -83,3 +83,7 @@
 }
 .status.is-error { color: var(--danger); }
 .status.is-success { color: var(--success); }
+
+.app.is-playing { grid-template-columns: 0 minmax(0, 1fr) 0; }
+.app.is-playing .panel { visibility: hidden; }
+.app.is-playing .zoom, .app.is-playing #btn-save, .app.is-playing #btn-undo, .app.is-playing #btn-redo { display: none; }
