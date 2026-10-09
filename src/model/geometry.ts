@@ -22,3 +22,10 @@ export function fitZoom(viewWidth: number, viewHeight: number, margin = 24): num
   const zoom = Math.min((viewWidth - margin * 2) / WORLD_WIDTH, (viewHeight - margin * 2) / WORLD_HEIGHT);
   return Math.max(0.1, Math.round(zoom * 100) / 100);
 }
+
+/** True when two objects' boxes intersect. */
+export function overlaps(a: { kind: Kind; x: number; y: number }, b: { kind: Kind; x: number; y: number }): boolean {
+  const [aw, ah] = SIZES[a.kind];
+  const [bw, bh] = SIZES[b.kind];
+  return Math.abs(a.x - b.x) < (aw + bw) / 2 && Math.abs(a.y - b.y) < (ah + bh) / 2;
+}
