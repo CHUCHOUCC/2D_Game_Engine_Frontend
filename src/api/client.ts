@@ -156,3 +156,34 @@ export function finishRun(projectId: number, runId: number, result: RunResultDto
     body: JSON.stringify(result),
   });
 }
+
+export interface StatsDto {
+  games_played: number;
+  games_won: number;
+  total_score: number;
+  best_score: number;
+  coins_collected: number;
+  enemies_defeated: number;
+  deaths: number;
+  play_time_ms: number;
+}
+
+export interface AchievementDto {
+  code: string;
+  name: string;
+  description: string;
+  points: number;
+  unlocked_at: string;
+}
+
+export function myStats(): Promise<StatsDto> {
+  return http.request<StatsDto>("/me/stats");
+}
+
+export function myAchievements(): Promise<AchievementDto[]> {
+  return http.request<AchievementDto[]>("/me/achievements");
+}
+
+export function leaderboard(projectId: number): Promise<{ username: string; score: number }[]> {
+  return http.request(`/projects/${projectId}/leaderboard`);
+}
