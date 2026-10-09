@@ -37,3 +37,13 @@ export class Palette {
       root.append(button);
     }
   }
+
+  pick(kind: Kind | null): void {
+    this.active = kind;
+    for (const [k, button] of this.buttons) button.classList.toggle("is-active", k === kind);
+    this.onPick(kind);
+  }
+
+  get current(): Kind | null {
+    return this.active;
+  }
