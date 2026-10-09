@@ -76,3 +76,26 @@ PLAYER_LEGS = [
 
 def player() -> list:
     return side_by_side([from_grid(PLAYER_TOP + legs, PLAYER_COLORS) for legs in PLAYER_LEGS])
+
+BOX = [
+    "oooooooooooooooo",
+    "owwwwwwwwwwwwwwo",
+    "owdwwwwwwwwwwdwo",
+    "owwdwwwwwwwwdwwo",
+    "owwwdwwwwwwdwwwo",
+    "owwwwdwwwwdwwwwo",
+    "owwwwwdwwdwwwwwo",
+    "owwwwwwddwwwwwwo",
+    "owwwwwwddwwwwwwo",
+    "owwwwwdwwdwwwwwo",
+    "owwwwdwwwwdwwwwo",
+    "owwwdwwwwwwdwwwo",
+    "owwdwwwwwwwwdwwo",
+    "owdwwwwwwwwwwdwo",
+    "owwwwwwwwwwwwwwo",
+    "oooooooooooooooo",
+]
+
+
+def box() -> list:
+    return from_grid(BOX, {"o": "4a2e14", "w": "c4893f", "d": "8a5a28"})
