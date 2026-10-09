@@ -94,3 +94,7 @@
 .eye .eye-closed { display: none; }
 .eye[aria-pressed="true"] .eye-open { display: none; }
 .eye[aria-pressed="true"] .eye-closed { display: block; }
+
+.strength { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-muted); }
+.strength-bar { flex: 1; height: 6px; border-radius: 3px; background: var(--panel-2); overflow: hidden; }
+#strength-fill { display: block; height: 100%; width: 0; border-radius: 3px; transition: width var(--transition), background var(--transition); }
