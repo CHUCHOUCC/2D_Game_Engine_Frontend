@@ -95,3 +95,15 @@ export function deleteProject(id: number): Promise<void> {
 export function duplicateProject(id: number): Promise<ProjectDto> {
   return http.request<ProjectDto>(`/projects/${id}/duplicate`, { method: "POST" });
 }
+
+export function saveScene(id: number, scene: GameObject[], note = ""): Promise<ProjectDto> {
+  return http.request<ProjectDto>(`/projects/${id}/scene`, { method: "PUT", body: JSON.stringify({ scene, note }) });
+}
+
+export function listVersions(id: number): Promise<VersionDto[]> {
+  return http.request<VersionDto[]>(`/projects/${id}/versions`);
+}
+
+export function restoreVersion(id: number, version: number): Promise<ProjectDto> {
+  return http.request<ProjectDto>(`/projects/${id}/versions/${version}/restore`, { method: "POST" });
+}
