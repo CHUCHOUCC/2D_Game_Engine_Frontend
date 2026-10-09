@@ -233,3 +233,11 @@ def house() -> list:
         fill(wx + 1, 30, wx + 7, 31, "6b4a2a")
     fill(5, 46, 43, 48, "4a3a2a")              # foundation
     return px
+
+
+
+def path_tile() -> list:
+    rows = []
+    for y in range(16):
+        rows.append("".join("p" if (x * 5 + y * 3) % 9 else "P" for x in range(16)))
+    return from_grid(rows, {"p": "d9c08a", "P": "c2a76f"})
