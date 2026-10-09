@@ -31,3 +31,10 @@ test("overlaps uses each kind's size", () => {
   expect(overlaps({ kind: "wall", x: 0, y: 0 }, { kind: "wall", x: 32, y: 0 })).toBe(false);
   expect(overlaps({ kind: "house", x: 100, y: 100 }, { kind: "coin", x: 150, y: 100 })).toBe(true);
 });
+
+test("every kind has a size and isKind rejects unknown values", () => {
+  for (const kind of KINDS) expect(SIZES[kind]).toHaveLength(2);
+  expect(isKind("house")).toBe(true);
+  expect(isKind("dragon")).toBe(false);
+  expect(isKind(3)).toBe(false);
+});
