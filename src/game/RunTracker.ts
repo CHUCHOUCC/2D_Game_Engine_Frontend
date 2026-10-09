@@ -66,3 +66,18 @@ export class RunTracker {
       this.events.add({ kind, x: x === undefined ? undefined : Math.round(x), y: y === undefined ? undefined : Math.round(y), at_ms: this.elapsedMs() });
     }
   }
+
+  collectCoin(x?: number, y?: number): void {
+    if (this.isOver()) return;
+    this.coinsCollected += 1;
+    this.counter.receive({ type: "coin" });
+    this.counter.process();
+    this.record("coin", x, y);
+    if (this.hasWon()) this.finish("won");
+  }
+
+  /** All coins taken; a level without coins is won by defeating every enemy. */
+  hasWon(): boolean {
+    if (this.coinsTotal > 0) return this.coinsCollected >= this.coinsTotal;
+    return this.enemiesTotal > 0 && this.enemiesDefeated >= this.enemiesTotal;
+  }
