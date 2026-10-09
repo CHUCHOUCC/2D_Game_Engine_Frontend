@@ -9,3 +9,7 @@ export interface GameObject {
   x: number;
   y: number;
 }
+
+export const WORLD_WIDTH = 1600;
+export const WORLD_HEIGHT = 960;
+export const TILE_SIZE = 32;
