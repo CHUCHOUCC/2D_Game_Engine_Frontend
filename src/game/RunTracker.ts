@@ -90,3 +90,17 @@ export class RunTracker {
     this.record("enemy_defeated", x, y);
     if (this.hasWon()) this.finish("won");
   }
+
+  /** The player was hurt by an enemy or spikes. Returns true if the run is now lost. */
+  takeDamage(source: string, x?: number, y?: number): boolean {
+    if (this.isOver()) return false;
+    this.damageTaken += 1;
+    this.counter.receive({ type: "hit" });
+    this.counter.process();
+    this.record(`hit_${source}`, x, y);
+    if (this.counter.isGameOver()) {
+      this.finish("lost");
+      return true;
+    }
+    return false;
+  }
