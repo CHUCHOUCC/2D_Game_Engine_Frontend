@@ -33,3 +33,14 @@ export class SettingsPanel {
     this.backdrop.addEventListener("click", () => this.close());
     this.bindInputs();
   }
+
+  private bindInputs(): void {
+    for (const button of document.querySelectorAll<HTMLButtonElement>("[data-theme-option]")) {
+      button.addEventListener("click", () => this.update({ theme: button.dataset.themeOption as SettingsDto["theme"] }));
+    }
+    byId<HTMLInputElement>("set-grid").addEventListener("change", (e) => this.update({ show_grid: (e.target as HTMLInputElement).checked }));
+    byId<HTMLInputElement>("set-snap").addEventListener("change", (e) => this.update({ snap_to_grid: (e.target as HTMLInputElement).checked }));
+    byId<HTMLSelectElement>("set-grid-size").addEventListener("change", (e) => this.update({ grid_size: Number((e.target as HTMLSelectElement).value) }));
+    byId<HTMLInputElement>("set-music").addEventListener("input", (e) => this.update({ music_volume: Number((e.target as HTMLInputElement).value) }));
+    byId<HTMLInputElement>("set-sfx").addEventListener("input", (e) => this.update({ sfx_volume: Number((e.target as HTMLInputElement).value) }));
+  }
