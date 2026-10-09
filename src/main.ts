@@ -314,3 +314,20 @@ http.whenSessionLost(() => void leaveApp(false, "Tu sesión terminó. Vuelve a i
 window.setInterval(() => {
   if (http.tokens.refresh !== null && http.tokens.expiresSoon(120_000)) void http.refreshTokens();
 }, 30_000);
+
+async function boot(): Promise<void> {
+  showLoader("Cargando motor…");
+  requestAnimationFrame(watchModel);
+  if (hasSession()) {
+    try {
+      await enterApp(await getMe());
+      return;
+    } catch {
+      http.tokens.clear();
+    }
+  }
+  login.show();
+  hideLoader();
+}
+
+void boot();
