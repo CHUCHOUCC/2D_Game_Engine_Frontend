@@ -42,3 +42,11 @@ test("shortcuts map keys to editor actions", () => {
   expect(key("Escape")).toBe("cancel");
   expect(key("s")).toBeNull();
 });
+
+test("HUD formats time and hearts", () => {
+  expect(formatTime(75_000)).toBe("1:15");
+  expect(formatTime(5_400)).toBe("0:05");
+  expect(formatTime(-10)).toBe("0:00");
+  expect(hearts(2)).toBe("♥♥♡");
+  expect(hearts(9)).toBe("♥♥♥");
+});
