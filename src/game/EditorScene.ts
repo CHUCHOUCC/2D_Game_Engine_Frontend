@@ -47,3 +47,16 @@ export class EditorScene extends Phaser.Scene {
   preload(): void {
     loadTextures(this);
   }
+
+  create(): void {
+    createAnimations(this);
+    this.drawnVersion = -1; // the scene starts again when we come back from Play
+    this.add.tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, "grass").setDepth(-10);
+    this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT).setStrokeStyle(4, 0x0b0f14, 0.9).setDepth(-5);
+    this.grid = this.add.graphics().setDepth(-4);
+    this.selection = this.add.graphics().setDepth(50);
+    this.drawGrid();
+    this.setupCamera();
+    this.setupInput();
+    this.setupPanAndZoom();
+  }
