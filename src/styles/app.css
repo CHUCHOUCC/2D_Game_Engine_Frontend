@@ -34,3 +34,20 @@
 }
 .project-name:hover:not(:disabled) { border-color: var(--border) !important; }
 .project-name:focus { background: var(--bg) !important; border-color: var(--accent) !important; }
+
+.zoom { display: flex; align-items: center; gap: 4px; }
+.zoom-value { min-width: 64px; font-variant-numeric: tabular-nums; }
+
+.user { display: flex; align-items: center; gap: 8px; padding-left: 10px; border-left: 1px solid var(--border); }
+.user-name { font-weight: 600; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #9b6cff);
+  color: #fff;
+  font-weight: 700;
+  text-transform: uppercase;
+}
