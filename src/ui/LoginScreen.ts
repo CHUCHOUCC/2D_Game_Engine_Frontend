@@ -108,3 +108,14 @@ export class LoginScreen {
       this.setBusy(false);
     }
   }
+
+  private setBusy(busy: boolean): void {
+    this.submit.classList.toggle("is-loading", busy);
+    this.submit.disabled = busy;
+    for (const input of [this.username, this.email, this.password]) input.disabled = busy;
+  }
+
+  private setMessage(text: string, isError = false): void {
+    this.message.textContent = text;
+    this.message.classList.toggle("is-error", isError);
+  }
