@@ -273,3 +273,38 @@ window.addEventListener("beforeunload", (event) => {
 const settings = new SettingsPanel((value) =>
   host.setEditorOptions({ showGrid: value.show_grid, snapToGrid: value.snap_to_grid, gridSize: value.grid_size }),
 );
+
+const login = new LoginScreen(enterApp);
+
+async function enterApp(user: UserDto): Promise<void> {
+  showLoader("Preparando tu espacio de trabajo…");
+  login.hide();
+  byId("app").hidden = false;
+  byId("user-name").textContent = user.username;
+  byId("user-avatar").textContent = user.username.slice(0, 1);
+  host.start();
+  await settings.load();
+  const projects = await projectList.refresh().catch(() => []);
+  openProject(projects[0] ?? null);
+  void refreshProgress();
+  hideLoader();
+  toast(`¡Hola, ${user.username}!`, "success");
+}
+
+async function leaveApp(callBackend: boolean, note = ""): Promise<void> {
+  if (callBackend) {
+    if (isDirty() && !window.confirm("Hay cambios sin guardar. ¿Salir igualmente?")) return;
+    await logOut();
+  }
+  if (playing) {
+    setPlaying(false);
+    host.edit();
+  }
+  projectId = null;
+  model.replaceAll([]);
+  savedVersion = model.version;
+  projectList.clear();
+  settings.close();
+  byId("app").hidden = true;
+  login.show(note);
+}
