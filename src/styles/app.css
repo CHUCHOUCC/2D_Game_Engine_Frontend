@@ -54,3 +54,17 @@
 
 .gear svg { width: 20px; height: 20px; fill: currentColor; transition: transform 500ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 .gear:hover svg, .gear[aria-expanded="true"] svg { transform: rotate(120deg); }
+
+.stage {
+  grid-area: stage;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 0) 0 0 / 22px 22px,
+    var(--canvas-bg);
+}
+
+.game, .game canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
+.game canvas { image-rendering: pixelated; }
