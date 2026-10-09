@@ -10,3 +10,27 @@
     "status status status";
   background: var(--bg);
 }
+
+.topbar {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  z-index: 5;
+}
+
+.brand-small strong { font-size: 15px; }
+.toolbar { display: flex; align-items: center; gap: 6px; }
+
+.project-name {
+  max-width: 260px;
+  min-height: 34px !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  font-weight: 600;
+}
+.project-name:hover:not(:disabled) { border-color: var(--border) !important; }
+.project-name:focus { background: var(--bg) !important; border-color: var(--accent) !important; }
