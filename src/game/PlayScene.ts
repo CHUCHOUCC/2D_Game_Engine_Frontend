@@ -227,3 +227,11 @@ export class PlayScene extends Phaser.Scene {
       enemy.setDepth(enemy.y / WORLD_HEIGHT);
     }
   }
+
+  private collect(coin: Sprite): void {
+    if (!coin.active) return;
+    this.tracker.collectCoin(coin.x, coin.y);
+    this.tweens.add({ targets: coin, y: coin.y - 24, alpha: 0, scale: 1.4, duration: 220, onComplete: () => coin.destroy() });
+    coin.disableBody(false, false);
+    if (this.tracker.isOver()) this.end(this.tracker.outcome()!);
+  }
