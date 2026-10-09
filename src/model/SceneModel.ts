@@ -153,3 +153,10 @@ export function hasPlayer(model: SceneModel): boolean {
   }
   return false;
 }
+
+/** A short id like "wall-3" that is not used yet in the scene. */
+export function nextObjectId(model: SceneModel, kind: Kind): string {
+  let n = 1;
+  while (model.find(`${kind}-${n}`) !== undefined) n += 1;
+  return `${kind}-${n}`;
+}
