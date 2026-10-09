@@ -204,3 +204,14 @@ export class EditorScene extends Phaser.Scene {
     }
     this.drawSelection();
   }
+
+  private drawObject(object: GameObject): void {
+    const texture = KIND_TEXTURE[object.kind];
+    const sprite = this.add.sprite(object.x, object.y, texture.key, 0);
+    if (texture.anim) sprite.play(texture.anim);
+    // Taller objects further down the screen are drawn on top (fake depth).
+    sprite.setDepth(object.y / WORLD_HEIGHT);
+    sprite.setData("objectId", object.id);
+    sprite.setData("kind", object.kind);
+    sprite.setInteractive({ draggable: true, useHandCursor: true });
+  }
