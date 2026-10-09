@@ -68,3 +68,14 @@ export class SettingsPanel {
     byId<HTMLInputElement>("set-music").value = String(this.settings.music_volume);
     byId<HTMLInputElement>("set-sfx").value = String(this.settings.sfx_volume);
   }
+
+  private update(change: Partial<SettingsDto>): void {
+    this.settings = { ...this.settings, ...change };
+    applyTheme(this.settings.theme);
+    this.render();
+    this.onChange(this.settings);
+    window.clearTimeout(this.saveTimer);
+    this.saveTimer = window.setTimeout(() => {
+      saveSettings(this.settings).catch(() => toast("No se pudieron guardar los ajustes.", "error"));
+    }, 500);
+  }
