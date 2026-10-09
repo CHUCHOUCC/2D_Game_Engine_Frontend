@@ -142,3 +142,13 @@ export class EditorScene extends Phaser.Scene {
       this.zoomBy(dy > 0 ? 0.9 : 1.1, pointer.x, pointer.y);
     });
   }
+
+  private placePoint(x: number, y: number, kind: Kind): [number, number] {
+    let px = x;
+    let py = y;
+    if (this.options.snapToGrid) {
+      px = snap(px, kind, this.options.gridSize);
+      py = snap(py, kind, this.options.gridSize);
+    }
+    return clampToWorld(px, py, kind);
+  }
