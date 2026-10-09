@@ -211,3 +211,19 @@ export class PlayScene extends Phaser.Scene {
     this.moveEnemies();
     this.reportHud(time);
   }
+
+  private moveEnemies(): void {
+    const range = 220 + 220 * this.difficulty;
+    const speed = 60 + 80 * this.difficulty;
+    for (const child of this.enemies.getChildren()) {
+      const enemy = child as Sprite;
+      const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.player.x, this.player.y);
+      if (distance < range) {
+        this.physics.moveToObject(enemy, this.player, speed);
+      } else {
+        enemy.setVelocity(enemy.body!.velocity.x * 0.9, enemy.body!.velocity.y * 0.9);
+      }
+      enemy.setFlipX(this.player.x < enemy.x);
+      enemy.setDepth(enemy.y / WORLD_HEIGHT);
+    }
+  }
