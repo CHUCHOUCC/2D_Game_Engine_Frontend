@@ -81,3 +81,11 @@
 .ai-model strong { color: var(--text); }
 .meter { display: inline-block; width: 100%; height: 8px; border-radius: 4px; background: var(--panel-2); overflow: hidden; vertical-align: middle; }
 .meter > span { display: block; height: 100%; background: linear-gradient(90deg, var(--success), var(--warning), var(--danger)); border-radius: 4px; transition: width 400ms ease; }
+
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat { padding: 8px; border-radius: var(--radius-sm); background: var(--panel-2); }
+.stat strong { display: block; font-size: 18px; }
+.stat span { font-size: 11px; color: var(--text-muted); }
+.achievements { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.badge { padding: 3px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 600; }
+.badge.is-locked { background: var(--panel-2); color: var(--text-muted); }
