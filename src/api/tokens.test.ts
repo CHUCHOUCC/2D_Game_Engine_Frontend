@@ -59,3 +59,9 @@ test("TokenStore ignores broken data in storage", () => {
   storage.setItem("engine-tokens", "{not json");
   expect(new TokenStore(storage as unknown as Storage).access).toBeNull();
 });
+
+test("TokenStore works in memory when storage is unavailable", () => {
+  const tokens = new TokenStore(null);
+  tokens.save(PAIR);
+  expect(tokens.access).toBe("a1");
+});
