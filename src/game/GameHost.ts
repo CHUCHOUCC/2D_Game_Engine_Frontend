@@ -32,3 +32,19 @@ export class GameHost {
       scene: [this.editor, this.playScene],
     });
   }
+
+  play(difficulty: number): void {
+    this.game?.scene.stop("editor");
+    this.game?.scene.start("play", { difficulty });
+  }
+
+  edit(): void {
+    this.game?.scene.stop("play");
+    this.game?.scene.start("editor");
+  }
+
+  /** Start the same run again (restart key or "play again"). */
+  restart(difficulty: number): void {
+    this.game?.scene.stop("play");
+    this.game?.scene.start("play", { difficulty });
+  }
