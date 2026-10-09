@@ -205,3 +205,31 @@ def grass() -> list:
             row += "G" if value == 0 else ("d" if value == 5 else "g")
         rows.append(row)
     return from_grid(rows, {"g": "4c9a3f", "G": "5bb24c", "d": "3f8434"})
+
+
+
+def house() -> list:
+    size = 48
+    px = [[CLEAR] * size for _ in range(size)]
+
+    def fill(x0, y0, x1, y1, color):
+        for y in range(y0, y1):
+            for x in range(x0, x1):
+                px[y][x] = rgba(color)
+
+    fill(36, 2, 41, 12, "6b4a2a")              # chimney
+    fill(5, 20, 43, 47, "6b4a2a")              # wall outline
+    fill(6, 21, 42, 46, "e8d5a8")              # wall
+    for y in range(4, 22):                     # roof, stepped like pixel art
+        inset = max(0, 21 - y)
+        fill(max(0, inset), y, min(size, size - inset), y + 1, "7a2a28" if y % 4 == 0 else "b0413e")
+    fill(20, 32, 28, 47, "4a2e17")             # door frame
+    fill(21, 33, 27, 47, "7a4a24")             # door
+    fill(25, 39, 26, 41, "f6c945")             # knob
+    for wx in (9, 32):                         # windows
+        fill(wx, 26, wx + 8, 34, "6b4a2a")
+        fill(wx + 1, 27, wx + 7, 33, "9fd3f0")
+        fill(wx + 4, 27, wx + 5, 33, "6b4a2a")
+        fill(wx + 1, 30, wx + 7, 31, "6b4a2a")
+    fill(5, 46, 43, 48, "4a3a2a")              # foundation
+    return px
