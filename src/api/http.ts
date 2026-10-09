@@ -95,3 +95,23 @@ export class HttpClient {
     this.tokens.save((await response.json()) as TokenPair);
     return true;
   }
+
+  async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    if (this.tokens.access !== null && this.tokens.expiresSoon(15_000)) {
+      await this.refreshTokens();
+    }
+    let response = await this.send(path, init, this.tokens.access);
+    if (response.status === 401 && this.tokens.refresh !== null) {
+      if (await this.refreshTokens()) {
+        response = await this.send(path, init, this.tokens.access);
+      }
+      if (response.status === 401) {
+        this.tokens.clear();
+        this.onSessionLost();
+      }
+    }
+    if (!response.ok) throw await HttpClient.errorOf(response);
+    if (response.status === 204) return undefined as T;
+    return (await response.json()) as T;
+  }
+}
