@@ -98,3 +98,9 @@
 .strength { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-muted); }
 .strength-bar { flex: 1; height: 6px; border-radius: 3px; background: var(--panel-2); overflow: hidden; }
 #strength-fill { display: block; height: 100%; width: 0; border-radius: 3px; transition: width var(--transition), background var(--transition); }
+
+@media (max-width: 860px) {
+  .login { grid-template-columns: 1fr; }
+  .login-art { display: none; }
+  .login-panel { border-left: 0; }
+}
