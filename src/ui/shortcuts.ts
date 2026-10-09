@@ -19,3 +19,16 @@ export function shortcutFor(event: Pick<KeyboardEvent, "key" | "ctrlKey" | "meta
   if (key === "escape") return "cancel";
   return null;
 }
+
+/** Listen for shortcuts; `enabled()` is false while playing. Typing in fields is ignored. */
+export function bindShortcuts(actions: ShortcutActions, enabled: () => boolean): void {
+  window.addEventListener("keydown", (event) => {
+    if (!enabled()) return;
+    const target = event.target as HTMLElement | null;
+    const typing = target !== null && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT");
+    const action = shortcutFor(event);
+    if (action === null || (typing && action !== "save")) return;
+    event.preventDefault();
+    actions[action]();
+  });
+}
