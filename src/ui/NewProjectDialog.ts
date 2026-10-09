@@ -24,3 +24,16 @@ export async function askNewProject(): Promise<{ name: string; template: string 
     );
   });
 }
+
+function templateOption(template: TemplateDto, checked: boolean): HTMLElement {
+  const label = make("label", "template");
+  const radio = make("input");
+  radio.type = "radio";
+  radio.name = "template";
+  radio.value = template.code;
+  radio.checked = checked;
+  const text = make("span");
+  text.append(make("strong", "", template.name), make("small", "", `${template.description} · ${template.object_count} objetos`));
+  label.append(radio, text);
+  return label;
+}
