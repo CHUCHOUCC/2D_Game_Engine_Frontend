@@ -52,3 +52,13 @@ export class GameHost {
   quitPlay(): void {
     if (this.game?.scene.isActive("play")) this.playScene.quit();
   }
+
+  setEditorOptions(options: EditorOptions): void {
+    this.editor.setOptions(options);
+  }
+
+  destroy(): void {
+    this.game?.destroy(true);
+    this.game = null;
+  }
+}
