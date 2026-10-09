@@ -104,3 +104,9 @@ export class RunTracker {
     }
     return false;
   }
+
+  finish(outcome: Outcome): void {
+    if (this.isOver()) return;
+    this.result_ = outcome;
+    this.endedAt = this.now();
+  }
