@@ -246,3 +246,26 @@ export class PlayScene extends Phaser.Scene {
     this.cameras.main.shake(120, 0.006);
     if (this.tracker.takeDamage(source, this.player.x, this.player.y)) this.end("lost");
   }
+
+  private attack(now: number): void {
+    if (now < this.nextAttackAt) return;
+    this.nextAttackAt = now + ATTACK_COOLDOWN_MS;
+    this.attackRing.setVisible(true).setScale(0.6).setAlpha(1);
+    this.tweens.add({ targets: this.attackRing, scale: 1, alpha: 0, duration: 180, onComplete: () => this.attackRing.setVisible(false) });
+    for (const child of [...this.enemies.getChildren()]) {
+      const enemy = child as Sprite;
+      if (Phaser.Math.Distance.Between(enemy.x, enemy.y, this.player.x, this.player.y) > ATTACK_REACH + 14) continue;
+      const hp = (enemy.getData("hp") as number) - 1;
+      enemy.setData("hp", hp);
+      const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, enemy.x, enemy.y);
+      enemy.setVelocity(Math.cos(angle) * 360, Math.sin(angle) * 360);
+      enemy.setTint(0xffffff);
+      this.time.delayedCall(90, () => enemy.active && enemy.clearTint());
+      if (hp <= 0) {
+        this.tracker.defeatEnemy(enemy.x, enemy.y);
+        this.tweens.add({ targets: enemy, alpha: 0, scale: 0.2, duration: 200, onComplete: () => enemy.destroy() });
+        enemy.disableBody(false, false);
+      }
+    }
+    if (this.tracker.isOver()) this.end(this.tracker.outcome()!);
+  }
