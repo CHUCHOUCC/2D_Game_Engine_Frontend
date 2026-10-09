@@ -187,3 +187,21 @@ export function myAchievements(): Promise<AchievementDto[]> {
 export function leaderboard(projectId: number): Promise<{ username: string; score: number }[]> {
   return http.request(`/projects/${projectId}/leaderboard`);
 }
+
+export interface SettingsDto {
+  theme: "light" | "dark" | "system";
+  language: "es" | "en";
+  show_grid: boolean;
+  snap_to_grid: boolean;
+  grid_size: number;
+  music_volume: number;
+  sfx_volume: number;
+}
+
+export function getSettings(): Promise<SettingsDto> {
+  return http.request<SettingsDto>("/me/settings");
+}
+
+export function saveSettings(settings: SettingsDto): Promise<SettingsDto> {
+  return http.request<SettingsDto>("/me/settings", { method: "PUT", body: JSON.stringify(settings) });
+}
