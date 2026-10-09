@@ -38,3 +38,23 @@ let savedVersion = 0;
 let playing = false;
 let runId: number | null = null;
 let difficulty = 0.5;
+
+function setStatus(message: string, kind: "info" | "error" | "success" = "info"): void {
+  const status = byId("status");
+  status.textContent = message;
+  status.classList.toggle("is-error", kind === "error");
+  status.classList.toggle("is-success", kind === "success");
+}
+
+/** Run an action and show its error, if any, as a toast. */
+async function attempt(action: () => Promise<void>): Promise<void> {
+  try {
+    await action();
+  } catch (error) {
+    toast(errorText(error), "error");
+  }
+}
+
+function isDirty(): boolean {
+  return projectId !== null && model.version !== savedVersion;
+}
