@@ -107,3 +107,22 @@ export function listVersions(id: number): Promise<VersionDto[]> {
 export function restoreVersion(id: number, version: number): Promise<ProjectDto> {
   return http.request<ProjectDto>(`/projects/${id}/versions/${version}/restore`, { method: "POST" });
 }
+
+export interface AiModelDto {
+  samples_seen: number;
+  version: number;
+  difficulty: number;
+  parameters: Record<string, unknown>;
+}
+
+export function askAi(id: number, prompt: string): Promise<ProjectDto> {
+  return http.request<ProjectDto>(`/projects/${id}/ai`, { method: "POST", body: JSON.stringify({ prompt }) });
+}
+
+export function aiObstacles(id: number, count: number): Promise<ProjectDto & { added: number; difficulty: number }> {
+  return http.request(`/projects/${id}/ai/obstacles`, { method: "POST", body: JSON.stringify({ count }) });
+}
+
+export function aiModel(id: number): Promise<AiModelDto> {
+  return http.request<AiModelDto>(`/projects/${id}/ai/model`);
+}
