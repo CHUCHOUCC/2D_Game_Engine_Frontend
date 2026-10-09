@@ -50,3 +50,29 @@ def from_grid(rows: list, palette: dict) -> list:
 def side_by_side(frames: list) -> list:
     """Join frames horizontally into a sprite sheet."""
     return [sum((frame[y] for frame in frames), []) for y in range(len(frames[0]))]
+
+PLAYER_COLORS = {"h": "5b3a29", "s": "f2c6a0", "e": "1b1b2f", "b": "3d7bd9", "B": "2c5aa8",
+                 "p": "2e3a4f", "k": "4a2f1f"}
+PLAYER_TOP = [
+    "......hhhh......",
+    ".....hhhhhh.....",
+    ".....hssssh.....",
+    ".....sesses.....",
+    ".....ssssss.....",
+    "......ssss......",
+    "....bbbbbbbb....",
+    "...sbbBbbBbbs...",
+    "...sbbbbbbbbs...",
+    "....bbbbbbbb....",
+    "....BBBBBBBB....",
+]
+PLAYER_LEGS = [
+    [".....pppppp.....", ".....pp..pp.....", ".....pp..pp.....", ".....kk..kk.....", "................"],
+    [".....pppppp.....", ".....pp...pp....", "....pp....pp....", "....kk.....kk...", "................"],
+    [".....pppppp.....", ".....pp..pp.....", ".....pp..pp.....", ".....kk..kk.....", "................"],
+    [".....pppppp.....", "....pp...pp.....", "....pp....pp....", "...kk.....kk....", "................"],
+]
+
+
+def player() -> list:
+    return side_by_side([from_grid(PLAYER_TOP + legs, PLAYER_COLORS) for legs in PLAYER_LEGS])
