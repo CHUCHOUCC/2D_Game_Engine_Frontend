@@ -1,69 +1,259 @@
 <!doctype html>
-<html lang="en">
+<html lang="es" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>2D Game Editor</title>
-    <link rel="icon" href="data:," />
+    <meta name="color-scheme" content="dark light" />
+    <title>Motor 2D · Editor de juegos</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body>
-    <main>
-      <h1>2D Game Editor</h1>
+    <!-- Loading logo: shown while the app starts and while logging in -->
+    <div id="loader" class="loader" role="status" aria-live="polite">
+      <div class="loader-logo" aria-hidden="true">
+        <span class="loader-cube"></span><span class="loader-cube"></span><span class="loader-cube"></span><span class="loader-cube"></span>
+      </div>
+      <p id="loader-text" class="loader-text">Cargando motor…</p>
+    </div>
 
-      <section id="auth-panel" hidden>
-        <h2>Log in or create an account</h2>
-        <form id="auth-form">
-          <input id="auth-username" type="text" placeholder="Username (only to register)" autocomplete="username" maxlength="50" />
-          <input id="auth-email" type="email" placeholder="Email" autocomplete="email" required />
-          <input id="auth-password" type="password" placeholder="Password (8+ characters)" autocomplete="current-password" required />
-          <div class="auth-buttons">
-            <button id="auth-login" type="submit" class="primary">Log in</button>
-            <button id="auth-register" type="button">Register</button>
+    <!-- Login / register: takes the whole screen -->
+    <section id="login-screen" class="login" hidden>
+      <div class="login-art" aria-hidden="true">
+        <div class="login-art-scene">
+          <span class="sprite sprite-house" style="left: 14%; top: 22%"></span>
+          <span class="sprite sprite-tree" style="left: 52%; top: 18%"></span>
+          <span class="sprite sprite-tree" style="left: 60%; top: 30%"></span>
+          <span class="sprite sprite-wall" style="left: 30%; top: 62%"></span>
+          <span class="sprite sprite-wall" style="left: 34%; top: 62%"></span>
+          <span class="sprite sprite-wall" style="left: 38%; top: 62%"></span>
+          <span class="sprite sprite-box" style="left: 70%; top: 58%"></span>
+          <span class="sprite sprite-coin" style="left: 46%; top: 44%"></span>
+          <span class="sprite sprite-coin" style="left: 76%; top: 40%"></span>
+          <span class="sprite sprite-enemy" style="left: 64%; top: 72%"></span>
+          <span class="sprite sprite-player" style="left: 22%; top: 48%"></span>
+        </div>
+        <div class="login-art-copy">
+          <h2>Crea, juega y deja que la IA aprenda.</h2>
+          <ul>
+            <li>Editor visual con física Arcade integrada</li>
+            <li>Pack de texturas pixel art: casas, paredes, cajas, monedas y enemigos</li>
+            <li>Una IA que coloca obstáculos según cómo juegas</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="login-panel">
+        <div class="login-card">
+          <div class="brand">
+            <img src="/favicon.svg" alt="" width="40" height="40" />
+            <div>
+              <strong>Motor 2D</strong>
+              <span>Editor de juegos</span>
+            </div>
           </div>
-        </form>
-        <p id="auth-message"></p>
-      </section>
 
-      <div id="user-bar" class="toolbar" hidden>
-        <span>Logged in as <strong id="user-name"></strong></span>
-        <span class="spacer"></span>
-        <button id="logout">Log out</button>
+          <div class="tabs" role="tablist">
+            <button id="tab-login" class="tab is-active" role="tab" aria-selected="true" type="button">Iniciar sesión</button>
+            <button id="tab-register" class="tab" role="tab" aria-selected="false" type="button">Crear cuenta</button>
+          </div>
+
+          <form id="auth-form" class="form" novalidate>
+            <label class="field" id="field-username" hidden>
+              <span>Nombre de usuario</span>
+              <input id="auth-username" type="text" autocomplete="username" maxlength="50" />
+            </label>
+            <label class="field">
+              <span>Correo electrónico</span>
+              <input id="auth-email" type="email" autocomplete="email" required placeholder="tu@correo.com" />
+            </label>
+            <label class="field">
+              <span>Contraseña</span>
+              <span class="password">
+                <input id="auth-password" type="password" autocomplete="current-password" required minlength="8" />
+                <button id="toggle-password" class="eye" type="button" aria-label="Mostrar contraseña" aria-pressed="false">
+                  <svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                  <svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+                </button>
+              </span>
+            </label>
+            <div id="strength" class="strength" hidden>
+              <span class="strength-bar"><span id="strength-fill"></span></span>
+              <span id="strength-label">Escribe una contraseña</span>
+            </div>
+            <p id="auth-message" class="form-message" role="alert"></p>
+            <button id="auth-submit" class="btn btn-primary btn-block" type="submit">
+              <span class="btn-spinner" aria-hidden="true"></span>
+              <span class="btn-label">Iniciar sesión</span>
+            </button>
+          </form>
+          <p class="login-footnote">Tu sesión usa tokens seguros que se renuevan solos.</p>
+        </div>
       </div>
+    </section>
 
-      <div id="editor" hidden>
+    <!-- The editor: header, two side panels, the canvas and a status bar -->
+    <div id="app" class="app" hidden>
+      <header class="topbar">
+        <div class="brand brand-small">
+          <img src="/favicon.svg" alt="" width="28" height="28" />
+          <strong>Motor 2D</strong>
+        </div>
+        <input id="project-name" class="project-name" type="text" maxlength="100" placeholder="Sin proyecto" aria-label="Nombre del proyecto" disabled />
         <div class="toolbar">
-          <button id="new-project" class="primary">New project</button>
-          <button id="save">Save</button>
-          <button id="load">Load</button>
-          <button id="play">Play</button>
-          <button id="edit" hidden>Edit</button>
-          <span id="project"></span>
+          <button id="btn-save" class="btn" title="Guardar (Ctrl+S)">Guardar</button>
+          <button id="btn-undo" class="btn btn-icon" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">↶</button>
+          <button id="btn-redo" class="btn btn-icon" title="Rehacer (Ctrl+Y)" aria-label="Rehacer">↷</button>
+          <button id="btn-play" class="btn btn-primary" title="Jugar (P)">▶ Jugar</button>
+          <button id="btn-stop" class="btn btn-danger" title="Salir del juego (Esc)" hidden>■ Salir</button>
         </div>
-
-        <div class="toolbar edit-only">
-          <button id="add-box">+ Box</button>
-          <button id="add-coin">+ Coin</button>
-          <button id="add-enemy">+ Enemy</button>
-          <button id="delete">Delete</button>
-          <button id="undo">Undo</button>
-          <button id="redo">Redo</button>
+        <span class="spacer"></span>
+        <div class="zoom">
+          <button id="zoom-out" class="btn btn-icon" aria-label="Alejar">−</button>
+          <button id="zoom-fit" class="btn zoom-value" title="Ajustar a la pantalla"><span id="zoom-value">100%</span></button>
+          <button id="zoom-in" class="btn btn-icon" aria-label="Acercar">+</button>
         </div>
+        <button id="btn-settings" class="btn btn-icon gear" title="Ajustes" aria-label="Ajustes">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94a7.07 7.07 0 0 0 .05-.94 7.07 7.07 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.5.42l-.36 2.54c-.58.24-1.12.55-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.48a.5.5 0 0 0 .12.64l2.03 1.58a7.07 7.07 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.3.6.22l2.39-.96c.5.39 1.04.7 1.62.94l.36 2.54c.05.24.26.42.5.42h3.8c.25 0 .45-.18.5-.42l.36-2.54c.58-.24 1.12-.55 1.62-.94l2.39.96c.22.08.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z" /></svg>
+        </button>
+        <div class="user">
+          <span class="avatar" id="user-avatar" aria-hidden="true">?</span>
+          <span id="user-name" class="user-name"></span>
+          <button id="btn-logout" class="btn btn-ghost">Salir</button>
+        </div>
+      </header>
 
-        <div id="game"></div>
-
-        <section id="project-list">
-          <h2>My projects</h2>
-          <ul id="projects"></ul>
+      <aside class="panel panel-left">
+        <section class="card">
+          <h3>Objetos</h3>
+          <div id="palette" class="palette" role="toolbar" aria-label="Paleta de objetos"></div>
+          <p class="hint">Elige un objeto y haz clic en el mapa para colocarlo. <kbd>Esc</kbd> para terminar.</p>
         </section>
+        <section class="card card-grow">
+          <div class="card-header">
+            <h3>Mis proyectos</h3>
+            <button id="btn-new-project" class="btn btn-primary btn-small">+ Nuevo</button>
+          </div>
+          <ul id="projects" class="project-list"></ul>
+        </section>
+      </aside>
 
-        <div class="toolbar edit-only" style="margin-top: 8px">
-          <input id="prompt" type="text" placeholder="Ask the AI, e.g. put a coin at 120 340" maxlength="500" />
-          <button id="ask-ai" class="primary">Ask AI</button>
+      <main class="stage">
+        <div id="game" class="game"></div>
+        <div id="placing-hint" class="floating-hint" hidden></div>
+        <div id="hud" class="hud" hidden>
+          <span class="hud-item" title="Vida"><span id="hud-hearts"></span></span>
+          <span class="hud-item">⭐ <strong id="hud-score">0</strong></span>
+          <span class="hud-item"><img src="/textures/coin.png" class="hud-icon hud-icon-sheet" alt="" /> <strong id="hud-coins">0/0</strong></span>
+          <span class="hud-item"><img src="/textures/enemy-slime.png" class="hud-icon hud-icon-sheet" alt="" /> <strong id="hud-enemies">0/0</strong></span>
+          <span class="hud-item">⏱ <strong id="hud-time">0:00</strong></span>
+          <span class="hud-item">IA <span class="meter"><span id="hud-difficulty"></span></span></span>
+          <span class="hud-help">Flechas/WASD mover · Espacio atacar · Esc salir</span>
         </div>
-      </div>
+      </main>
 
-      <p id="status"></p>
-    </main>
+      <aside class="panel panel-right">
+        <section class="card">
+          <h3>Inspector</h3>
+          <div id="inspector" class="inspector"></div>
+        </section>
+        <section class="card">
+          <h3>Inteligencia artificial</h3>
+          <form id="ai-form" class="form form-compact">
+            <textarea id="ai-prompt" rows="2" maxlength="500" placeholder="Ej.: 3 monedas y una casa en 400 300"></textarea>
+            <button class="btn btn-block" type="submit">Pedir a la IA</button>
+          </form>
+          <div class="divider"></div>
+          <label class="field-inline">
+            <span>Obstáculos</span>
+            <input id="ai-count" type="range" min="1" max="30" value="6" />
+            <output id="ai-count-value">6</output>
+          </label>
+          <button id="btn-ai-obstacles" class="btn btn-primary btn-block">La IA crea obstáculos</button>
+          <div id="ai-model" class="ai-model"></div>
+        </section>
+        <section class="card">
+          <h3>Mi progreso</h3>
+          <div id="stats" class="stats"></div>
+          <div id="achievements" class="achievements"></div>
+        </section>
+      </aside>
+
+      <footer class="statusbar">
+        <span id="status" class="status" role="status"></span>
+        <span class="spacer"></span>
+        <span id="status-objects"></span>
+        <span id="status-pointer">x 0 · y 0</span>
+      </footer>
+    </div>
+
+    <!-- Settings wheel panel -->
+    <aside id="settings" class="drawer" hidden aria-label="Ajustes">
+      <div class="drawer-header">
+        <h3>Ajustes</h3>
+        <button id="settings-close" class="btn btn-icon" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="drawer-body">
+        <fieldset class="setting">
+          <legend>Tema</legend>
+          <div class="segmented" id="theme-options">
+            <button type="button" data-theme-option="light">☀ Claro</button>
+            <button type="button" data-theme-option="dark">☾ Oscuro</button>
+            <button type="button" data-theme-option="system">⚙ Sistema</button>
+          </div>
+        </fieldset>
+        <fieldset class="setting">
+          <legend>Cuadrícula</legend>
+          <label class="switch"><input id="set-grid" type="checkbox" /> <span>Mostrar cuadrícula</span></label>
+          <label class="switch"><input id="set-snap" type="checkbox" /> <span>Ajustar a la cuadrícula</span></label>
+          <label class="field-inline"><span>Tamaño</span>
+            <select id="set-grid-size"><option value="16">16 px</option><option value="32">32 px</option><option value="64">64 px</option></select>
+          </label>
+        </fieldset>
+        <fieldset class="setting">
+          <legend>Sonido</legend>
+          <label class="field-inline"><span>Música</span><input id="set-music" type="range" min="0" max="100" /></label>
+          <label class="field-inline"><span>Efectos</span><input id="set-sfx" type="range" min="0" max="100" /></label>
+        </fieldset>
+        <fieldset class="setting">
+          <legend>Atajos</legend>
+          <dl class="shortcuts">
+            <dt><kbd>Ctrl</kbd>+<kbd>S</kbd></dt><dd>Guardar</dd>
+            <dt><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></dt><dd>Deshacer / rehacer</dd>
+            <dt><kbd>Supr</kbd></dt><dd>Borrar selección</dd>
+            <dt><kbd>P</kbd></dt><dd>Jugar</dd>
+            <dt>Clic derecho + arrastrar</dt><dd>Mover la vista</dd>
+            <dt>Rueda</dt><dd>Zoom</dd>
+          </dl>
+        </fieldset>
+      </div>
+    </aside>
+    <div id="settings-backdrop" class="backdrop" hidden></div>
+
+    <!-- Dialogs -->
+    <dialog id="new-project-dialog" class="dialog">
+      <form method="dialog" id="new-project-form" class="form">
+        <h3>Nuevo proyecto</h3>
+        <label class="field"><span>Nombre</span><input id="new-project-name" maxlength="100" required value="Mi juego" /></label>
+        <div id="templates" class="templates"></div>
+        <div class="dialog-actions">
+          <button class="btn" value="cancel" formnovalidate>Cancelar</button>
+          <button class="btn btn-primary" value="create">Crear</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="result-dialog" class="dialog dialog-result">
+      <form method="dialog" class="form">
+        <h3 id="result-title">Partida terminada</h3>
+        <div id="result-body" class="result-body"></div>
+        <div class="dialog-actions">
+          <button class="btn" value="edit">Volver al editor</button>
+          <button class="btn btn-primary" value="again">Jugar otra vez</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div id="toasts" class="toasts" aria-live="polite"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
