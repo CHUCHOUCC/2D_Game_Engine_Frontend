@@ -45,3 +45,11 @@ test("TokenStore restores the tokens from storage", () => {
   const again = new TokenStore(storage as unknown as Storage, () => 1_000);
   expect(again.refresh).toBe("r1");
 });
+
+test("TokenStore clear forgets the tokens in memory and in storage", () => {
+  const { storage, tokens } = store();
+  tokens.save(PAIR);
+  tokens.clear();
+  expect(tokens.access).toBeNull();
+  expect(storage.data.size).toBe(0);
+});
