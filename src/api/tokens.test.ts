@@ -53,3 +53,9 @@ test("TokenStore clear forgets the tokens in memory and in storage", () => {
   expect(tokens.access).toBeNull();
   expect(storage.data.size).toBe(0);
 });
+
+test("TokenStore ignores broken data in storage", () => {
+  const storage = new MemoryStorage();
+  storage.setItem("engine-tokens", "{not json");
+  expect(new TokenStore(storage as unknown as Storage).access).toBeNull();
+});
