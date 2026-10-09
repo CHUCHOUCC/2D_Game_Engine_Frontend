@@ -83,3 +83,28 @@ export class LoginScreen {
     }
     return null;
   }
+
+  private async send(): Promise<void> {
+    const problem = this.validate();
+    if (problem !== null) {
+      this.setMessage(problem, true);
+      return;
+    }
+    this.setBusy(true);
+    try {
+      const email = this.email.value.trim();
+      if (this.mode === "register") {
+        await registerAccount(this.username.value.trim(), email, this.password.value);
+      }
+      await logIn(email, this.password.value);
+      showLoader("Iniciando sesión…");
+      const user = await getMe();
+      this.password.value = "";
+      await this.onLoggedIn(user);
+    } catch (error) {
+      hideLoader();
+      this.setMessage(errorText(error), true);
+    } finally {
+      this.setBusy(false);
+    }
+  }
