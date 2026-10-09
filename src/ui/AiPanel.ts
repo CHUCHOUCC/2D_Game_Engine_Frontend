@@ -50,3 +50,15 @@ export class AiPanel {
       toast("La IA actualizó la escena.", "success");
     });
   }
+
+  private async obstacles(): Promise<void> {
+    const id = this.requireProject();
+    if (id === null) return;
+    await this.busy(byId<HTMLButtonElement>("btn-ai-obstacles"), async () => {
+      await this.beforeRequest();
+      const result = await aiObstacles(id, Number(this.count.value));
+      this.onScene(result);
+      toast(`La IA colocó ${result.added} obstáculos (${difficultyLabel(result.difficulty)}).`, "success");
+      await this.refresh(id);
+    });
+  }
