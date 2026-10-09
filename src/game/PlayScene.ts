@@ -130,3 +130,10 @@ export class PlayScene extends Phaser.Scene {
         break; // the player is created separately at this point
     }
   }
+
+  private createPlayer(spawn: { x: number; y: number }): void {
+    this.player = this.physics.add.sprite(spawn.x, spawn.y, "player", 0);
+    this.player.setCollideWorldBounds(true).setDepth(spawn.y / WORLD_HEIGHT);
+    (this.player.body as Body).setSize(18, 20).setOffset(7, 11);
+    this.attackRing = this.add.circle(0, 0, ATTACK_REACH).setStrokeStyle(3, 0xffffff, 0.8).setDepth(20).setVisible(false);
+  }
