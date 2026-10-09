@@ -15,3 +15,16 @@ export function hearts(health: number, max = PLAYER_MAX_HEALTH): string {
   const full = Math.max(0, Math.min(max, health));
   return "♥".repeat(full) + "♡".repeat(max - full);
 }
+
+export function showHud(state: HudState): void {
+  byId("hud-hearts").textContent = hearts(state.health);
+  byId("hud-score").textContent = String(state.score);
+  byId("hud-coins").textContent = `${state.coins}/${state.coinsTotal}`;
+  byId("hud-enemies").textContent = `${state.enemies}/${state.enemiesTotal}`;
+  byId("hud-time").textContent = formatTime(state.elapsedMs);
+  byId("hud-difficulty").style.width = `${Math.round(state.difficulty * 100)}%`;
+}
+
+export function setHudVisible(visible: boolean): void {
+  byId("hud").hidden = !visible;
+}
