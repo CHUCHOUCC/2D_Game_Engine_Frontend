@@ -152,3 +152,17 @@ export class EditorScene extends Phaser.Scene {
     }
     return clampToWorld(px, py, kind);
   }
+
+  /** Start placing objects of a kind (null stops). A translucent copy follows the pointer. */
+  setPlacing(kind: Kind | null): void {
+    this.placing = kind;
+    this.ghost?.destroy();
+    this.ghost = null;
+    if (kind !== null) {
+      const texture = KIND_TEXTURE[kind];
+      this.ghost = this.add.image(-100, -100, texture.key, 0).setAlpha(0.55).setDepth(60);
+      this.input.setDefaultCursor("crosshair");
+    } else {
+      this.input.setDefaultCursor("default");
+    }
+  }
