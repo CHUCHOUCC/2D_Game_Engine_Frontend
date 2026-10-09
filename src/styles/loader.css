@@ -37,3 +37,14 @@
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(0.55); opacity: 0.55; }
 }
+
+.loader-text {
+  margin: 0;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader-cube { animation-duration: 3s; }
+}
