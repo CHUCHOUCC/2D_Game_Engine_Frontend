@@ -59,3 +59,12 @@ test("relativeTime describes how long ago a project changed", () => {
   expect(relativeTime("2026-10-08T12:00:00Z", now)).toBe("ayer");
   expect(relativeTime("2026-10-01T12:00:00Z", now)).toBe("hace 8 días");
 });
+
+test("difficulty labels and achievement names are in Spanish", () => {
+  expect(difficultyLabel(0.1)).toBe("Fácil");
+  expect(difficultyLabel(0.5)).toBe("Normal");
+  expect(difficultyLabel(0.7)).toBe("Difícil");
+  expect(difficultyLabel(0.95)).toBe("Muy difícil");
+  expect(achievementName("untouchable")).toBe("Intocable");
+  expect(achievementName("unknown")).toBe("unknown");
+});
