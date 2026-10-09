@@ -57,3 +57,14 @@ export class SettingsPanel {
     this.backdrop.hidden = true;
     this.gear.setAttribute("aria-expanded", "false");
   }
+
+  private render(): void {
+    for (const button of document.querySelectorAll<HTMLButtonElement>("[data-theme-option]")) {
+      button.classList.toggle("is-active", button.dataset.themeOption === this.settings.theme);
+    }
+    byId<HTMLInputElement>("set-grid").checked = this.settings.show_grid;
+    byId<HTMLInputElement>("set-snap").checked = this.settings.snap_to_grid;
+    byId<HTMLSelectElement>("set-grid-size").value = String(this.settings.grid_size);
+    byId<HTMLInputElement>("set-music").value = String(this.settings.music_volume);
+    byId<HTMLInputElement>("set-sfx").value = String(this.settings.sfx_volume);
+  }
