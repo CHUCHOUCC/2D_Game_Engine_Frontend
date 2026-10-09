@@ -83,3 +83,11 @@ export class TokenStore {
     }
   }
 }
+
+function safeSessionStorage(): Storage | null {
+  try {
+    return typeof sessionStorage === "undefined" ? null : sessionStorage;
+  } catch {
+    return null;
+  }
+}
