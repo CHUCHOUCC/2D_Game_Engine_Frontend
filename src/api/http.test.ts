@@ -59,3 +59,12 @@ test("HttpClient runs a single refresh for parallel requests", async () => {
   await Promise.all([client.request("/a"), client.request("/b"), client.request("/c")]);
   expect(refreshes).toBe(1);
 });
+
+test("HttpClient clears the tokens and reports a lost session when refresh fails", async () => {
+  let lost = false;
+  const { client, tokens } = setup((url) => (url.endsWith("/auth/refresh") ? json(401, {}) : json(401, { detail: "Invalid or missing token" })));
+  client.whenSessionLost(() => (lost = true));
+  await expect(client.request("/projects")).rejects.toBeInstanceOf(ApiError);
+  expect(lost).toBe(true);
+  expect(tokens.refresh).toBeNull();
+});
