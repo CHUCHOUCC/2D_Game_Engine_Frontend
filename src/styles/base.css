@@ -79,3 +79,29 @@ h1, h2, h3 {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+.form { display: flex; flex-direction: column; gap: 14px; }
+.form-compact { gap: 8px; }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > span { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+
+input[type="text"], input[type="email"], input[type="password"], input:not([type]), textarea, select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+textarea { resize: vertical; min-height: 56px; }
+input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); outline: none; }
+input[aria-invalid="true"] { border-color: var(--danger); }
+
+.form-message { min-height: 1.2em; margin: 0; font-size: 13px; color: var(--text-muted); }
+.form-message.is-error { color: var(--danger); }
+.form-message.is-success { color: var(--success); }
