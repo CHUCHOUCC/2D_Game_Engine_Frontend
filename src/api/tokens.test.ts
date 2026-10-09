@@ -21,3 +21,11 @@ test("TokenStore starts with no tokens", () => {
   expect(tokens.refresh).toBeNull();
   expect(tokens.expiresSoon()).toBe(false);
 });
+
+test("TokenStore saves a pair and knows when the access token expires", () => {
+  const { tokens } = store(() => 1_000);
+  tokens.save(PAIR);
+  expect(tokens.access).toBe("a1");
+  expect(tokens.refresh).toBe("r1");
+  expect(tokens.msUntilExpiry()).toBe(900_000);
+});
