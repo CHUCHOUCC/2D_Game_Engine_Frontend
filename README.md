@@ -43,3 +43,15 @@ Enemies chase faster and from further away as the AI difficulty grows.
 `src/api/http.ts` adds `Authorization: Bearer …` to every request, refreshes the pair shortly before
 it expires or after a 401 (one refresh shared by parallel requests), and returns to the login screen
 when the session cannot be renewed.
+
+## Data structures (written by hand)
+
+| Structure | File | Used for |
+|---|---|---|
+| `Node` | `src/structures/Node.ts` | Building block: data + next |
+| `LinkedList` | `src/structures/LinkedList.ts` | Objects of the scene (`SceneModel`) and events of a run (`RunTracker`) |
+| `Stack` | `src/structures/Stack.ts` | Undo and redo |
+| `Queue` | `src/structures/Queue.ts` | Game events in `ScoreCounter` |
+
+`SceneModel` is the single source of truth; Phaser only draws it. It is copied into a plain array
+only to send it to the backend as JSON.
