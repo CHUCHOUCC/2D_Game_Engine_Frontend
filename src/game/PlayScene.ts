@@ -137,3 +137,17 @@ export class PlayScene extends Phaser.Scene {
     (this.player.body as Body).setSize(18, 20).setOffset(7, 11);
     this.attackRing = this.add.circle(0, 0, ATTACK_REACH).setStrokeStyle(3, 0xffffff, 0.8).setDepth(20).setVisible(false);
   }
+
+  private addColliders(): void {
+    const physics = this.physics.add;
+    physics.collider(this.player, this.solids);
+    physics.collider(this.player, this.boxes);
+    physics.collider(this.boxes, this.solids);
+    physics.collider(this.boxes, this.boxes);
+    physics.collider(this.enemies, this.solids);
+    physics.collider(this.enemies, this.boxes);
+    physics.collider(this.enemies, this.enemies);
+    physics.overlap(this.player, this.coins, (_player, coin) => this.collect(coin as Sprite));
+    physics.overlap(this.player, this.spikes, (_player, spike) => this.hurt("spike", spike as Sprite));
+    physics.overlap(this.player, this.enemies, (_player, enemy) => this.hurt("enemy", enemy as Sprite));
+  }
