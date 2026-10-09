@@ -89,3 +89,11 @@ test("RunTracker reports one death for a lost run and quit when unfinished", () 
   expect(lost.result().deaths).toBe(1);
   expect(tracker().run.result().outcome).toBe("quit");
 });
+
+test("RunTracker keeps at most 500 events", () => {
+  const coins: GameObject[] = Array.from({ length: 600 }, (_, i) => ({ id: `c${i}`, kind: "coin", x: i, y: 0 }));
+  const { run } = tracker(coins);
+  for (let i = 0; i < 600; i++) run.collectCoin();
+  expect(run.result().events).toHaveLength(500);
+  expect(run.result().coins_collected).toBe(600);
+});
