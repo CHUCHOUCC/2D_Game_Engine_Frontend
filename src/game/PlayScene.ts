@@ -182,3 +182,32 @@ export class PlayScene extends Phaser.Scene {
       camera.setZoom(Math.max(zoom, Math.min(2, this.scale.height / 420)));
     });
   }
+
+  update(time: number): void {
+    if (this.finished) return;
+    if (Phaser.Input.Keyboard.JustDown(this.keys.esc)) {
+      this.end("quit");
+      return;
+    }
+    const k = this.keys;
+    const x = (k.right.isDown || k.d.isDown ? 1 : 0) - (k.left.isDown || k.a.isDown ? 1 : 0);
+    const y = (k.down.isDown || k.s.isDown ? 1 : 0) - (k.up.isDown || k.w.isDown ? 1 : 0);
+    const length = Math.hypot(x, y) || 1;
+    if (time >= this.stunnedUntil) {
+      // While knocked back the player cannot steer, so the push is visible.
+      this.player.setVelocity((x / length) * PLAYER_SPEED, (y / length) * PLAYER_SPEED);
+    }
+    if (x !== 0 || y !== 0) {
+      this.player.anims.play("player-walk", true);
+      if (x !== 0) this.player.setFlipX(x < 0);
+    } else {
+      this.player.anims.stop();
+      this.player.setFrame(0);
+    }
+    this.player.setDepth(this.player.y / WORLD_HEIGHT);
+    this.player.setAlpha(time < this.invulnerableUntil ? 0.45 + 0.4 * Math.sin(time / 40) : 1);
+    if (Phaser.Input.Keyboard.JustDown(k.space)) this.attack(time);
+    this.attackRing.setPosition(this.player.x, this.player.y);
+    this.moveEnemies();
+    this.reportHud(time);
+  }
