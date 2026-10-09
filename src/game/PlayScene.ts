@@ -151,3 +151,22 @@ export class PlayScene extends Phaser.Scene {
     physics.overlap(this.player, this.spikes, (_player, spike) => this.hurt("spike", spike as Sprite));
     physics.overlap(this.player, this.enemies, (_player, enemy) => this.hurt("enemy", enemy as Sprite));
   }
+
+  private setupKeys(): void {
+    const keyboard = this.input.keyboard!;
+    const K = Phaser.Input.Keyboard.KeyCodes;
+    this.keys = {
+      up: keyboard.addKey(K.UP), down: keyboard.addKey(K.DOWN), left: keyboard.addKey(K.LEFT), right: keyboard.addKey(K.RIGHT),
+      w: keyboard.addKey(K.W), a: keyboard.addKey(K.A), s: keyboard.addKey(K.S), d: keyboard.addKey(K.D),
+      space: keyboard.addKey(K.SPACE), esc: keyboard.addKey(K.ESC),
+    };
+  }
+
+  /** Phaser captures keys for the whole page; give them back or text inputs stop working. */
+  private releaseKeys(): void {
+    const keyboard = this.input.keyboard;
+    if (!keyboard) return;
+    const K = Phaser.Input.Keyboard.KeyCodes;
+    keyboard.removeCapture([K.UP, K.DOWN, K.LEFT, K.RIGHT, K.W, K.A, K.S, K.D, K.SPACE, K.ESC]);
+    keyboard.removeAllKeys(true);
+  }
