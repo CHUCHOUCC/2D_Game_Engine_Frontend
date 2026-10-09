@@ -30,3 +30,23 @@ export class Inspector {
     head.append(iconElement(object.kind), title);
     this.root.append(head, make("small", "hint", KIND_INFO[object.kind].hint), this.positionFields(object), this.deleteButton(object));
   }
+
+  private positionFields(object: GameObject): HTMLElement {
+    const grid = make("div", "inspector-grid");
+    const inputs: HTMLInputElement[] = [];
+    for (const axis of ["x", "y"] as const) {
+      const label = make("label", "", axis.toUpperCase());
+      const input = make("input");
+      input.type = "number";
+      input.step = "1";
+      input.value = String(Math.round(object[axis]));
+      input.addEventListener("change", () => {
+        const [x, y] = clampToWorld(Number(inputs[0].value), Number(inputs[1].value), object.kind);
+        if (Number.isFinite(x) && Number.isFinite(y)) this.actions.move(object.id, x, y);
+      });
+      inputs.push(input);
+      label.append(input);
+      grid.append(label);
+    }
+    return grid;
+  }
