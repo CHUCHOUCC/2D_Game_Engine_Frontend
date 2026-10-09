@@ -133,3 +133,26 @@ TREE = [
 
 def tree() -> list:
     return from_grid(TREE, {"d": "24642a", "g": "3f9b3a", "G": "6cc24a", "t": "6b4423", "T": "4a2e17"})
+
+SPIKE = [
+    "................",
+    "................",
+    "..s....s....s...",
+    "..s....s....s...",
+    ".sSs..sSs..sSs..",
+    ".sSs..sSs..sSs..",
+    "ssSSssSSSssSSs..",
+    "sSSSsSSSSsSSSs..",
+    "bbbbbbbbbbbbbbbb",
+    "bBBBBBBBBBBBBBBb",
+    "bbbbbbbbbbbbbbbb",
+    "................",
+    "..s....s....s...",
+    ".sSs..sSs..sSs..",
+    "sSSSssSSSssSSSs.",
+    "bbbbbbbbbbbbbbbb",
+]
+
+
+def spike() -> list:
+    return from_grid(SPIKE, {"s": "c9d1dc", "S": "7c8796", "b": "3b3f4a", "B": "565c6a"})
