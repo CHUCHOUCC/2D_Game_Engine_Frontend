@@ -86,3 +86,36 @@ export class EditorScene extends Phaser.Scene {
     camera.scrollY += before.y - after.y;
     this.events_.onZoom(camera.zoom);
   }
+
+  private setupInput(): void {
+    this.input.mouse?.disableContextMenu();
+
+    this.input.on("pointerdown", (pointer: Phaser.Input.Pointer, hit: Phaser.GameObjects.GameObject[]) => {
+      if (pointer.rightButtonDown() || pointer.middleButtonDown()) {
+        const camera = this.cameras.main;
+        this.panning = { x: pointer.x, y: pointer.y, scrollX: camera.scrollX, scrollY: camera.scrollY };
+        return;
+      }
+      if (this.placing !== null) {
+        const [x, y] = this.placePoint(pointer.worldX, pointer.worldY, this.placing);
+        this.events_.onPlace(this.placing, x, y);
+        return;
+      }
+      this.select(hit.length > 0 ? (hit[0].getData("objectId") as string) : null);
+    });
+
+    this.input.on("drag", (_p: Phaser.Input.Pointer, image: Phaser.GameObjects.Image, dragX: number, dragY: number) => {
+      const kind = image.getData("kind") as Kind;
+      const [x, y] = this.placePoint(dragX, dragY, kind);
+      image.setPosition(x, y);
+      this.drawSelection();
+    });
+
+    this.input.on("dragend", (_p: Phaser.Input.Pointer, image: Phaser.GameObjects.Image) => {
+      const object = this.model.find(image.getData("objectId") as string);
+      if (object !== undefined && (object.x !== image.x || object.y !== image.y)) {
+        this.model.move(object.id, image.x, image.y);
+      }
+    });
+
+  }
