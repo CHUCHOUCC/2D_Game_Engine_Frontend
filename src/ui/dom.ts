@@ -12,3 +12,7 @@ export function make<K extends keyof HTMLElementTagNameMap>(tag: K, className = 
   if (text) element.textContent = text;
   return element;
 }
+
+export function errorText(error: unknown): string {
+  return error instanceof Error ? error.message : "Error inesperado";
+}
