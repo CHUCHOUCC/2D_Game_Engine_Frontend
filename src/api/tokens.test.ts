@@ -29,3 +29,12 @@ test("TokenStore saves a pair and knows when the access token expires", () => {
   expect(tokens.refresh).toBe("r1");
   expect(tokens.msUntilExpiry()).toBe(900_000);
 });
+
+test("TokenStore reports when the access token is about to expire", () => {
+  let now = 0;
+  const { tokens } = store(() => now);
+  tokens.save(PAIR);
+  expect(tokens.expiresSoon(60_000)).toBe(false);
+  now = 850_000;
+  expect(tokens.expiresSoon(60_000)).toBe(true);
+});
