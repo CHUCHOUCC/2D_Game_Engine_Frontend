@@ -26,3 +26,15 @@ export function createAnimations(scene: Phaser.Scene): void {
     anims.create({ key: "enemy-bounce", frames: anims.generateFrameNumbers("enemy", { start: 0, end: 1 }), frameRate: 3, repeat: -1 });
   }
 }
+
+/** Texture key of each kind, and the animation it plays (if any). */
+export const KIND_TEXTURE: Record<Kind, { key: string; anim?: string }> = {
+  player: { key: "player" },
+  box: { key: "box" },
+  wall: { key: "wall" },
+  house: { key: "house" },
+  tree: { key: "tree" },
+  spike: { key: "spike" },
+  coin: { key: "coin", anim: "coin-spin" },
+  enemy: { key: "enemy", anim: "enemy-bounce" },
+};
