@@ -72,3 +72,26 @@ export class HttpClient {
     }
     return new ApiError(response.status, friendlyMessage(response.status, detail));
   }
+
+  /** Exchange the refresh token for a new pair. Only one refresh runs at a time. */
+  refreshTokens(): Promise<boolean> {
+    if (this.refreshing === null) {
+      this.refreshing = this.doRefresh().finally(() => {
+        this.refreshing = null;
+      });
+    }
+    return this.refreshing;
+  }
+
+  private async doRefresh(): Promise<boolean> {
+    const refresh = this.tokens.refresh;
+    if (refresh === null) return false;
+    const response = await this.send("/auth/refresh", { method: "POST", body: JSON.stringify({ refresh_token: refresh }) }, null)
+      .catch(() => null);
+    if (response === null || !response.ok) {
+      if (response !== null) this.tokens.clear();
+      return false;
+    }
+    this.tokens.save((await response.json()) as TokenPair);
+    return true;
+  }
