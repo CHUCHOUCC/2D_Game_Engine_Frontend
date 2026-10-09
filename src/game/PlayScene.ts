@@ -170,3 +170,15 @@ export class PlayScene extends Phaser.Scene {
     keyboard.removeCapture([K.UP, K.DOWN, K.LEFT, K.RIGHT, K.W, K.A, K.S, K.D, K.SPACE, K.ESC]);
     keyboard.removeAllKeys(true);
   }
+
+  private setupCamera(): void {
+    const camera = this.cameras.main;
+    camera.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    const fit = Math.min(this.scale.width / WORLD_WIDTH, this.scale.height / WORLD_HEIGHT);
+    camera.setZoom(Math.max(fit, Math.min(2, this.scale.height / 420)));
+    camera.startFollow(this.player, true, 0.12, 0.12);
+    this.scale.on(Phaser.Scale.Events.RESIZE, () => {
+      const zoom = Math.min(this.scale.width / WORLD_WIDTH, this.scale.height / WORLD_HEIGHT);
+      camera.setZoom(Math.max(zoom, Math.min(2, this.scale.height / 420)));
+    });
+  }
