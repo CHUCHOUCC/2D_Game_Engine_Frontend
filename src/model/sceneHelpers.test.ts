@@ -18,3 +18,13 @@ test("nextObjectId gives readable ids that are not taken", () => {
   expect(nextObjectId(model, "wall")).toBe("wall-2");
   expect(nextObjectId(model, "coin")).toBe("coin-1");
 });
+
+test("countByKind counts only the kinds present", () => {
+  const model = new SceneModel();
+  model.replaceAll([
+    { id: "a", kind: "coin", x: 1, y: 1 },
+    { id: "b", kind: "coin", x: 2, y: 2 },
+    { id: "c", kind: "house", x: 100, y: 100 },
+  ]);
+  expect(countByKind(model)).toEqual({ coin: 2, house: 1 });
+});
