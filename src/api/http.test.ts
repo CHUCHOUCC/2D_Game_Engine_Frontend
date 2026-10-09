@@ -31,3 +31,17 @@ test("HttpClient sends no header without tokens", async () => {
   await client.request("/health");
   expect(calls[0].auth).toBeUndefined();
 });
+
+test("HttpClient refreshes on 401 and retries with the new token", async () => {
+  const { client, calls, tokens } = setup((url, init) => {
+    if (url.endsWith("/auth/refresh")) {
+      return json(200, { access_token: "new-access", refresh_token: "new-refresh", token_type: "bearer", expires_in: 900 });
+    }
+    const auth = (init.headers as Record<string, string>)["Authorization"];
+    return auth === "Bearer new-access" ? json(200, { id: 1 }) : json(401, { detail: "Invalid or missing token" });
+  });
+  expect(await client.request("/projects")).toEqual({ id: 1 });
+  expect(calls.map((c) => c.url)).toEqual(["https://api.test/projects", "https://api.test/auth/refresh", "https://api.test/projects"]);
+  expect(calls[1].body).toEqual({ refresh_token: "old-refresh" });
+  expect(tokens.refresh).toBe("new-refresh");
+});
