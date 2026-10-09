@@ -87,3 +87,23 @@ export class AiPanel {
       : `Aprendió de ${model.samples_seen} partida${model.samples_seen === 1 ? "" : "s"}.`);
     root.replaceChildren(line, meter, runs);
   }
+
+  private async busy(button: HTMLButtonElement, work: () => Promise<void>): Promise<void> {
+    button.classList.add("is-loading");
+    button.disabled = true;
+    try {
+      await work();
+    } catch (error) {
+      toast(errorText(error), "error");
+    } finally {
+      button.classList.remove("is-loading");
+      button.disabled = false;
+    }
+  }
+
+  private requireProject(): number | null {
+    const id = this.getProjectId();
+    if (id === null) toast("Crea o abre un proyecto primero.", "error");
+    return id;
+  }
+}
