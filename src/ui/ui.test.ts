@@ -50,3 +50,12 @@ test("HUD formats time and hearts", () => {
   expect(hearts(2)).toBe("♥♥♡");
   expect(hearts(9)).toBe("♥♥♥");
 });
+
+test("relativeTime describes how long ago a project changed", () => {
+  const now = Date.parse("2026-10-09T12:00:00Z");
+  expect(relativeTime("2026-10-09T11:59:30Z", now)).toBe("hace un momento");
+  expect(relativeTime("2026-10-09T11:40:00Z", now)).toBe("hace 20 min");
+  expect(relativeTime("2026-10-09T07:00:00Z", now)).toBe("hace 5 h");
+  expect(relativeTime("2026-10-08T12:00:00Z", now)).toBe("ayer");
+  expect(relativeTime("2026-10-01T12:00:00Z", now)).toBe("hace 8 días");
+});
