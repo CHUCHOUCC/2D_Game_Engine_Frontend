@@ -44,3 +44,16 @@ export class SettingsPanel {
     byId<HTMLInputElement>("set-music").addEventListener("input", (e) => this.update({ music_volume: Number((e.target as HTMLInputElement).value) }));
     byId<HTMLInputElement>("set-sfx").addEventListener("input", (e) => this.update({ sfx_volume: Number((e.target as HTMLInputElement).value) }));
   }
+
+  open(): void {
+    this.render();
+    this.drawer.hidden = false;
+    this.backdrop.hidden = false;
+    this.gear.setAttribute("aria-expanded", "true");
+  }
+
+  close(): void {
+    this.drawer.hidden = true;
+    this.backdrop.hidden = true;
+    this.gear.setAttribute("aria-expanded", "false");
+  }
