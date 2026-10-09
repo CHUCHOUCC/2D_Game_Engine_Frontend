@@ -38,3 +38,9 @@ export const KIND_TEXTURE: Record<Kind, { key: string; anim?: string }> = {
   coin: { key: "coin", anim: "coin-spin" },
   enemy: { key: "enemy", anim: "enemy-bounce" },
 };
+
+/** Image for the HTML palette (first frame of sprite sheets is shown with CSS). */
+export function iconUrl(kind: Kind): string {
+  const file = kind === "enemy" ? "enemy-slime" : KIND_TEXTURE[kind].key;
+  return `${BASE}${file}.png`;
+}
