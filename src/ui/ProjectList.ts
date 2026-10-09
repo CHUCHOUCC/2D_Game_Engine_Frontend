@@ -73,3 +73,22 @@ export class ProjectList {
       toast(errorText(error), "error");
     }
   }
+
+  async refresh(): Promise<ProjectDto[]> {
+    const projects = await listProjects();
+    this.list.replaceChildren();
+    if (projects.length === 0) {
+      this.list.append(make("li", "empty", "Aún no tienes proyectos. Crea el primero con “+ Nuevo”."));
+    }
+    for (const project of projects) this.list.append(this.row(project));
+    return projects;
+  }
+
+  setCurrent(id: number | null): void {
+    this.currentId = id;
+  }
+
+  clear(): void {
+    this.list.replaceChildren();
+  }
+}
