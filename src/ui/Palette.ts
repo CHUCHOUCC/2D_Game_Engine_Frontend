@@ -47,3 +47,11 @@ export class Palette {
   get current(): Kind | null {
     return this.active;
   }
+
+  /** A scene has only one player: its button is disabled once one is placed. */
+  setPlayerAvailable(available: boolean): void {
+    const button = this.buttons.get("player")!;
+    button.disabled = !available;
+    if (!available && this.active === "player") this.pick(null);
+  }
+}
