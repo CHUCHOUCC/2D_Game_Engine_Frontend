@@ -82,3 +82,9 @@
 .template:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
 .template input { accent-color: var(--accent); }
 .template small { display: block; color: var(--text-muted); }
+
+.result-body { display: grid; gap: 10px; }
+.result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.result-ai { padding: 10px; border-radius: var(--radius-sm); background: var(--accent-soft); font-size: 13px; }
+.dialog-result h3.is-won { color: var(--success); }
+.dialog-result h3.is-lost { color: var(--danger); }
