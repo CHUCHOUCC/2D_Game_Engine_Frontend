@@ -50,3 +50,10 @@ export class Inspector {
     }
     return grid;
   }
+
+  private deleteButton(object: GameObject): HTMLElement {
+    const button = make("button", "btn btn-block", "Eliminar (Supr)");
+    button.addEventListener("click", () => this.actions.remove(object.id));
+    return button;
+  }
+}
