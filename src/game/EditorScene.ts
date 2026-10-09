@@ -180,3 +180,27 @@ export class EditorScene extends Phaser.Scene {
     for (let x = size; x < WORLD_WIDTH; x += size) this.grid.lineBetween(x, 0, x, WORLD_HEIGHT);
     for (let y = size; y < WORLD_HEIGHT; y += size) this.grid.lineBetween(0, y, WORLD_WIDTH, y);
   }
+
+  update(): void {
+    if (this.drawnVersion !== this.model.version) {
+      this.redraw();
+      this.drawnVersion = this.model.version;
+    }
+  }
+
+  private drawnImages(): Phaser.GameObjects.Image[] {
+    return this.children.list.filter(
+      (child): child is Phaser.GameObjects.Image => typeof child.getData("objectId") === "string",
+    );
+  }
+
+  private redraw(): void {
+    this.drawnImages().forEach((image) => image.destroy());
+    for (const object of this.model) {
+      this.drawObject(object);
+    }
+    if (this.selectedId !== null && this.model.find(this.selectedId) === undefined) {
+      this.select(null);
+    }
+    this.drawSelection();
+  }
