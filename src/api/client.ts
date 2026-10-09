@@ -67,3 +67,31 @@ export async function logOut(): Promise<void> {
 export function hasSession(): boolean {
   return http.tokens.refresh !== null;
 }
+
+export function listProjects(): Promise<ProjectDto[]> {
+  return http.request<ProjectDto[]>("/projects");
+}
+
+export function listTemplates(): Promise<TemplateDto[]> {
+  return http.request<TemplateDto[]>("/projects/templates");
+}
+
+export function createProject(name: string, template?: string): Promise<ProjectDto> {
+  return http.request<ProjectDto>("/projects", { method: "POST", body: JSON.stringify({ name, template }) });
+}
+
+export function getProject(id: number): Promise<ProjectDto> {
+  return http.request<ProjectDto>(`/projects/${id}`);
+}
+
+export function renameProject(id: number, name: string): Promise<ProjectDto> {
+  return http.request<ProjectDto>(`/projects/${id}`, { method: "PATCH", body: JSON.stringify({ name }) });
+}
+
+export function deleteProject(id: number): Promise<void> {
+  return http.request<void>(`/projects/${id}`, { method: "DELETE" });
+}
+
+export function duplicateProject(id: number): Promise<ProjectDto> {
+  return http.request<ProjectDto>(`/projects/${id}/duplicate`, { method: "POST" });
+}
