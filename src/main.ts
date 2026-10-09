@@ -105,3 +105,19 @@ function removeObject(id: string | null = host.editor.selectedId): void {
   }
   host.editor.select(null);
 }
+
+let seenVersion = -1;
+function watchModel(): void {
+  if (model.version !== seenVersion) {
+    seenVersion = model.version;
+    const counts = countByKind(model);
+    byId("status-objects").textContent = `${model.size()} objetos · ${counts.coin ?? 0} monedas · ${counts.enemy ?? 0} enemigos`;
+    palette.setPlayerAvailable(!hasPlayer(model));
+    const selected = host.editor.selectedId;
+    inspector.show(selected === null ? undefined : model.find(selected));
+    byId<HTMLButtonElement>("btn-undo").disabled = !model.canUndo();
+    byId<HTMLButtonElement>("btn-redo").disabled = !model.canRedo();
+    document.title = `${isDirty() ? "● " : ""}Motor 2D · Editor de juegos`;
+  }
+  requestAnimationFrame(watchModel);
+}
