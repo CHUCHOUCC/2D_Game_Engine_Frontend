@@ -99,3 +99,14 @@ BOX = [
 
 def box() -> list:
     return from_grid(BOX, {"o": "4a2e14", "w": "c4893f", "d": "8a5a28"})
+
+
+
+def wall() -> list:
+    rows = []
+    for course in range(4):
+        joint = 7 if course % 2 == 0 else 3
+        brick = "".join("m" if (x - joint) % 8 == 0 else "r" for x in range(16))
+        light = brick.replace("r", "R")
+        rows += [light, brick, brick, "m" * 16]
+    return from_grid(rows, {"m": "9a948c", "r": "a4483a", "R": "c45c4a"})
