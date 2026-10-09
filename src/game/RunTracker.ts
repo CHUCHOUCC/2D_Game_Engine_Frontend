@@ -81,3 +81,12 @@ export class RunTracker {
     if (this.coinsTotal > 0) return this.coinsCollected >= this.coinsTotal;
     return this.enemiesTotal > 0 && this.enemiesDefeated >= this.enemiesTotal;
   }
+
+  defeatEnemy(x?: number, y?: number): void {
+    if (this.isOver()) return;
+    this.enemiesDefeated += 1;
+    this.counter.receive({ type: "defeated" });
+    this.counter.process();
+    this.record("enemy_defeated", x, y);
+    if (this.hasWon()) this.finish("won");
+  }
