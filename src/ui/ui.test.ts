@@ -23,3 +23,9 @@ test("repeated or common passwords stay weak", () => {
   expect(passwordStrength("aaaaaaaaaaaaaa").score).toBe(1);
   expect(passwordStrength("12345678Aa!xyz").score).toBe(1);
 });
+
+test("system theme follows the operating system", () => {
+  expect(resolveTheme("system", true)).toBe("dark");
+  expect(resolveTheme("system", false)).toBe("light");
+  expect(resolveTheme("light", true)).toBe("light");
+});
