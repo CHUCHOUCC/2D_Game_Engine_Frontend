@@ -85,3 +85,23 @@ const host = new GameHost(
     onFinish: (result) => void runFinished(result),
   },
 );
+
+function placeObject(kind: Kind, x: number, y: number): void {
+  if (kind === "player" && hasPlayer(model)) {
+    toast("La escena ya tiene un jugador.", "error");
+    palette.pick(null);
+    return;
+  }
+  const id = nextObjectId(model, kind);
+  model.add({ id, kind, x, y });
+  if (kind === "player") palette.pick(null);
+  host.editor.select(id);
+}
+
+function removeObject(id: string | null = host.editor.selectedId): void {
+  if (id === null || !model.remove(id)) {
+    setStatus("Selecciona un objeto para eliminarlo.", "error");
+    return;
+  }
+  host.editor.select(null);
+}
