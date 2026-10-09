@@ -36,3 +36,10 @@ The frontend only talks to the backend; it never calls the AI service or the dat
 
 All textures are original pixel art drawn by `tools/make_textures.py` (no third-party assets).
 Enemies chase faster and from further away as the AI difficulty grows.
+
+## Tokens
+
+`src/api/tokens.ts` keeps the access token (15 min) and the refresh token in `sessionStorage`.
+`src/api/http.ts` adds `Authorization: Bearer …` to every request, refreshes the pair shortly before
+it expires or after a 401 (one refresh shared by parallel requests), and returns to the login screen
+when the session cannot be renewed.
