@@ -126,3 +126,33 @@ export function aiObstacles(id: number, count: number): Promise<ProjectDto & { a
 export function aiModel(id: number): Promise<AiModelDto> {
   return http.request<AiModelDto>(`/projects/${id}/ai/model`);
 }
+
+export interface RunResultDto {
+  outcome: "won" | "lost" | "quit";
+  score: number;
+  coins_collected: number;
+  coins_total: number;
+  enemies_defeated: number;
+  damage_taken: number;
+  deaths: number;
+  duration_ms: number;
+  events: { kind: string; x?: number; y?: number; at_ms: number }[];
+}
+
+export interface FinishDto {
+  learned: boolean;
+  difficulty: number;
+  reward?: number;
+  achievements: string[];
+}
+
+export function startRun(projectId: number): Promise<{ id: number; difficulty: number }> {
+  return http.request(`/projects/${projectId}/plays`, { method: "POST" });
+}
+
+export function finishRun(projectId: number, runId: number, result: RunResultDto): Promise<FinishDto> {
+  return http.request<FinishDto>(`/projects/${projectId}/plays/${runId}/finish`, {
+    method: "POST",
+    body: JSON.stringify(result),
+  });
+}
