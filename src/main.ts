@@ -121,3 +121,72 @@ function watchModel(): void {
   }
   requestAnimationFrame(watchModel);
 }
+
+const projectList = new ProjectList(
+  (project) => void attempt(async () => openProject(project)),
+  (id) => {
+    if (id === projectId) openProject(null);
+  },
+);
+
+function openProject(project: ProjectDto | null): void {
+  if (isDirty() && !window.confirm("Hay cambios sin guardar. ¿Abrir otro proyecto igualmente?")) return;
+  projectId = project?.id ?? null;
+  model.replaceAll(project?.scene ?? []);
+  savedVersion = model.version;
+  host.editor.select(null);
+  const name = byId<HTMLInputElement>("project-name");
+  name.value = project?.name ?? "";
+  name.disabled = project === null;
+  projectList.setCurrent(projectId);
+  void projectList.refresh();
+  void aiPanel.refresh();
+  setStatus(project ? `Abierto "${project.name}".` : "Crea o abre un proyecto para empezar.");
+}
+
+async function newProject(): Promise<void> {
+  const choice = await askNewProject();
+  if (choice === null) return;
+  const project = await createProject(choice.name, choice.template);
+  openProject(project);
+  toast(`Proyecto "${project.name}" creado.`, "success");
+}
+
+async function save(): Promise<void> {
+  if (projectId === null) {
+    toast("Crea o abre un proyecto primero.", "error");
+    return;
+  }
+  const button = byId<HTMLButtonElement>("btn-save");
+  button.classList.add("is-loading");
+  try {
+    const project = await saveScene(projectId, model.toJson());
+    savedVersion = model.version;
+    seenVersion = -1;
+    setStatus(`Guardado: ${project.scene.length} objetos.`, "success");
+    await projectList.refresh();
+  } finally {
+    button.classList.remove("is-loading");
+  }
+}
+
+byId<HTMLInputElement>("project-name").addEventListener("change", (event) => {
+  const input = event.target as HTMLInputElement;
+  if (projectId === null || input.value.trim() === "") return;
+  void attempt(async () => {
+    await renameProject(projectId!, input.value.trim());
+    await projectList.refresh();
+    toast("Nombre actualizado.", "success");
+  });
+});
+
+const aiPanel = new AiPanel(
+  () => projectId,
+  (project) => {
+    model.replaceAll(project.scene);
+    savedVersion = model.version;
+  },
+  async () => {
+    if (isDirty()) await save();
+  },
+);
