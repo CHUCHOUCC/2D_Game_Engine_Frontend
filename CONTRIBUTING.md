@@ -93,3 +93,10 @@ Rules of thumb:
 - Game rules that can be tested go in a class **without Phaser** (`RunTracker`, `SceneModel`, `geometry`).
 - New colors go in `tokens.css` for **both** themes; never hard-code a color in a component.
 - New user-visible text is in Spanish; code, comments and commits stay in English.
+
+## 7. Login and tokens
+
+`POST /auth/login` returns a short access token (JWT, 15 minutes) and a refresh token. `src/api/http.ts`
+sends the access token, refreshes it a little before it expires and, if the backend still answers
+401, sends the user back to the login screen. Both tokens live in `sessionStorage`, so closing the
+tab ends the session. To test locally, create an account with **Crear cuenta**.
