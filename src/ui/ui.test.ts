@@ -29,3 +29,16 @@ test("system theme follows the operating system", () => {
   expect(resolveTheme("system", false)).toBe("light");
   expect(resolveTheme("light", true)).toBe("light");
 });
+
+test("shortcuts map keys to editor actions", () => {
+  const key = (k: string, extra: Partial<KeyboardEvent> = {}) =>
+    shortcutFor({ key: k, ctrlKey: false, metaKey: false, shiftKey: false, ...extra });
+  expect(key("s", { ctrlKey: true })).toBe("save");
+  expect(key("z", { metaKey: true })).toBe("undo");
+  expect(key("Z", { ctrlKey: true, shiftKey: true })).toBe("redo");
+  expect(key("y", { ctrlKey: true })).toBe("redo");
+  expect(key("Delete")).toBe("remove");
+  expect(key("p")).toBe("play");
+  expect(key("Escape")).toBe("cancel");
+  expect(key("s")).toBeNull();
+});
