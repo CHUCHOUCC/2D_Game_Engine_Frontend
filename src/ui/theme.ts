@@ -5,3 +5,20 @@ export function resolveTheme(setting: ThemeSetting, prefersDark: boolean): "ligh
   if (setting === "system") return prefersDark ? "dark" : "light";
   return setting;
 }
+
+const query = typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+let current: ThemeSetting = "dark";
+
+export function applyTheme(setting: ThemeSetting): void {
+  current = setting;
+  document.documentElement.dataset.theme = resolveTheme(setting, query?.matches ?? true);
+  try {
+    localStorage.setItem("engine-theme", setting);
+  } catch {
+    // the theme still applies for this visit
+  }
+}
+
+query?.addEventListener("change", () => {
+  if (current === "system") applyTheme("system");
+});
