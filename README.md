@@ -55,3 +55,14 @@ when the session cannot be renewed.
 
 `SceneModel` is the single source of truth; Phaser only draws it. It is copied into a plain array
 only to send it to the backend as JSON.
+
+## Shortcuts
+
+| Keys | Action |
+|---|---|
+| `Ctrl+S` | Save |
+| `Ctrl+Z` / `Ctrl+Y` | Undo / redo |
+| `Supr` | Delete the selected object |
+| `P` | Play |
+| `Esc` | Stop placing / leave the game |
+| Right-click drag, wheel | Move and zoom the map |
