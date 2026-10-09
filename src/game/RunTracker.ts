@@ -40,3 +40,23 @@ export class RunTracker {
     this.now = now;
     this.startedAt = now();
   }
+
+  score(): number {
+    return this.counter.score();
+  }
+
+  health(): number {
+    return this.counter.health();
+  }
+
+  elapsedMs(): number {
+    return Math.round((this.endedAt ?? this.now()) - this.startedAt);
+  }
+
+  isOver(): boolean {
+    return this.result_ !== null;
+  }
+
+  outcome(): Outcome | null {
+    return this.result_;
+  }
