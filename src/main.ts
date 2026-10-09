@@ -269,3 +269,7 @@ bindShortcuts(
 window.addEventListener("beforeunload", (event) => {
   if (isDirty()) event.preventDefault();
 });
+
+const settings = new SettingsPanel((value) =>
+  host.setEditorOptions({ showGrid: value.show_grid, snapToGrid: value.snap_to_grid, gridSize: value.grid_size }),
+);
