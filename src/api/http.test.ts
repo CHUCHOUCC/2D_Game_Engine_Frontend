@@ -85,3 +85,12 @@ test("HttpClient turns backend errors into Spanish messages", async () => {
   const { client } = setup(() => json(409, { detail: "Email already registered" }), false);
   await expect(client.request("/auth/register")).rejects.toMatchObject({ status: 409, message: "Ese correo ya tiene una cuenta." });
 });
+
+test("HttpClient reports network failures and returns nothing for 204", async () => {
+  const offline = setup(() => {
+    throw new TypeError("offline");
+  }, false);
+  await expect(offline.client.request("/health")).rejects.toMatchObject({ status: 0 });
+  const empty = setup(() => json(204, null));
+  expect(await empty.client.request("/auth/logout")).toBeUndefined();
+});
