@@ -18,3 +18,8 @@ test("length and character variety raise the score", () => {
   expect(passwordStrength("Gatoverde12").score).toBe(3);
   expect(passwordStrength("Gatoverde12!largo").score).toBe(4);
 });
+
+test("repeated or common passwords stay weak", () => {
+  expect(passwordStrength("aaaaaaaaaaaaaa").score).toBe(1);
+  expect(passwordStrength("12345678Aa!xyz").score).toBe(1);
+});
