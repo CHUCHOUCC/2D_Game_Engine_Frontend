@@ -55,3 +55,11 @@
 .backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(0, 0, 0, 0.35); }
 
 @keyframes slide-in { from { transform: translateX(40px); opacity: 0; } }
+
+.setting { margin: 0; padding: 0; border: 0; }
+.setting legend { margin-bottom: 8px; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.segmented { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: var(--radius); background: var(--panel-2); }
+.segmented button { padding: 8px 4px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); font: inherit; font-weight: 600; cursor: pointer; }
+.segmented button.is-active { background: var(--bg-elevated); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); }
+.shortcuts { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0; font-size: 13px; }
+.shortcuts dd { margin: 0; color: var(--text-muted); }
