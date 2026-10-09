@@ -25,3 +25,9 @@ test("fitZoom shows the whole world", () => {
   expect(fitZoom(848, 528)).toBe(0.5);
   expect(fitZoom(10, 10)).toBe(0.1);
 });
+
+test("overlaps uses each kind's size", () => {
+  expect(overlaps({ kind: "wall", x: 0, y: 0 }, { kind: "wall", x: 31, y: 0 })).toBe(true);
+  expect(overlaps({ kind: "wall", x: 0, y: 0 }, { kind: "wall", x: 32, y: 0 })).toBe(false);
+  expect(overlaps({ kind: "house", x: 100, y: 100 }, { kind: "coin", x: 150, y: 100 })).toBe(true);
+});
