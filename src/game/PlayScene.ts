@@ -269,3 +269,18 @@ export class PlayScene extends Phaser.Scene {
     }
     if (this.tracker.isOver()) this.end(this.tracker.outcome()!);
   }
+
+  private reportHud(time: number, force = false): void {
+    if (!force && time - this.lastHud < 120) return;
+    this.lastHud = time;
+    this.hooks.onHud({
+      score: this.tracker.score(),
+      health: this.tracker.health(),
+      coins: this.tracker.coinsCollected,
+      coinsTotal: this.tracker.coinsTotal,
+      enemies: this.tracker.enemiesDefeated,
+      enemiesTotal: this.tracker.enemiesTotal,
+      elapsedMs: this.tracker.elapsedMs(),
+      difficulty: this.difficulty,
+    });
+  }
