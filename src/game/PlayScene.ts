@@ -289,3 +289,14 @@ export class PlayScene extends Phaser.Scene {
   quit(): void {
     this.end("quit");
   }
+
+  private end(outcome: RunResultDto["outcome"]): void {
+    if (this.finished) return;
+    this.finished = true;
+    this.tracker.finish(outcome);
+    this.player.setVelocity(0, 0);
+    this.physics.pause();
+    this.reportHud(this.time.now, true);
+    this.hooks.onFinish(this.tracker.result());
+  }
+}
