@@ -25,3 +25,9 @@ test("HttpClient sends the access token as a bearer header", async () => {
   expect(await client.request("/auth/me")).toEqual({ ok: true });
   expect(calls[0]).toMatchObject({ url: "https://api.test/auth/me", auth: "Bearer old-access" });
 });
+
+test("HttpClient sends no header without tokens", async () => {
+  const { client, calls } = setup(() => json(200, {}), false);
+  await client.request("/health");
+  expect(calls[0].auth).toBeUndefined();
+});
