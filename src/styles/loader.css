@@ -12,3 +12,28 @@
 }
 
 .loader.is-hiding { opacity: 0; pointer-events: none; }
+
+.loader-logo {
+  display: grid;
+  grid-template-columns: repeat(2, 26px);
+  gap: 6px;
+  transform: rotate(45deg);
+}
+
+.loader-cube {
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  background: var(--accent);
+  box-shadow: inset -4px -4px 0 rgba(0, 0, 0, 0.25), inset 4px 4px 0 rgba(255, 255, 255, 0.25);
+  animation: cube 1.2s ease-in-out infinite;
+}
+
+.loader-cube:nth-child(2) { background: var(--warning); animation-delay: 0.15s; }
+.loader-cube:nth-child(3) { background: var(--success); animation-delay: 0.45s; }
+.loader-cube:nth-child(4) { background: var(--danger); animation-delay: 0.3s; }
+
+@keyframes cube {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.55); opacity: 0.55; }
+}
