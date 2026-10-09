@@ -66,3 +66,20 @@ export class LoginScreen {
     fill.style.background = strength.color;
     byId("strength-label").textContent = this.password.value ? strength.label : "Escribe una contraseña";
   }
+
+  private validate(): string | null {
+    for (const input of [this.username, this.email, this.password]) input.removeAttribute("aria-invalid");
+    if (this.mode === "register" && this.username.value.trim() === "") {
+      this.username.setAttribute("aria-invalid", "true");
+      return "Elige un nombre de usuario.";
+    }
+    if (!EMAIL.test(this.email.value.trim())) {
+      this.email.setAttribute("aria-invalid", "true");
+      return "Escribe un correo válido.";
+    }
+    if (this.password.value.length < (this.mode === "register" ? 8 : 1)) {
+      this.password.setAttribute("aria-invalid", "true");
+      return this.mode === "register" ? "La contraseña necesita al menos 8 caracteres." : "Escribe tu contraseña.";
+    }
+    return null;
+  }
