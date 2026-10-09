@@ -13,3 +13,9 @@ test("snap aligns houses by their edges and coins by their centre", () => {
   expect(snap(30, "coin", 32)).toBe(16);
   expect(snap(30, "wall", 16)).toBe(32);
 });
+
+test("clampToWorld keeps the whole object inside", () => {
+  expect(clampToWorld(0, 0, "house")).toEqual([48, 48]);
+  expect(clampToWorld(5000, 5000, "coin")).toEqual([1592, 952]);
+  expect(clampToWorld(400, 300, "box")).toEqual([400, 300]);
+});
