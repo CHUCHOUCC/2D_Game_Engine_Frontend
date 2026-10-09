@@ -1,0 +1,20 @@
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b0f17;
+  --bg-elevated: #121826;
+  --panel: #151c2b;
+  --panel-2: #1b2436;
+  --border: #263049;
+  --border-strong: #34405e;
+  --text: #e8edf7;
+  --text-muted: #8f9bb3;
+  --accent: #6c8cff;
+  --accent-strong: #5070f0;
+  --accent-soft: rgba(108, 140, 255, 0.16);
+  --success: #3ccf91;
+  --warning: #f6c945;
+  --danger: #ff6b6b;
+  --canvas-bg: #070a10;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
