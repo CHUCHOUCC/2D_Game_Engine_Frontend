@@ -38,3 +38,12 @@ test("RunTracker wins a level without coins by defeating every enemy", () => {
   expect(run.outcome()).toBe("won");
   expect(run.score()).toBe(5);
 });
+
+test("RunTracker loses when health runs out", () => {
+  const { run } = tracker();
+  expect(run.takeDamage("enemy")).toBe(false);
+  expect(run.takeDamage("spike")).toBe(false);
+  expect(run.takeDamage("enemy")).toBe(true);
+  expect(run.outcome()).toBe("lost");
+  expect(run.damageTaken).toBe(3);
+});
