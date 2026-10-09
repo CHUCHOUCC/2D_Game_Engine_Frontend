@@ -51,3 +51,24 @@ export class HttpClient {
   whenSessionLost(handler: () => void): void {
     this.onSessionLost = handler;
   }
+
+  private async send(path: string, init: RequestInit, token: string | null): Promise<Response> {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token !== null) headers["Authorization"] = `Bearer ${token}`;
+    try {
+      return await this.fetcher(`${this.baseUrl}${path}`, { ...init, headers });
+    } catch {
+      throw new ApiError(0, friendlyMessage(0, ""));
+    }
+  }
+
+  private static async errorOf(response: Response): Promise<ApiError> {
+    let detail = response.statusText;
+    try {
+      const body = await response.json();
+      if (typeof body.detail === "string") detail = body.detail;
+    } catch {
+      // keep the status text
+    }
+    return new ApiError(response.status, friendlyMessage(response.status, detail));
+  }
