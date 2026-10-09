@@ -68,3 +68,15 @@ test("HttpClient clears the tokens and reports a lost session when refresh fails
   expect(lost).toBe(true);
   expect(tokens.refresh).toBeNull();
 });
+
+test("HttpClient refreshes before a request when the access token is about to expire", async () => {
+  const { client, calls, tokens } = setup((url) =>
+    url.endsWith("/auth/refresh")
+      ? json(200, { access_token: "fresh", refresh_token: "r2", token_type: "bearer", expires_in: 900 })
+      : json(200, {}),
+  );
+  tokens.save({ access_token: "stale", refresh_token: "r1", token_type: "bearer", expires_in: 5 });
+  await client.request("/projects");
+  expect(calls.map((c) => c.url.split("/").pop())).toEqual(["refresh", "projects"]);
+  expect(calls[1].auth).toBe("Bearer fresh");
+});
