@@ -96,3 +96,37 @@ export class PlayScene extends Phaser.Scene {
     this.setupCamera();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.releaseKeys());
   }
+
+  private spawn(object: GameObject): void {
+    const depth = object.y / WORLD_HEIGHT;
+    switch (object.kind) {
+      case "wall":
+      case "house":
+      case "tree":
+        this.solids.create(object.x, object.y, object.kind).setDepth(depth);
+        break;
+      case "spike":
+        this.spikes.create(object.x, object.y, "spike").setDepth(-1);
+        break;
+      case "coin": {
+        const coin = this.coins.create(object.x, object.y, "coin") as Sprite;
+        coin.play("coin-spin");
+        (coin.body as Phaser.Physics.Arcade.StaticBody).setSize(16, 16);
+        break;
+      }
+      case "box": {
+        const box = this.boxes.create(object.x, object.y, "box") as Sprite;
+        box.setDepth(depth).setDrag(400).setBounce(0.1).setCollideWorldBounds(true).setMass(2).setPushable(true);
+        break;
+      }
+      case "enemy": {
+        const enemy = this.enemies.create(object.x, object.y, "enemy") as Sprite;
+        enemy.play("enemy-bounce").setDepth(depth).setBounce(0.2).setCollideWorldBounds(true).setMass(1.5);
+        (enemy.body as Body).setSize(26, 20).setOffset(3, 10);
+        enemy.setData("hp", ENEMY_HEALTH);
+        break;
+      }
+      case "player":
+        break; // the player is created separately at this point
+    }
+  }
