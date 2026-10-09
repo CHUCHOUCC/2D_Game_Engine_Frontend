@@ -33,3 +33,20 @@ export class AiPanel {
     });
     byId("btn-ai-obstacles").addEventListener("click", () => void this.obstacles());
   }
+
+  private async ask(): Promise<void> {
+    const id = this.requireProject();
+    const prompt = byId<HTMLTextAreaElement>("ai-prompt");
+    if (id === null) return;
+    if (prompt.value.trim() === "") {
+      toast("Escribe qué debe crear la IA.", "error");
+      return;
+    }
+    await this.busy(byId<HTMLFormElement>("ai-form").querySelector("button")!, async () => {
+      await this.beforeRequest();
+      const project = await askAi(id, prompt.value.trim());
+      this.onScene(project);
+      prompt.value = "";
+      toast("La IA actualizó la escena.", "success");
+    });
+  }
