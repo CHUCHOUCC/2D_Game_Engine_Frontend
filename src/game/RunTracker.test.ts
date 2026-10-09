@@ -22,3 +22,12 @@ test("RunTracker counts the coins and enemies of the level", () => {
   expect(run.health()).toBe(3);
   expect(run.isOver()).toBe(false);
 });
+
+test("RunTracker wins when every coin is collected", () => {
+  const { run } = tracker();
+  run.collectCoin(100, 100);
+  expect(run.isOver()).toBe(false);
+  run.collectCoin(200, 100);
+  expect(run.outcome()).toBe("won");
+  expect(run.score()).toBe(2);
+});
