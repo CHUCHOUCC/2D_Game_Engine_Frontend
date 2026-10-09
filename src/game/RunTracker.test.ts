@@ -58,3 +58,27 @@ test("RunTracker ignores events after the run is over", () => {
   run.finish("won");
   expect(run.outcome()).toBe("quit");
 });
+
+test("RunTracker builds the result the backend expects", () => {
+  const { run, advance } = tracker();
+  advance(1500);
+  run.collectCoin(100.4, 99.6);
+  advance(500);
+  run.takeDamage("spike", 10, 20);
+  run.finish("quit");
+  advance(10_000);
+  expect(run.result()).toEqual({
+    outcome: "quit",
+    score: 1,
+    coins_collected: 1,
+    coins_total: 2,
+    enemies_defeated: 0,
+    damage_taken: 1,
+    deaths: 0,
+    duration_ms: 2000,
+    events: [
+      { kind: "coin", x: 100, y: 100, at_ms: 1500 },
+      { kind: "hit_spike", x: 10, y: 20, at_ms: 2000 },
+    ],
+  });
+});
