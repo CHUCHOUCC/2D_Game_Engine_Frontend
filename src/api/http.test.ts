@@ -94,3 +94,9 @@ test("HttpClient reports network failures and returns nothing for 204", async ()
   const empty = setup(() => json(204, null));
   expect(await empty.client.request("/auth/logout")).toBeUndefined();
 });
+
+test("friendlyMessage covers validation and AI errors", () => {
+  expect(friendlyMessage(422, "whatever")).toBe("Hay datos no válidos en el formulario.");
+  expect(friendlyMessage(502, "x")).toBe("La IA no respondió. Inténtalo de nuevo.");
+  expect(friendlyMessage(418, "teapot")).toBe("teapot");
+});
