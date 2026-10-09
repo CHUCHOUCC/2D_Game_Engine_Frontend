@@ -66,3 +66,13 @@
 .project-row:hover .project-actions, .project-row.is-current .project-actions { opacity: 1; }
 .project-actions .btn { min-height: 26px; width: 26px; font-size: 13px; }
 .empty { color: var(--text-muted); font-size: 13px; padding: 8px 0; }
+
+.inspector { display: grid; gap: 8px; font-size: 13px; }
+.inspector-empty { color: var(--text-muted); }
+.inspector-head { display: flex; align-items: center; gap: 10px; }
+.inspector-head .palette-icon { width: 40px; height: 40px; }
+.inspector-head strong { display: block; }
+.inspector-head small { color: var(--text-muted); }
+.inspector-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.inspector-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--text-muted); }
+.inspector-grid input { min-height: 32px; }
