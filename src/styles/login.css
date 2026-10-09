@@ -71,3 +71,26 @@
 .tabs { display: grid; grid-template-columns: 1fr 1fr; padding: 4px; border-radius: var(--radius); background: var(--panel-2); border: 1px solid var(--border); }
 .tab { padding: 9px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); font: inherit; font-weight: 600; cursor: pointer; transition: background var(--transition), color var(--transition); }
 .tab.is-active { background: var(--bg-elevated); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); }
+
+.password { position: relative; display: block; }
+.password input { padding-right: 46px; }
+.eye {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  width: 34px;
+  height: 34px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.eye:hover { color: var(--text); background: var(--accent-soft); }
+.eye svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.eye .eye-closed { display: none; }
+.eye[aria-pressed="true"] .eye-open { display: none; }
+.eye[aria-pressed="true"] .eye-closed { display: block; }
