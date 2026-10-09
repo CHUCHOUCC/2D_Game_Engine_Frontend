@@ -18,3 +18,17 @@ export class GameHost {
     this.editor = new EditorScene(model, editorEvents);
     this.playScene = new PlayScene(model, playHooks);
   }
+
+  start(): void {
+    if (this.game !== null) return;
+    this.game = new Phaser.Game({
+      type: Phaser.AUTO,
+      parent: this.parent,
+      backgroundColor: "#00000000",
+      transparent: true,
+      pixelArt: true,
+      scale: { mode: Phaser.Scale.RESIZE, width: "100%", height: "100%" },
+      physics: { default: "arcade", arcade: { gravity: { x: 0, y: 0 }, debug: false } },
+      scene: [this.editor, this.playScene],
+    });
+  }
