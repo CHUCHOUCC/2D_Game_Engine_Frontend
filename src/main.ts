@@ -58,3 +58,30 @@ async function attempt(action: () => Promise<void>): Promise<void> {
 function isDirty(): boolean {
   return projectId !== null && model.version !== savedVersion;
 }
+
+const inspector = new Inspector({
+  move: (id, x, y) => model.move(id, x, y),
+  remove: (id) => removeObject(id),
+});
+
+const palette = new Palette((kind) => {
+  host.editor.setPlacing(kind);
+  const hint = byId("placing-hint");
+  hint.hidden = kind === null;
+  if (kind !== null) hint.textContent = `Colocando: ${KIND_INFO[kind].name} — clic para poner, Esc para terminar`;
+});
+
+const host = new GameHost(
+  byId("game"),
+  model,
+  {
+    onSelect: (id) => inspector.show(id === null ? undefined : model.find(id)),
+    onPlace: (kind, x, y) => placeObject(kind, x, y),
+    onPointer: (x, y) => (byId("status-pointer").textContent = `x ${x} · y ${y}`),
+    onZoom: (zoom) => (byId("zoom-value").textContent = `${Math.round(zoom * 100)}%`),
+  },
+  {
+    onHud: showHud,
+    onFinish: (result) => void runFinished(result),
+  },
+);
