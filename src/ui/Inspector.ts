@@ -1,7 +1,7 @@
 import { KIND_INFO, type GameObject } from "../model/GameObject";
 import { clampToWorld } from "../model/geometry";
 import { byId, make } from "./dom";
-import { iconElement } from "./Palette";
+import { iconElement } from "./Library";
 
 interface InspectorActions {
   move: (id: string, x: number, y: number) => void;
