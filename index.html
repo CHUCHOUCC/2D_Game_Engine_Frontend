@@ -91,46 +91,100 @@
       </div>
     </section>
 
-    <!-- The editor: header, two side panels, the canvas and a status bar -->
+    <!-- SVG icons used by the editor (one stroke style, 24 px grid) -->
+    <svg width="0" height="0" class="icon-sprites" aria-hidden="true">
+      <symbol id="i-select" viewBox="0 0 24 24"><path d="M5 3l14 8-6.2 1.8L11 19z" /></symbol>
+      <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 12V5.5a1.5 1.5 0 0 1 3 0V11m0-7a1.5 1.5 0 0 1 3 0v7m0-5.5a1.5 1.5 0 0 1 3 0V12m0-3a1.5 1.5 0 0 1 3 0v5a7 7 0 0 1-7 7h-1a6 6 0 0 1-5-2.7l-2.6-4a1.5 1.5 0 0 1 2.5-1.7L8 15" /></symbol>
+      <symbol id="i-brush" viewBox="0 0 24 24"><path d="M18.4 2.6a2 2 0 0 1 2.8 2.8L11 15.6 8.4 13zM7 14.5a3.5 3.5 0 0 0-3.5 3.5c0 1.3-.7 2.2-1.5 2.5 1 .9 2.4 1.5 4 1.5a4.5 4.5 0 0 0 4.5-4.5z" /></symbol>
+      <symbol id="i-erase" viewBox="0 0 24 24"><path d="M20 20H9l-5.4-5.4a2 2 0 0 1 0-2.8l9.6-9.6a2 2 0 0 1 2.8 0l5.6 5.6a2 2 0 0 1 0 2.8L12 20M7 10l7 7" /></symbol>
+      <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3" /></symbol>
+      <symbol id="i-redo" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5M20 9H9a5 5 0 0 0 0 10h3" /></symbol>
+      <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l4 4v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM7 3v5h8V3M7 21v-7h10v7" /></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z" class="filled" /></symbol>
+      <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5" class="filled" /></symbol>
+      <symbol id="i-library" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" /></symbol>
+      <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5" /></symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></symbol>
+      <symbol id="i-fit" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14zM21 21l-5-5" /></symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4" /></symbol>
+      <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z" /></symbol>
+      <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 21h8M9 17h6" /></symbol>
+      <symbol id="i-focus" viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM12 2v3M12 19v3M2 12h3M19 12h3" /></symbol>
+    </svg>
+
+    <!-- The editor: laid out like a 2D engine (toolbar, left and right docks, viewport, status bar) -->
     <div id="app" class="app" hidden>
       <header class="topbar">
         <div class="brand brand-small">
-          <img src="/favicon.svg" alt="" width="28" height="28" />
+          <img src="/favicon.svg" alt="" width="26" height="26" />
           <strong>Motor 2D</strong>
         </div>
-        <input id="project-name" class="project-name" type="text" maxlength="100" placeholder="Sin proyecto" aria-label="Nombre del proyecto" disabled />
-        <div class="toolbar">
-          <button id="btn-save" class="btn" title="Guardar (Ctrl+S)">Guardar</button>
-          <button id="btn-undo" class="btn btn-icon" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">↶</button>
-          <button id="btn-redo" class="btn btn-icon" title="Rehacer (Ctrl+Y)" aria-label="Rehacer">↷</button>
-          <button id="btn-play" class="btn btn-primary" title="Jugar (P)">▶ Jugar</button>
-          <button id="btn-stop" class="btn btn-danger" title="Salir del juego (Esc)" hidden>■ Salir</button>
+        <div class="project-field">
+          <svg class="icon" aria-hidden="true"><use href="#i-folder" /></svg>
+          <input id="project-name" class="project-name" type="text" maxlength="100" placeholder="Sin proyecto" aria-label="Nombre del proyecto" disabled />
+        </div>
+
+        <div class="toolgroup" role="toolbar" aria-label="Herramientas">
+          <button class="tool is-active" data-tool="select" title="Seleccionar y mover (V)" aria-label="Seleccionar" aria-pressed="true"><svg class="icon"><use href="#i-select" /></svg></button>
+          <button class="tool" data-tool="hand" title="Mano: mover la vista (H)" aria-label="Mano" aria-pressed="false"><svg class="icon"><use href="#i-hand" /></svg></button>
+          <button class="tool" data-tool="brush" title="Pincel: colocar el objeto elegido (B)" aria-label="Pincel" aria-pressed="false"><svg class="icon"><use href="#i-brush" /></svg></button>
+          <button class="tool" data-tool="erase" title="Borrar objetos (E)" aria-label="Borrar" aria-pressed="false"><svg class="icon"><use href="#i-erase" /></svg></button>
+        </div>
+        <div class="toolgroup" role="toolbar" aria-label="Historial">
+          <button id="btn-undo" class="tool" title="Deshacer (Ctrl+Z)" aria-label="Deshacer"><svg class="icon"><use href="#i-undo" /></svg></button>
+          <button id="btn-redo" class="tool" title="Rehacer (Ctrl+Y)" aria-label="Rehacer"><svg class="icon"><use href="#i-redo" /></svg></button>
+        </div>
+
+        <span class="spacer"></span>
+        <div class="play-controls">
+          <button id="btn-play" class="btn btn-play" title="Probar el nivel (P)"><svg class="icon"><use href="#i-play" /></svg><span>Jugar</span></button>
+          <button id="btn-stop" class="btn btn-stop" title="Detener la partida (Esc)" hidden><svg class="icon"><use href="#i-stop" /></svg><span>Detener</span></button>
         </div>
         <span class="spacer"></span>
-        <div class="zoom">
-          <button id="zoom-out" class="btn btn-icon" aria-label="Alejar">−</button>
-          <button id="zoom-fit" class="btn zoom-value" title="Ajustar a la pantalla"><span id="zoom-value">100%</span></button>
-          <button id="zoom-in" class="btn btn-icon" aria-label="Acercar">+</button>
-        </div>
-        <button id="btn-settings" class="btn btn-icon gear" title="Ajustes" aria-label="Ajustes">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94a7.07 7.07 0 0 0 .05-.94 7.07 7.07 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.5.42l-.36 2.54c-.58.24-1.12.55-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.48a.5.5 0 0 0 .12.64l2.03 1.58a7.07 7.07 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.3.6.22l2.39-.96c.5.39 1.04.7 1.62.94l.36 2.54c.05.24.26.42.5.42h3.8c.25 0 .45-.18.5-.42l.36-2.54c.58-.24 1.12-.55 1.62-.94l2.39.96c.22.08.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z" /></svg>
+
+        <span id="save-state" class="save-state" data-state="clean">Guardado</span>
+        <button id="btn-save" class="btn btn-save" title="Guardar (Ctrl+S)">
+          <span class="btn-spinner" aria-hidden="true"></span>
+          <svg class="icon"><use href="#i-save" /></svg><span>Guardar</span>
+        </button>
+        <button id="btn-settings" class="tool gear" title="Ajustes" aria-label="Ajustes">
+          <svg viewBox="0 0 24 24" class="icon icon-filled" aria-hidden="true"><path d="M19.14 12.94a7.07 7.07 0 0 0 .05-.94 7.07 7.07 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.5.42l-.36 2.54c-.58.24-1.12.55-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.48a.5.5 0 0 0 .12.64l2.03 1.58a7.07 7.07 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.3.6.22l2.39-.96c.5.39 1.04.7 1.62.94l.36 2.54c.05.24.26.42.5.42h3.8c.25 0 .45-.18.5-.42l.36-2.54c.58-.24 1.12-.55 1.62-.94l2.39.96c.22.08.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z" /></svg>
         </button>
         <div class="user">
           <span class="avatar" id="user-avatar" aria-hidden="true">?</span>
           <span id="user-name" class="user-name"></span>
-          <button id="btn-logout" class="btn btn-ghost">Salir</button>
+          <button id="btn-logout" class="btn btn-ghost btn-small">Salir</button>
         </div>
       </header>
 
-      <aside class="panel panel-left">
-        <section class="card">
-          <h3>Objetos</h3>
-          <div id="palette" class="palette" role="toolbar" aria-label="Paleta de objetos"></div>
-          <p class="hint">Elige un objeto y haz clic en el mapa para colocarlo. <kbd>Esc</kbd> para terminar.</p>
+      <aside class="dock dock-left" data-tabs>
+        <nav class="dock-tabs" role="tablist" aria-label="Panel izquierdo">
+          <button class="dock-tab is-active" role="tab" aria-selected="true" data-tab="library"><svg class="icon"><use href="#i-library" /></svg>Biblioteca</button>
+          <button class="dock-tab" role="tab" aria-selected="false" data-tab="scene"><svg class="icon"><use href="#i-layers" /></svg>Escena</button>
+          <button class="dock-tab" role="tab" aria-selected="false" data-tab="projects"><svg class="icon"><use href="#i-folder" /></svg>Proyectos</button>
+        </nav>
+
+        <section class="dock-panel" role="tabpanel" data-panel="library">
+          <label class="search">
+            <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
+            <input id="library-search" type="search" placeholder="Buscar objetos…" aria-label="Buscar objetos" />
+          </label>
+          <div id="library" class="library"></div>
+          <p class="hint">Arrastra un objeto al mapa, o elígelo y pinta con clic. <kbd>Esc</kbd> vuelve a seleccionar.</p>
         </section>
-        <section class="card card-grow">
-          <div class="card-header">
-            <h3>Mis proyectos</h3>
+
+        <section class="dock-panel" role="tabpanel" data-panel="scene" hidden>
+          <div class="panel-head">
+            <span>Objetos de la escena</span>
+            <span id="scene-count" class="pill">0</span>
+          </div>
+          <div id="scene-tree" class="scene-tree"></div>
+        </section>
+
+        <section class="dock-panel" role="tabpanel" data-panel="projects" hidden>
+          <div class="panel-head">
+            <span>Mis proyectos</span>
             <button id="btn-new-project" class="btn btn-primary btn-small">+ Nuevo</button>
           </div>
           <ul id="projects" class="project-list"></ul>
@@ -139,6 +193,30 @@
 
       <main class="stage">
         <div id="game" class="game"></div>
+        <div id="drop-zone" class="drop-zone" hidden>Suelta para colocar</div>
+
+        <div id="empty-state" class="empty-state" hidden>
+          <div class="empty-card">
+            <h2 id="empty-title">Tu escena está vacía</h2>
+            <ol class="steps">
+              <li><span class="step-n">1</span><div><strong>Coloca un jugador</strong><small>Arrástralo desde la Biblioteca: es el punto de inicio.</small></div></li>
+              <li><span class="step-n">2</span><div><strong>Construye el nivel</strong><small>Paredes, casas, monedas, enemigos y personajes.</small></div></li>
+              <li><span class="step-n">3</span><div><strong>Pulsa Jugar</strong><small>La IA aprende de cada partida y ajusta la dificultad.</small></div></li>
+            </ol>
+            <div class="empty-actions">
+              <button id="btn-empty-new" class="btn btn-primary">Crear proyecto</button>
+              <button id="btn-empty-ai" class="btn">Generar con IA</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="viewport-controls" role="toolbar" aria-label="Vista">
+          <button id="zoom-out" class="tool" title="Alejar" aria-label="Alejar">−</button>
+          <button id="zoom-fit" class="tool zoom-value" title="Ajustar a la pantalla"><span id="zoom-value">100%</span></button>
+          <button id="zoom-in" class="tool" title="Acercar" aria-label="Acercar">+</button>
+          <button id="zoom-center" class="tool" title="Ver todo el mundo" aria-label="Ver todo"><svg class="icon"><use href="#i-fit" /></svg></button>
+        </div>
+
         <div id="placing-hint" class="floating-hint" hidden></div>
         <div id="hud" class="hud" hidden>
           <span class="hud-item" title="Vida"><span id="hud-hearts"></span></span>
@@ -147,33 +225,46 @@
           <span class="hud-item"><img src="/textures/enemy-slime.png" class="hud-icon hud-icon-sheet" alt="" /> <strong id="hud-enemies">0/0</strong></span>
           <span class="hud-item">⏱ <strong id="hud-time">0:00</strong></span>
           <span class="hud-item">IA <span class="meter"><span id="hud-difficulty"></span></span></span>
-          <span class="hud-help">Flechas/WASD mover · Espacio atacar · Esc salir</span>
+          <span class="hud-help">Flechas/WASD mover · Espacio atacar · acércate a los personajes · Esc salir</span>
         </div>
       </main>
 
-      <aside class="panel panel-right">
-        <section class="card">
-          <h3>Inspector</h3>
+      <aside class="dock dock-right" data-tabs>
+        <nav class="dock-tabs" role="tablist" aria-label="Panel derecho">
+          <button class="dock-tab is-active" role="tab" aria-selected="true" data-tab="inspector"><svg class="icon"><use href="#i-sliders" /></svg>Inspector</button>
+          <button class="dock-tab" role="tab" aria-selected="false" data-tab="ai"><svg class="icon"><use href="#i-spark" /></svg>IA</button>
+          <button class="dock-tab" role="tab" aria-selected="false" data-tab="progress"><svg class="icon"><use href="#i-trophy" /></svg>Progreso</button>
+        </nav>
+
+        <section class="dock-panel" role="tabpanel" data-panel="inspector">
           <div id="inspector" class="inspector"></div>
         </section>
-        <section class="card">
-          <h3>Inteligencia artificial</h3>
+
+        <section class="dock-panel" role="tabpanel" data-panel="ai" hidden>
+          <div class="panel-head"><span>Describe lo que quieres</span></div>
           <form id="ai-form" class="form form-compact">
-            <textarea id="ai-prompt" rows="2" maxlength="500" placeholder="Ej.: 3 monedas y una casa en 400 300"></textarea>
+            <textarea id="ai-prompt" rows="3" maxlength="500" placeholder="Ej.: un mago, 3 monedas y una casa en 400 300"></textarea>
+            <div class="chips" id="ai-examples">
+              <button type="button" class="chip" data-prompt="un aldeano, un caballero y un mago">Personajes</button>
+              <button type="button" class="chip" data-prompt="5 monedas y 2 enemigos">Monedas y enemigos</button>
+              <button type="button" class="chip" data-prompt="3 casas y 4 árboles">Aldea</button>
+            </div>
             <button class="btn btn-block" type="submit">Pedir a la IA</button>
           </form>
           <div class="divider"></div>
+          <div class="panel-head"><span>Obstáculos aprendidos</span></div>
           <label class="field-inline">
-            <span>Obstáculos</span>
+            <span>Cantidad</span>
             <input id="ai-count" type="range" min="1" max="30" value="6" />
             <output id="ai-count-value">6</output>
           </label>
           <button id="btn-ai-obstacles" class="btn btn-primary btn-block">La IA crea obstáculos</button>
           <div id="ai-model" class="ai-model"></div>
         </section>
-        <section class="card">
-          <h3>Mi progreso</h3>
+
+        <section class="dock-panel" role="tabpanel" data-panel="progress" hidden>
           <div id="stats" class="stats"></div>
+          <div class="panel-head"><span>Logros</span></div>
           <div id="achievements" class="achievements"></div>
         </section>
       </aside>
@@ -181,6 +272,7 @@
       <footer class="statusbar">
         <span id="status" class="status" role="status"></span>
         <span class="spacer"></span>
+        <span id="status-tool" class="status-tool">Seleccionar</span>
         <span id="status-objects"></span>
         <span id="status-pointer">x 0 · y 0</span>
       </footer>
@@ -255,6 +347,8 @@
             <dt><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></dt><dd>Deshacer / rehacer</dd>
             <dt><kbd>Supr</kbd></dt><dd>Borrar selección</dd>
             <dt><kbd>P</kbd></dt><dd>Jugar</dd>
+            <dt><kbd>V</kbd> <kbd>H</kbd> <kbd>B</kbd> <kbd>E</kbd></dt><dd>Seleccionar, mano, pincel, borrar</dd>
+            <dt><kbd>F</kbd></dt><dd>Centrar en la selección</dd>
             <dt>Clic derecho + arrastrar</dt><dd>Mover la vista</dd>
             <dt>Rueda</dt><dd>Zoom</dd>
           </dl>
