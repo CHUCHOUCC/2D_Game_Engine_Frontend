@@ -5,7 +5,21 @@ export interface ShortcutActions {
   remove: () => void;
   play: () => void;
   cancel: () => void;
+  toolSelect: () => void;
+  toolHand: () => void;
+  toolBrush: () => void;
+  toolErase: () => void;
+  focus: () => void;
 }
+
+/** One-letter tool keys, as in most 2D editors. */
+const TOOL_KEYS: Record<string, keyof ShortcutActions> = {
+  v: "toolSelect",
+  h: "toolHand",
+  b: "toolBrush",
+  e: "toolErase",
+  f: "focus",
+};
 
 /** Which action a key press means, or null. Pure, so it can be tested. */
 export function shortcutFor(event: Pick<KeyboardEvent, "key" | "ctrlKey" | "metaKey" | "shiftKey">): keyof ShortcutActions | null {
@@ -16,6 +30,7 @@ export function shortcutFor(event: Pick<KeyboardEvent, "key" | "ctrlKey" | "meta
   if (mod && (key === "y" || (key === "z" && event.shiftKey))) return "redo";
   if (!mod && (key === "delete" || key === "backspace")) return "remove";
   if (!mod && key === "p") return "play";
+  if (!mod && key in TOOL_KEYS) return TOOL_KEYS[key];
   if (key === "escape") return "cancel";
   return null;
 }
