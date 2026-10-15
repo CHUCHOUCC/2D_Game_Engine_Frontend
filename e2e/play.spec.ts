@@ -8,9 +8,9 @@ test("a run is played with physics, finished and learned from", async ({ page })
   const point = await screenPoint(page, 96, 480);
   await page.mouse.click(point.x, point.y);
 
-  await page.getByRole("button", { name: "▶ Jugar" }).click();
+  await page.getByRole("button", { name: "Jugar" }).click();
   await expect(page.locator("#hud")).toBeVisible();
-  await expect(page.locator(".panel-left")).toBeHidden();
+  await expect(page.locator(".dock-left")).toBeHidden();
   await expect(page.locator("#hud-hearts")).toHaveText("♥♥♥");
 
   // Walk for a while: time passes and the camera follows the player.
@@ -19,7 +19,7 @@ test("a run is played with physics, finished and learned from", async ({ page })
   await page.keyboard.up("ArrowRight");
   await expect(page.locator("#hud-time")).not.toHaveText("0:00");
 
-  await page.getByRole("button", { name: "■ Salir" }).click();
+  await page.getByRole("button", { name: "Detener" }).click();
   const dialog = page.locator("#result-dialog");
   await expect(dialog).toBeVisible();
   await expect(page.locator("#result-title")).toHaveText(/Partida abandonada|Has perdido|¡Nivel superado!/);
