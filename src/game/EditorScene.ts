@@ -10,15 +10,21 @@ export interface EditorOptions {
   gridSize: number;
 }
 
+/** The editing tools, like in any 2D engine. */
+export type Tool = "select" | "hand" | "brush" | "erase";
+
 export interface EditorEvents {
   onSelect: (id: string | null) => void;
   onPlace: (kind: Kind, x: number, y: number) => void;
+  onErase: (id: string) => void;
   onPointer: (x: number, y: number) => void;
   onZoom: (zoom: number) => void;
 }
 
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 3;
+const ERASE_TINT = 0xff6b6b;
+const HOVER_TINT = 0xc8d6ff;
 
 /**
  * Phaser scene that DRAWS the model and lets the user edit it.
@@ -33,6 +39,7 @@ export class EditorScene extends Phaser.Scene {
   private selection!: Phaser.GameObjects.Graphics;
   private ghost: Phaser.GameObjects.Image | null = null;
   private placing: Kind | null = null;
+  private tool: Tool = "select";
   private panning: { x: number; y: number; scrollX: number; scrollY: number } | null = null;
 
   /** Id of the selected object, or null. */
@@ -51,6 +58,7 @@ export class EditorScene extends Phaser.Scene {
   create(): void {
     createAnimations(this);
     this.drawnVersion = -1; // the scene starts again when we come back from Play
+    this.ghost = null;
     this.add.tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, "grass").setDepth(-10);
     this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT).setStrokeStyle(4, 0x0b0f14, 0.9).setDepth(-5);
     this.grid = this.add.graphics().setDepth(-4);
@@ -59,6 +67,7 @@ export class EditorScene extends Phaser.Scene {
     this.setupCamera();
     this.setupInput();
     this.setupPanAndZoom();
+    this.setTool(this.tool, this.placing);
   }
 
   private setupCamera(): void {
@@ -91,26 +100,51 @@ export class EditorScene extends Phaser.Scene {
     this.events_.onZoom(camera.zoom);
   }
 
+  /** Centre the camera on an object (used by the scene list). */
+  focusOn(id: string): void {
+    const object = this.model.find(id);
+    if (object === undefined) return;
+    this.cameras.main.pan(object.x, object.y, 250, "Sine.easeInOut");
+  }
+
+  /** The world point under a position of the page (for objects dropped from the library). */
+  worldPointAt(clientX: number, clientY: number): { x: number; y: number } | null {
+    const canvas = this.game.canvas;
+    const rect = canvas.getBoundingClientRect();
+    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return null;
+    const point = this.cameras.main.getWorldPoint(
+      ((clientX - rect.left) * this.scale.width) / rect.width,
+      ((clientY - rect.top) * this.scale.height) / rect.height,
+    );
+    return { x: point.x, y: point.y };
+  }
+
   private setupInput(): void {
     this.input.mouse?.disableContextMenu();
 
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer, hit: Phaser.GameObjects.GameObject[]) => {
-      if (pointer.rightButtonDown() || pointer.middleButtonDown()) {
+      // Right or middle button always pans; the hand tool pans with the left button too.
+      if (pointer.rightButtonDown() || pointer.middleButtonDown() || this.tool === "hand") {
         const camera = this.cameras.main;
         this.panning = { x: pointer.x, y: pointer.y, scrollX: camera.scrollX, scrollY: camera.scrollY };
+        if (this.tool === "hand") this.input.setDefaultCursor("grabbing");
         return;
       }
-      if (this.placing !== null) {
-        const [x, y] = this.placePoint(pointer.worldX, pointer.worldY, this.placing);
+      const hitId = hit.length > 0 ? (hit[0].getData("objectId") as string) : null;
+      if (this.tool === "brush" && this.placing !== null) {
+        const [x, y] = this.snapPoint(pointer.worldX, pointer.worldY, this.placing);
         this.events_.onPlace(this.placing, x, y);
-        return;
+      } else if (this.tool === "erase") {
+        if (hitId !== null) this.events_.onErase(hitId);
+      } else {
+        this.select(hitId);
       }
-      this.select(hit.length > 0 ? (hit[0].getData("objectId") as string) : null);
     });
 
     this.input.on("drag", (_p: Phaser.Input.Pointer, image: Phaser.GameObjects.Image, dragX: number, dragY: number) => {
+      if (this.tool !== "select") return;
       const kind = image.getData("kind") as Kind;
-      const [x, y] = this.placePoint(dragX, dragY, kind);
+      const [x, y] = this.snapPoint(dragX, dragY, kind);
       image.setPosition(x, y);
       this.drawSelection();
     });
@@ -122,6 +156,15 @@ export class EditorScene extends Phaser.Scene {
       }
     });
 
+    // Hovering shows what a click will affect: blue to select, red to erase.
+    this.input.on("gameobjectover", (_p: Phaser.Input.Pointer, image: Phaser.GameObjects.Image) => {
+      if (typeof image.getData("objectId") !== "string") return;
+      if (this.tool === "erase") image.setTint(ERASE_TINT);
+      else if (this.tool === "select") image.setTint(HOVER_TINT);
+    });
+    this.input.on("gameobjectout", (_p: Phaser.Input.Pointer, image: Phaser.GameObjects.Image) => {
+      if (typeof image.getData("objectId") === "string") image.clearTint();
+    });
   }
 
   private setupPanAndZoom(): void {
@@ -132,22 +175,26 @@ export class EditorScene extends Phaser.Scene {
         camera.scrollY = this.panning.scrollY - (pointer.y - this.panning.y) / camera.zoom;
       }
       if (this.ghost !== null && this.placing !== null) {
-        const [x, y] = this.placePoint(pointer.worldX, pointer.worldY, this.placing);
-        this.ghost.setPosition(x, y);
+        const [x, y] = this.snapPoint(pointer.worldX, pointer.worldY, this.placing);
+        this.ghost.setPosition(x, y).setVisible(true);
       }
       this.events_.onPointer(Math.round(pointer.worldX), Math.round(pointer.worldY));
     });
 
     this.input.on("pointerup", () => {
       this.panning = null;
+      if (this.tool === "hand") this.input.setDefaultCursor("grab");
     });
+
+    this.input.on("gameout", () => this.ghost?.setVisible(false));
 
     this.input.on("wheel", (pointer: Phaser.Input.Pointer, _over: unknown, _dx: number, dy: number) => {
       this.zoomBy(dy > 0 ? 0.9 : 1.1, pointer.x, pointer.y);
     });
   }
 
-  private placePoint(x: number, y: number, kind: Kind): [number, number] {
+  /** Snap to the grid (if enabled) and keep the whole object inside the world. */
+  snapPoint(x: number, y: number, kind: Kind): [number, number] {
     let px = x;
     let py = y;
     if (this.options.snapToGrid) {
@@ -157,18 +204,24 @@ export class EditorScene extends Phaser.Scene {
     return clampToWorld(px, py, kind);
   }
 
-  /** Start placing objects of a kind (null stops). A translucent copy follows the pointer. */
-  setPlacing(kind: Kind | null): void {
-    this.placing = kind;
+  /** Switch tool. The brush needs the kind it paints; the other tools ignore it. */
+  setTool(tool: Tool, kind: Kind | null = null): void {
+    this.tool = tool;
+    this.placing = tool === "brush" ? kind : null;
+    if (!this.sys.isActive()) return; // applied again in create()
     this.ghost?.destroy();
     this.ghost = null;
-    if (kind !== null) {
-      const texture = KIND_TEXTURE[kind];
-      this.ghost = this.add.image(-100, -100, texture.key, 0).setAlpha(0.55).setDepth(60);
-      this.input.setDefaultCursor("crosshair");
-    } else {
-      this.input.setDefaultCursor("default");
+    if (this.placing !== null) {
+      const texture = KIND_TEXTURE[this.placing];
+      this.ghost = this.add.image(-100, -100, texture.key, 0).setAlpha(0.6).setDepth(60).setVisible(false);
     }
+    const cursors: Record<Tool, string> = { select: "default", hand: "grab", brush: "crosshair", erase: "not-allowed" };
+    this.input.setDefaultCursor(cursors[tool]);
+    for (const image of this.drawnImages()) {
+      image.clearTint();
+      image.input!.cursor = tool === "select" ? "pointer" : cursors[tool];
+    }
+    if (tool !== "select") this.select(null);
   }
 
   setOptions(options: EditorOptions): void {
@@ -217,7 +270,7 @@ export class EditorScene extends Phaser.Scene {
     sprite.setDepth(object.y / WORLD_HEIGHT);
     sprite.setData("objectId", object.id);
     sprite.setData("kind", object.kind);
-    sprite.setInteractive({ draggable: true, useHandCursor: true });
+    sprite.setInteractive({ draggable: true, cursor: this.tool === "select" ? "pointer" : undefined });
   }
 
   select(id: string | null): void {
@@ -233,6 +286,6 @@ export class EditorScene extends Phaser.Scene {
     if (image === undefined) return;
     const [w, h] = SIZES[image.getData("kind") as Kind];
     this.selection.lineStyle(2, 0xffffff, 1).strokeRect(image.x - w / 2 - 3, image.y - h / 2 - 3, w + 6, h + 6);
-    this.selection.lineStyle(1, 0x4f8cff, 1).strokeRect(image.x - w / 2 - 5, image.y - h / 2 - 5, w + 10, h + 10);
+    this.selection.lineStyle(1, 0x6c8cff, 1).strokeRect(image.x - w / 2 - 5, image.y - h / 2 - 5, w + 10, h + 10);
   }
 }
