@@ -24,7 +24,7 @@ export default defineConfig({
     viewport: { width: 1440, height: 900 },
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
-    video: "retain-on-failure",
+    video: "off", // recording needs an extra ffmpeg download; traces and screenshots are enough
   },
   projects: [{ name: "browser", use: { ...devices["Desktop Chrome"], channel: channel || undefined, viewport: { width: 1440, height: 900 } } }],
   webServer: {
