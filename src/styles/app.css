@@ -1,3 +1,4 @@
+/* Editor shell: laid out like a 2D engine */
 .app {
   position: fixed;
   inset: 0;
@@ -11,35 +12,110 @@
   background: var(--bg);
 }
 
+.icon-sprites { position: absolute; }
+
+.icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.icon .filled, .icon-filled { fill: currentColor; stroke: none; }
+
+/* Top bar */
 .topbar {
   grid-area: top;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 0 14px;
+  gap: 10px;
+  padding: 0 12px;
   background: var(--bg-elevated);
   border-bottom: 1px solid var(--border);
   z-index: 5;
 }
 
-.brand-small strong { font-size: 15px; }
-.toolbar { display: flex; align-items: center; gap: 6px; }
+.brand-small strong { font-size: 15px; letter-spacing: -0.01em; }
+
+.project-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 10px;
+  margin-left: 2px;
+  border-left: 1px solid var(--border);
+  color: var(--text-muted);
+}
 
 .project-name {
-  max-width: 260px;
-  min-height: 34px !important;
+  width: 200px;
+  min-height: 32px !important;
   border-color: transparent !important;
   background: transparent !important;
+  color: var(--text) !important;
   font-weight: 600;
 }
 .project-name:hover:not(:disabled) { border-color: var(--border) !important; }
 .project-name:focus { background: var(--bg) !important; border-color: var(--accent) !important; }
 
-.zoom { display: flex; align-items: center; gap: 4px; }
-.zoom-value { min-width: 64px; font-variant-numeric: tabular-nums; }
+/* Grouped icon buttons (tools, history, viewport) */
+.toolgroup {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel-2);
+}
+
+.tool {
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  height: 30px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.tool:hover { background: var(--bg-elevated); color: var(--text); }
+.tool:disabled { opacity: 0.35; cursor: not-allowed; background: transparent; }
+.tool.is-active { background: var(--accent); color: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25); }
+.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Play controls in the middle, like Godot and Unity */
+.play-controls { display: flex; gap: 6px; }
+.btn-play, .btn-stop { min-width: 110px; gap: 8px; border-radius: 999px; }
+.btn-play { background: var(--success); border-color: var(--success); color: #062b1b; }
+.btn-play:hover { filter: brightness(1.08); background: var(--success); border-color: var(--success); }
+.btn-stop { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn-stop:hover { filter: brightness(1.08); background: var(--danger); border-color: var(--danger); }
+
+/* Save button with its state */
+.save-state {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.save-state::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+.save-state[data-state="dirty"] { color: var(--warning); }
+.save-state[data-state="dirty"]::before { background: var(--warning); box-shadow: 0 0 0 3px rgba(246, 201, 69, 0.18); }
+.btn-save { gap: 6px; }
+.btn-save.is-loading .icon { display: none; }
 
 .user { display: flex; align-items: center; gap: 8px; padding-left: 10px; border-left: 1px solid var(--border); }
-.user-name { font-weight: 600; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-name { font-weight: 600; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .avatar {
   display: grid;
   place-items: center;
@@ -52,9 +128,10 @@
   text-transform: uppercase;
 }
 
-.gear svg { width: 20px; height: 20px; fill: currentColor; transition: transform 500ms cubic-bezier(0.2, 0.8, 0.2, 1); }
-.gear:hover svg, .gear[aria-expanded="true"] svg { transform: rotate(120deg); }
+.gear .icon { width: 20px; height: 20px; transition: transform 500ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.gear:hover .icon, .gear[aria-expanded="true"] .icon { transform: rotate(120deg); }
 
+/* The viewport */
 .stage {
   grid-area: stage;
   position: relative;
@@ -69,6 +146,73 @@
 .game, .game canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
 .game canvas { image-rendering: pixelated; }
 
+.viewport-controls {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(6px);
+}
+.zoom-value { min-width: 58px; font-variant-numeric: tabular-nums; font-size: 12px; }
+
+.drop-zone {
+  position: absolute;
+  inset: 10px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius-lg);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+  pointer-events: none;
+}
+
+/* Onboarding over an empty scene */
+.empty-state {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  pointer-events: none;
+}
+.empty-card {
+  pointer-events: auto;
+  width: min(440px, 100%);
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg-elevated) 94%, transparent);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+}
+.empty-card h2 { font-size: 18px; margin-bottom: 14px; }
+.steps { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 12px; }
+.steps li { display: flex; gap: 12px; align-items: flex-start; }
+.steps strong { display: block; }
+.steps small { color: var(--text-muted); }
+.step-n {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 13px;
+}
+.empty-actions { display: flex; gap: 8px; }
+
+/* Status bar */
 .statusbar {
   grid-area: status;
   display: flex;
@@ -83,18 +227,27 @@
 }
 .status.is-error { color: var(--danger); }
 .status.is-success { color: var(--success); }
-
-.app.is-playing { grid-template-columns: 0 minmax(0, 1fr) 0; }
-.app.is-playing .panel { visibility: hidden; }
-.app.is-playing .zoom, .app.is-playing #btn-save, .app.is-playing #btn-undo, .app.is-playing #btn-redo { display: none; }
-
-@media (max-width: 1180px) {
-  .app { --panel-w: 240px; }
-  .user-name { display: none; }
+.status-tool {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
 }
 
-@media (max-width: 900px) {
+/* Playing: the map takes the whole window */
+.app.is-playing { grid-template-columns: 0 minmax(0, 1fr) 0; }
+.app.is-playing .dock, .app.is-playing .viewport-controls { visibility: hidden; }
+.app.is-playing .toolgroup, .app.is-playing .btn-save, .app.is-playing .save-state, .app.is-playing .project-field { display: none; }
+
+@media (max-width: 1280px) {
+  .app { --panel-w: 260px; }
+  .user-name, .save-state { display: none; }
+  .project-name { width: 140px; }
+}
+
+@media (max-width: 960px) {
   .app { grid-template-columns: 0 minmax(0, 1fr) 0; }
-  .panel { visibility: hidden; }
-  .project-name, .zoom { display: none; }
+  .dock { visibility: hidden; }
+  .project-field, .toolgroup[aria-label="Historial"] { display: none; }
 }
