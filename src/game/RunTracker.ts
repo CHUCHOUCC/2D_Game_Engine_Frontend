@@ -91,6 +91,12 @@ export class RunTracker {
     if (this.hasWon()) this.finish("won");
   }
 
+  /** The player talked to a 2D character (no points: only recorded for the AI). */
+  talk(kind: string): void {
+    if (this.isOver()) return;
+    this.record(`talk_${kind}`);
+  }
+
   /** The player was hurt by an enemy or spikes. Returns true if the run is now lost. */
   takeDamage(source: string, x?: number, y?: number): boolean {
     if (this.isOver()) return false;
