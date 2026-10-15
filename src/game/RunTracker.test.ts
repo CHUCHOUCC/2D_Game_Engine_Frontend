@@ -97,3 +97,10 @@ test("RunTracker keeps at most 500 events", () => {
   expect(run.result().events).toHaveLength(500);
   expect(run.result().coins_collected).toBe(600);
 });
+
+test("RunTracker records talks with 2D characters without points", () => {
+  const { run } = tracker();
+  run.talk("wizard");
+  expect(run.score()).toBe(0);
+  expect(run.result().events.map((e) => e.kind)).toEqual(["talk_wizard"]);
+});
