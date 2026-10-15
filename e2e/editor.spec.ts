@@ -55,7 +55,7 @@ test("saving keeps the changes after a reload", async ({ page }) => {
   await expect(page.locator("#status")).toHaveText("Guardado: 7 objetos.");
   await expect(page).not.toHaveTitle(/^● /);
   await page.reload();
-  expect(await objectCount(page)).toBe(7);
+  await expect(page.locator("#status-objects")).toContainText("7 objetos");
 });
 
 test("the AI places obstacles and keeps unsaved edits", async ({ page }) => {
