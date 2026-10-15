@@ -86,7 +86,7 @@ h1, h2, h3 {
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field > span { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
 
-input[type="text"], input[type="email"], input[type="password"], input:not([type]), textarea, select {
+input[type="text"], input[type="email"], input[type="password"], input[type="search"], input[type="number"], input:not([type]), textarea, select {
   width: 100%;
   min-height: 40px;
   padding: 8px 12px;
@@ -99,6 +99,7 @@ input[type="text"], input[type="email"], input[type="password"], input:not([type
 }
 
 textarea { resize: vertical; min-height: 56px; }
+input, select, textarea { min-width: 0; }
 input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); outline: none; }
 input[aria-invalid="true"] { border-color: var(--danger); }
 
