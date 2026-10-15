@@ -177,10 +177,12 @@ export class PlayScene extends Phaser.Scene {
     const fit = Math.min(this.scale.width / WORLD_WIDTH, this.scale.height / WORLD_HEIGHT);
     camera.setZoom(Math.max(fit, Math.min(2, this.scale.height / 420)));
     camera.startFollow(this.player, true, 0.12, 0.12);
-    this.scale.on(Phaser.Scale.Events.RESIZE, () => {
+    const onResize = () => {
       const zoom = Math.min(this.scale.width / WORLD_WIDTH, this.scale.height / WORLD_HEIGHT);
       camera.setZoom(Math.max(zoom, Math.min(2, this.scale.height / 420)));
-    });
+    };
+    this.scale.on(Phaser.Scale.Events.RESIZE, onResize);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off(Phaser.Scale.Events.RESIZE, onResize));
   }
 
   update(time: number): void {
