@@ -74,6 +74,13 @@ test("five wrong passwords lock the account for a while", async ({ page }) => {
   await expect(page.locator("#auth-message")).toHaveText("Demasiados intentos fallidos. Espera unos minutos.");
 });
 
+test("after logging out the screen is back on the login tab", async ({ page }) => {
+  await register(page, newUser());
+  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await expect(page.getByRole("tab", { name: "Iniciar sesión" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#field-username")).toBeHidden();
+});
+
 test("the session survives a reload and ends with logout", async ({ page }) => {
   const user = newUser();
   await register(page, user);
