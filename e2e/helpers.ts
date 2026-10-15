@@ -31,6 +31,7 @@ export async function logIn(page: Page, user: User): Promise<void> {
 
 /** Create a project from a template through the dialog. */
 export async function createProject(page: Page, name: string, template = "village"): Promise<void> {
+  await page.getByRole("tab", { name: "Proyectos" }).click();
   await page.getByRole("button", { name: "+ Nuevo" }).click();
   await page.locator("#new-project-name").fill(name);
   await page.locator(`#templates input[value="${template}"]`).check();
