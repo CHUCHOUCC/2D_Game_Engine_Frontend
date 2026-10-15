@@ -242,6 +242,73 @@ def path_tile() -> list:
         rows.append("".join("p" if (x * 5 + y * 3) % 9 else "P" for x in range(16)))
     return from_grid(rows, {"p": "d9c08a", "P": "c2a76f"})
 
+# 2D characters: same body and walk cycle as the player, different outfits.
+VILLAGER_TOP = [
+    "....yyyyyyyy....",
+    "...YyyyyyyyyY...",
+    ".....hssssh.....",
+    ".....sesses.....",
+    ".....ssssss.....",
+    "......ssss......",
+    "....gggggggg....",
+    "...sggGggGggs...",
+    "...sgggbbgggs...",
+    "....gggggggg....",
+    "....GGGGGGGG....",
+]
+VILLAGER_COLORS = {"y": "e9c46a", "Y": "b8902f", "h": "6b4423", "s": "f2c6a0", "e": "1b1b2f",
+                   "g": "5aa05a", "G": "3f7a3f", "b": "6b4423", "p": "6b5236", "k": "3b2a1a"}
+
+KNIGHT_TOP = [
+    ".......rr.......",
+    "......rrr.......",
+    ".....mmmmmm.....",
+    ".....mMMMMm.....",
+    ".....mMeeMm.....",
+    ".....mmmmmm.....",
+    "....aaaaaaaa....",
+    "...maaAaaAaam...",
+    "...maaarraaam...",
+    "....aaaaaaaa....",
+    "....AAAAAAAA....",
+]
+KNIGHT_COLORS = {"r": "d64545", "m": "c9d1dc", "M": "7c8796", "e": "1b1b2f", "a": "aab4c3",
+                 "A": "6f7a8a", "p": "56606f", "k": "2f3540"}
+
+WIZARD_TOP = [
+    ".......pp.......",
+    "......pppp......",
+    ".....ppyppp.....",
+    "....pppppppp....",
+    ".....sesses.....",
+    ".....wwwwww.....",
+    "....pPwwwwPp....",
+    "...spPPwwPPps...",
+    "...spppPPppps...",
+    "....pppppppp....",
+    "....PPPPPPPP....",
+]
+WIZARD_COLORS = {"p": "7b4fc9", "P": "54329a", "y": "f6c945", "s": "f2c6a0", "e": "1b1b2f",
+                 "w": "f1f1f1", "k": "2b1d47"}
+
+
+def character(top: list, colors: dict) -> list:
+    """A 4-frame walking sprite sheet from an outfit drawn over the shared legs."""
+    return side_by_side([from_grid(top + legs, colors) for legs in PLAYER_LEGS])
+
+
+def villager() -> list:
+    return character(VILLAGER_TOP, VILLAGER_COLORS)
+
+
+def knight() -> list:
+    return character(KNIGHT_TOP, KNIGHT_COLORS)
+
+
+def wizard() -> list:
+    return character(WIZARD_TOP, WIZARD_COLORS)
+
+
 SPRITES = {
     "player": player,
     "box": box,
@@ -253,6 +320,9 @@ SPRITES = {
     "grass": grass,
     "house": house,
     "path": path_tile,
+    "villager": villager,
+    "knight": knight,
+    "wizard": wizard,
 }
 
 
