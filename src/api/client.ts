@@ -198,6 +198,11 @@ export interface SettingsDto {
   sfx_volume: number;
 }
 
+/** What each 2D character says, by kind (from the database). */
+export function getCharacterLines(): Promise<Record<string, string[]>> {
+  return http.request<Record<string, string[]>>("/catalog/characters");
+}
+
 export function getSettings(): Promise<SettingsDto> {
   return http.request<SettingsDto>("/me/settings");
 }
