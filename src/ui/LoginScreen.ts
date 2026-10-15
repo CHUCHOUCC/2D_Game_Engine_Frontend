@@ -129,6 +129,8 @@ export class LoginScreen {
   }
 
   show(note = ""): void {
+    // Coming back after a logout always starts on "Iniciar sesión", never on the register form.
+    this.setMode("login");
     this.screen.hidden = false;
     this.setMessage(note, note !== "");
     this.email.focus();
