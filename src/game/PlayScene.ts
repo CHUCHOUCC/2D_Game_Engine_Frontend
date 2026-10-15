@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import type { RunResultDto } from "../api/client";
-import { WORLD_HEIGHT, WORLD_WIDTH, type GameObject } from "../model/GameObject";
+import { WORLD_HEIGHT, WORLD_WIDTH, type GameObject, type Kind } from "../model/GameObject";
 import type { SceneModel } from "../model/SceneModel";
 import { RunTracker } from "./RunTracker";
 import { createAnimations, loadTextures } from "./textures";
@@ -27,7 +27,15 @@ export interface HudState {
 export interface PlayHooks {
   onHud: (state: HudState) => void;
   onFinish: (result: RunResultDto) => void;
+  /** What a 2D character can say in its speech bubble. */
+  linesFor: (kind: Kind) => readonly string[];
 }
+
+/** 2D characters: how close the player must be to hear them, and how they walk. */
+export const TALK_RADIUS = 72;
+export const CHARACTER_SPEED = 42;
+const TALK_COOLDOWN_MS = 6000;
+const BUBBLE_MS = 2800;
 
 type Body = Phaser.Physics.Arcade.Body;
 type Sprite = Phaser.Physics.Arcade.Sprite;
@@ -50,6 +58,7 @@ export class PlayScene extends Phaser.Scene {
   private coins!: Phaser.Physics.Arcade.StaticGroup;
   private boxes!: Phaser.Physics.Arcade.Group;
   private enemies!: Phaser.Physics.Arcade.Group;
+  private characters!: Phaser.Physics.Arcade.Group;
   private keys!: Record<"up" | "down" | "left" | "right" | "w" | "a" | "s" | "d" | "space" | "esc", Phaser.Input.Keyboard.Key>;
   private invulnerableUntil = 0;
   private stunnedUntil = 0;
@@ -85,6 +94,7 @@ export class PlayScene extends Phaser.Scene {
     this.coins = this.physics.add.staticGroup();
     this.boxes = this.physics.add.group();
     this.enemies = this.physics.add.group();
+    this.characters = this.physics.add.group();
 
     const scene: GameObject[] = [];
     for (const object of this.model) scene.push({ ...object });
@@ -126,6 +136,17 @@ export class PlayScene extends Phaser.Scene {
         enemy.setData("hp", ENEMY_HEALTH);
         break;
       }
+      case "villager":
+      case "knight":
+      case "wizard": {
+        const character = this.characters.create(object.x, object.y, object.kind, 0) as Sprite;
+        character.setDepth(depth).setCollideWorldBounds(true).setBounce(0.1).setDrag(300).setPushable(false);
+        (character.body as Body).setSize(18, 20).setOffset(7, 11);
+        character.setData("kind", object.kind);
+        character.setData("nextTurnAt", 0);
+        character.setData("nextTalkAt", 0);
+        break;
+      }
       case "player":
         break; // the player is created separately at this point
     }
@@ -147,6 +168,12 @@ export class PlayScene extends Phaser.Scene {
     physics.collider(this.enemies, this.solids);
     physics.collider(this.enemies, this.boxes);
     physics.collider(this.enemies, this.enemies);
+    // 2D characters are solid people: nobody walks through them, they cannot be pushed.
+    physics.collider(this.characters, this.solids);
+    physics.collider(this.characters, this.boxes);
+    physics.collider(this.characters, this.characters);
+    physics.collider(this.characters, this.enemies);
+    physics.collider(this.player, this.characters);
     physics.overlap(this.player, this.coins, (_player, coin) => this.collect(coin as Sprite));
     physics.overlap(this.player, this.spikes, (_player, spike) => this.hurt("spike", spike as Sprite));
     physics.overlap(this.player, this.enemies, (_player, enemy) => this.hurt("enemy", enemy as Sprite));
@@ -211,6 +238,7 @@ export class PlayScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(k.space)) this.attack(time);
     this.attackRing.setPosition(this.player.x, this.player.y);
     this.moveEnemies();
+    this.moveCharacters(time);
     this.reportHud(time);
   }
 
@@ -228,6 +256,72 @@ export class PlayScene extends Phaser.Scene {
       enemy.setFlipX(this.player.x < enemy.x);
       enemy.setDepth(enemy.y / WORLD_HEIGHT);
     }
+  }
+
+  /** Characters wander around; when the player comes close they stop, turn and talk. */
+  private moveCharacters(time: number): void {
+    for (const child of this.characters.getChildren()) {
+      const character = child as Sprite;
+      const kind = character.getData("kind") as Kind;
+      const distance = Phaser.Math.Distance.Between(character.x, character.y, this.player.x, this.player.y);
+      if (distance < TALK_RADIUS) {
+        character.setVelocity(0, 0);
+        character.setFlipX(this.player.x < character.x);
+        if (time >= (character.getData("nextTalkAt") as number)) {
+          character.setData("nextTalkAt", time + TALK_COOLDOWN_MS);
+          this.say(character, kind);
+        }
+      } else if (time >= (character.getData("nextTurnAt") as number)) {
+        character.setData("nextTurnAt", time + Phaser.Math.Between(1200, 2800));
+        if (Math.random() < 0.35) {
+          character.setVelocity(0, 0);
+        } else {
+          const angle = Math.random() * Math.PI * 2;
+          character.setVelocity(Math.cos(angle) * CHARACTER_SPEED, Math.sin(angle) * CHARACTER_SPEED);
+        }
+      }
+      const body = character.body as Body;
+      const moving = Math.abs(body.velocity.x) + Math.abs(body.velocity.y) > 4;
+      if (moving) {
+        character.anims.play(`${kind}-walk`, true);
+        if (Math.abs(body.velocity.x) > 1) character.setFlipX(body.velocity.x < 0);
+      } else {
+        character.anims.stop();
+        character.setFrame(0);
+      }
+      character.setDepth(character.y / WORLD_HEIGHT);
+      const bubble = character.getData("bubble") as Phaser.GameObjects.Container | undefined;
+      bubble?.setPosition(character.x, character.y - 26);
+    }
+  }
+
+  /** A speech bubble with one of the character's lines, above its head. */
+  private say(character: Sprite, kind: Kind): void {
+    const lines = this.hooks.linesFor(kind);
+    if (lines.length === 0) return;
+    (character.getData("bubble") as Phaser.GameObjects.Container | undefined)?.destroy();
+    const text = this.add.text(0, 0, Phaser.Utils.Array.GetRandom(lines as string[]), {
+      fontFamily: "Inter, system-ui, sans-serif",
+      fontSize: "11px",
+      color: "#182033",
+      wordWrap: { width: 150 },
+      align: "center",
+      resolution: 2,
+    }).setOrigin(0.5, 1);
+    const width = text.width + 14;
+    const height = text.height + 10;
+    const box = this.add.graphics();
+    box.fillStyle(0xffffff, 0.96).fillRoundedRect(-width / 2, -height - 4, width, height, 6);
+    box.fillTriangle(-5, -5, 5, -5, 0, 2);
+    box.lineStyle(1, 0x182033, 0.25).strokeRoundedRect(-width / 2, -height - 4, width, height, 6);
+    text.setPosition(0, -9);
+    const bubble = this.add.container(character.x, character.y - 26, [box, text]).setDepth(30);
+    character.setData("bubble", bubble);
+    this.tracker.talk(kind);
+    this.time.delayedCall(BUBBLE_MS, () => {
+      if (character.getData("bubble") === bubble) character.setData("bubble", undefined);
+      bubble.destroy();
+    });
   }
 
   private collect(coin: Sprite): void {
