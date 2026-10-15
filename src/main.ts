@@ -2,6 +2,7 @@ import "./style.css";
 import {
   createProject,
   finishRun,
+  getCharacterLines,
   getMe,
   hasSession,
   http,
@@ -14,25 +15,29 @@ import {
   type RunResultDto,
   type UserDto,
 } from "./api/client";
+import type { Tool } from "./game/EditorScene";
 import { GameHost } from "./game/GameHost";
-import { KIND_INFO, type Kind } from "./model/GameObject";
+import { isKind, KIND_INFO, type Kind } from "./model/GameObject";
 import { countByKind, hasPlayer, nextObjectId, SceneModel } from "./model/SceneModel";
 import { AiPanel } from "./ui/AiPanel";
 import { byId, errorText } from "./ui/dom";
 import { setHudVisible, showHud } from "./ui/Hud";
 import { IdleTimer } from "./ui/IdleTimer";
 import { Inspector } from "./ui/Inspector";
+import { DRAG_TYPE, Library } from "./ui/Library";
 import { hideLoader, showLoader } from "./ui/loader";
 import { LoginScreen } from "./ui/LoginScreen";
 import { askNewProject } from "./ui/NewProjectDialog";
-import { Palette } from "./ui/Palette";
 import { refreshProgress } from "./ui/ProgressPanel";
-import { SecurityPanel } from "./ui/SecurityPanel";
 import { ProjectList } from "./ui/ProjectList";
 import { showResult } from "./ui/ResultDialog";
+import { SceneTree } from "./ui/SceneTree";
+import { SecurityPanel } from "./ui/SecurityPanel";
 import { SettingsPanel } from "./ui/SettingsPanel";
 import { bindShortcuts } from "./ui/shortcuts";
+import { setupTabs, showTab } from "./ui/Tabs";
 import { toast } from "./ui/toast";
+import { ToolBar, TOOL_NAMES } from "./ui/ToolBar";
 
 const model = new SceneModel();
 let projectId: number | null = null;
@@ -41,6 +46,13 @@ let playing = false;
 let runId: number | null = null;
 let difficulty = 0.5;
 let currentUser: UserDto | null = null;
+
+/** Used until (or if) the backend's character lines arrive. */
+let characterLines: Record<string, string[]> = {
+  villager: ["¡Hola, viajero!"],
+  knight: ["Ataca con Espacio."],
+  wizard: ["La IA aprende de tus partidas."],
+};
 
 function setStatus(message: string, kind: "info" | "error" | "success" = "info"): void {
   const status = byId("status");
@@ -62,43 +74,82 @@ function isDirty(): boolean {
   return projectId !== null && model.version !== savedVersion;
 }
 
+// --- Editing tools -----------------------------------------------------------
+
 const inspector = new Inspector({
   move: (id, x, y) => model.move(id, x, y),
   remove: (id) => removeObject(id),
 });
 
-const palette = new Palette((kind) => {
-  host.editor.setPlacing(kind);
-  const hint = byId("placing-hint");
-  hint.hidden = kind === null;
-  if (kind !== null) hint.textContent = `Colocando: ${KIND_INFO[kind].name} — clic para poner, Esc para terminar`;
+const toolbar = new ToolBar((tool) => applyTool(tool));
+
+const library = new Library((kind) => {
+  if (kind !== null) applyTool("brush");
+  else if (toolbar.value === "brush") applyTool("select");
 });
+
+/** Switch tool everywhere: editor, buttons, library highlight and hint. */
+function applyTool(tool: Tool): void {
+  if (tool === "brush" && library.current === null) {
+    toast("Elige en la Biblioteca qué objeto quieres pintar.", "info");
+    showTab("library");
+    tool = "select";
+  }
+  if (tool !== "brush") library.highlight(null);
+  toolbar.show(tool);
+  host.editor.setTool(tool, library.current);
+  const hint = byId("placing-hint");
+  hint.hidden = tool === "select";
+  const kind = library.current;
+  const hints: Record<Tool, string> = {
+    select: "",
+    hand: "Mano: arrastra para mover la vista",
+    brush: kind ? `Pincel: ${KIND_INFO[kind].name} — clic para colocar · Esc para terminar` : "",
+    erase: "Borrar: haz clic en un objeto para quitarlo · Esc para terminar",
+  };
+  hint.textContent = hints[tool];
+  refreshEmptyState();
+}
 
 const host = new GameHost(
   byId("game"),
   model,
   {
-    onSelect: (id) => inspector.show(id === null ? undefined : model.find(id)),
+    onSelect: (id) => {
+      inspector.show(id === null ? undefined : model.find(id));
+      if (id !== null) showTab("inspector");
+      refreshSceneTree();
+    },
     onPlace: (kind, x, y) => placeObject(kind, x, y),
+    onErase: (id) => removeObject(id),
     onPointer: (x, y) => (byId("status-pointer").textContent = `x ${x} · y ${y}`),
     onZoom: (zoom) => (byId("zoom-value").textContent = `${Math.round(zoom * 100)}%`),
   },
   {
     onHud: showHud,
     onFinish: (result) => void runFinished(result),
+    linesFor: (kind) => characterLines[kind] ?? [],
   },
 );
 
 function placeObject(kind: Kind, x: number, y: number): void {
+  if (projectId === null) {
+    toast("Crea o abre un proyecto antes de colocar objetos.", "error");
+    return;
+  }
   if (kind === "player" && hasPlayer(model)) {
     toast("La escena ya tiene un jugador.", "error");
-    palette.pick(null);
     return;
   }
   const id = nextObjectId(model, kind);
   model.add({ id, kind, x, y });
-  if (kind === "player") palette.pick(null);
-  host.editor.select(id);
+  setStatus(`${KIND_INFO[kind].name} colocado en ${Math.round(x)}, ${Math.round(y)}.`);
+  if (kind === "player") {
+    library.pick(null);
+    host.editor.select(id);
+  } else if (toolbar.value !== "brush") {
+    host.editor.select(id);
+  }
 }
 
 function removeObject(id: string | null = host.editor.selectedId): void {
@@ -106,7 +157,57 @@ function removeObject(id: string | null = host.editor.selectedId): void {
     setStatus("Selecciona un objeto para eliminarlo.", "error");
     return;
   }
-  host.editor.select(null);
+  if (host.editor.selectedId === id) host.editor.select(null);
+}
+
+// Drag a card from the library and drop it on the map.
+const stage = document.querySelector<HTMLElement>(".stage")!;
+const dropZone = byId("drop-zone");
+stage.addEventListener("dragover", (event) => {
+  if (!event.dataTransfer?.types.includes(DRAG_TYPE)) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "copy";
+  dropZone.hidden = false;
+  byId("empty-state").hidden = true; // the onboarding card must not get in the way of the drop
+});
+stage.addEventListener("dragleave", (event) => {
+  if (stage.contains(event.relatedTarget as Node)) return;
+  dropZone.hidden = true;
+  refreshEmptyState();
+});
+stage.addEventListener("drop", (event) => {
+  dropZone.hidden = true;
+  refreshEmptyState();
+  const kind = event.dataTransfer?.getData(DRAG_TYPE);
+  if (!isKind(kind)) return;
+  event.preventDefault();
+  const point = host.editor.worldPointAt(event.clientX, event.clientY);
+  if (point === null) return;
+  const [x, y] = host.editor.snapPoint(point.x, point.y, kind);
+  placeObject(kind, x, y);
+});
+
+// --- Panels that follow the model ----------------------------------------------
+
+const sceneTree = new SceneTree({
+  select: (id) => host.editor.select(id),
+  focus: (id) => {
+    host.editor.select(id);
+    host.editor.focusOn(id);
+  },
+});
+
+function refreshSceneTree(): void {
+  sceneTree.render(model, host.editor.selectedId);
+}
+
+function refreshEmptyState(): void {
+  const empty = byId("empty-state");
+  // Hidden while painting too: the card must never cover the spot the user clicks.
+  empty.hidden = playing || toolbar.value === "brush" || (projectId !== null && model.size() > 0);
+  byId("empty-title").textContent = projectId === null ? "Empieza tu primer nivel" : "Tu escena está vacía";
+  byId("btn-empty-new").hidden = projectId !== null;
+  byId("btn-empty-ai").hidden = projectId === null;
 }
 
 let seenVersion = -1;
@@ -114,16 +215,26 @@ function watchModel(): void {
   if (model.version !== seenVersion) {
     seenVersion = model.version;
     const counts = countByKind(model);
-    byId("status-objects").textContent = `${model.size()} objetos · ${counts.coin ?? 0} monedas · ${counts.enemy ?? 0} enemigos`;
-    palette.setPlayerAvailable(!hasPlayer(model));
+    const people = (counts.villager ?? 0) + (counts.knight ?? 0) + (counts.wizard ?? 0);
+    byId("status-objects").textContent =
+      `${model.size()} objetos · ${counts.coin ?? 0} monedas · ${counts.enemy ?? 0} enemigos · ${people} personajes`;
+    library.setPlayerAvailable(!hasPlayer(model));
     const selected = host.editor.selectedId;
     inspector.show(selected === null ? undefined : model.find(selected));
     byId<HTMLButtonElement>("btn-undo").disabled = !model.canUndo();
     byId<HTMLButtonElement>("btn-redo").disabled = !model.canRedo();
-    document.title = `${isDirty() ? "● " : ""}Motor 2D · Editor de juegos`;
+    const dirty = isDirty();
+    const saveState = byId("save-state");
+    saveState.dataset.state = dirty ? "dirty" : "clean";
+    saveState.textContent = projectId === null ? "Sin proyecto" : dirty ? "Sin guardar" : "Guardado";
+    document.title = `${dirty ? "● " : ""}Motor 2D · Editor de juegos`;
+    refreshSceneTree();
+    refreshEmptyState();
   }
   requestAnimationFrame(watchModel);
 }
+
+// --- Projects ----------------------------------------------------------------------
 
 const projectList = new ProjectList(
   (project) => void attempt(async () => openProject(project)),
@@ -137,6 +248,7 @@ function openProject(project: ProjectDto | null): void {
   projectId = project?.id ?? null;
   model.replaceAll(project?.scene ?? []);
   savedVersion = model.version;
+  seenVersion = -1;
   host.editor.select(null);
   const name = byId<HTMLInputElement>("project-name");
   name.value = project?.name ?? "";
@@ -152,6 +264,7 @@ async function newProject(): Promise<void> {
   if (choice === null) return;
   const project = await createProject(choice.name, choice.template);
   openProject(project);
+  showTab("library");
   toast(`Proyecto "${project.name}" creado.`, "success");
 }
 
@@ -194,12 +307,23 @@ const aiPanel = new AiPanel(
   },
 );
 
+for (const chip of document.querySelectorAll<HTMLButtonElement>("[data-prompt]")) {
+  chip.addEventListener("click", () => {
+    const prompt = byId<HTMLTextAreaElement>("ai-prompt");
+    prompt.value = chip.dataset.prompt!;
+    prompt.focus();
+  });
+}
+
+// --- Playing -------------------------------------------------------------------------
+
 async function play(): Promise<void> {
   if (projectId === null) {
     toast("Crea o abre un proyecto para jugar.", "error");
     return;
   }
-  palette.pick(null);
+  library.pick(null);
+  applyTool("select");
   if (isDirty()) await save();
   const run = await startRun(projectId);
   runId = run.id;
@@ -214,6 +338,7 @@ function setPlaying(value: boolean): void {
   byId("btn-play").hidden = value;
   byId("btn-stop").hidden = !value;
   setHudVisible(value);
+  refreshEmptyState();
   setStatus(value ? "Jugando: flechas o WASD para moverte, Espacio para atacar." : "Editando.");
 }
 
@@ -239,6 +364,8 @@ async function runFinished(result: RunResultDto): Promise<void> {
   }
 }
 
+// --- Buttons and shortcuts ---------------------------------------------------------------
+
 function bind(id: string, handler: () => void | Promise<void>): void {
   byId(id).addEventListener("click", () => void attempt(async () => handler()));
 }
@@ -249,9 +376,15 @@ bind("btn-redo", () => void model.redo());
 bind("btn-play", play);
 bind("btn-stop", () => host.quitPlay());
 bind("btn-new-project", newProject);
+bind("btn-empty-new", newProject);
+bind("btn-empty-ai", () => {
+  showTab("ai");
+  byId("ai-prompt").focus();
+});
 bind("zoom-in", () => host.editor.zoomBy(1.2));
 bind("zoom-out", () => host.editor.zoomBy(1 / 1.2));
 bind("zoom-fit", () => host.editor.fitView());
+bind("zoom-center", () => host.editor.fitView());
 bind("btn-logout", () => leaveApp(true));
 
 bindShortcuts(
@@ -262,8 +395,17 @@ bindShortcuts(
     remove: () => removeObject(),
     play: () => void attempt(play),
     cancel: () => {
-      palette.pick(null);
+      library.pick(null);
+      applyTool("select");
       host.editor.select(null);
+    },
+    toolSelect: () => applyTool("select"),
+    toolHand: () => applyTool("hand"),
+    toolBrush: () => applyTool("brush"),
+    toolErase: () => applyTool("erase"),
+    focus: () => {
+      const id = host.editor.selectedId;
+      if (id !== null) host.editor.focusOn(id);
     },
   },
   () => !playing && byId("app").hidden === false,
@@ -272,6 +414,9 @@ bindShortcuts(
 window.addEventListener("beforeunload", (event) => {
   if (isDirty()) event.preventDefault();
 });
+
+setupTabs();
+byId("status-tool").textContent = TOOL_NAMES.select;
 
 const settings = new SettingsPanel((value) =>
   host.setEditorOptions({ showGrid: value.show_grid, snapToGrid: value.snap_to_grid, gridSize: value.grid_size }),
@@ -289,6 +434,8 @@ const idle = new IdleTimer({
   onTimeout: () => void leaveApp(true, "Cerramos tu sesión por inactividad."),
 });
 
+// --- Session ------------------------------------------------------------------------------
+
 const login = new LoginScreen(enterApp);
 
 async function enterApp(user: UserDto): Promise<void> {
@@ -300,6 +447,11 @@ async function enterApp(user: UserDto): Promise<void> {
   byId("user-avatar").textContent = user.username.slice(0, 1);
   host.start();
   await settings.load();
+  getCharacterLines()
+    .then((lines) => {
+      if (Object.keys(lines).length > 0) characterLines = lines;
+    })
+    .catch(() => undefined);
   const projects = await projectList.refresh().catch(() => []);
   openProject(projects[0] ?? null);
   void refreshProgress();
