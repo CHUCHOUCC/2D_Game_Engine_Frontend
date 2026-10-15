@@ -158,7 +158,7 @@ async function main() {
     start("frontend", "npx", ["vite", "--host", "127.0.0.1", "--port", String(PORTS.frontend), "--strictPort"], { cwd: frontendDir, env: frontendEnv });
   }
   await waitForPort(PORTS.frontend);
-  console.log(`\nReady: http://localhost:${PORTS.frontend}   (API http://localhost:${PORTS.backend}/docs)   Ctrl+C to stop.\n`);
+  console.log(`\nReady: http://127.0.0.1:${PORTS.frontend}   (API http://127.0.0.1:${PORTS.backend}/docs)   Ctrl+C to stop.\n`);
 }
 
 main().catch((error) => {
