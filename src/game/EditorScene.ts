@@ -65,7 +65,11 @@ export class EditorScene extends Phaser.Scene {
     const camera = this.cameras.main;
     camera.setBackgroundColor("rgba(0,0,0,0)");
     this.fitView();
-    this.scale.on(Phaser.Scale.Events.RESIZE, () => this.fitView());
+    // The scale manager belongs to the whole game: stop listening when this scene
+    // shuts down, or a resize while playing would touch a camera that no longer exists.
+    const onResize = () => this.fitView();
+    this.scale.on(Phaser.Scale.Events.RESIZE, onResize);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off(Phaser.Scale.Events.RESIZE, onResize));
   }
 
   /** Zoom so the whole world is visible and centre it. */
