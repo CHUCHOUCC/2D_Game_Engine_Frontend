@@ -2,10 +2,13 @@ import { TokenStore, type TokenPair } from "./tokens";
 
 export class ApiError extends Error {
   readonly status: number;
+  /** Failed logins left before the lockout (from X-Attempts-Remaining), when the server says. */
+  readonly attemptsLeft: number | null;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, attemptsLeft: number | null = null) {
     super(message);
     this.status = status;
+    this.attemptsLeft = attemptsLeft;
   }
 }
 
@@ -89,7 +92,8 @@ export class HttpClient {
     } catch {
       // keep the status text
     }
-    return new ApiError(response.status, friendlyMessage(response.status, detail));
+    const left = Number.parseInt(response.headers.get("X-Attempts-Remaining") ?? "", 10);
+    return new ApiError(response.status, friendlyMessage(response.status, detail), Number.isNaN(left) ? null : left);
   }
 
   /** Exchange the refresh token for a new pair. Only one refresh runs at a time. */
