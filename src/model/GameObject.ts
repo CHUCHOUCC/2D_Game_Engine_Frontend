@@ -1,5 +1,8 @@
 /** Every kind of object the engine knows. Same list as the backend and the AI service. */
-export const KINDS = ["player", "box", "wall", "house", "tree", "spike", "coin", "enemy", "villager", "knight", "wizard"] as const;
+export const KINDS = [
+  "player", "box", "wall", "house", "tree", "spike", "coin", "enemy", "villager", "knight", "wizard",
+  "bat", "spider", "ghost", "brute", "chest", "potion", "sword", "axe", "wand", "bow", "barrel", "fence", "bush",
+] as const;
 export type Kind = (typeof KINDS)[number];
 
 /** One object of the scene. Same shape the backend stores as JSON; x and y are its centre. */
@@ -27,6 +30,19 @@ export const SIZES: Record<Kind, [number, number]> = {
   villager: [24, 28],
   knight: [24, 28],
   wizard: [24, 28],
+  bat: [24, 20],
+  spider: [26, 24],
+  ghost: [24, 28],
+  brute: [30, 30],
+  chest: [32, 28],
+  potion: [16, 20],
+  sword: [16, 28],
+  axe: [24, 28],
+  wand: [16, 28],
+  bow: [24, 28],
+  barrel: [28, 30],
+  fence: [32, 16],
+  bush: [30, 28],
 };
 
 export const KIND_INFO: Record<Kind, { name: string; hint: string }> = {
@@ -37,24 +53,49 @@ export const KIND_INFO: Record<Kind, { name: string; hint: string }> = {
   tree: { name: "Árbol", hint: "Decoración sólida." },
   spike: { name: "Pinchos", hint: "Quita vida al tocarlos." },
   coin: { name: "Moneda", hint: "Recógelas todas para ganar." },
-  enemy: { name: "Enemigo", hint: "Te persigue. Espacio para atacar." },
-  villager: { name: "Aldeano", hint: "Personaje amistoso: pasea y te da consejos." },
+  enemy: { name: "Slime", hint: "Enemigo: te persigue. 3 de vida." },
+  villager: { name: "Aldeana", hint: "Personaje amistoso: pasea y te da consejos." },
   knight: { name: "Caballero", hint: "Personaje amistoso que protege la aldea." },
   wizard: { name: "Mago", hint: "Personaje amistoso que sabe cómo aprende la IA." },
+  bat: { name: "Murciélago", hint: "Enemigo rápido que vuela por encima de las paredes." },
+  spider: { name: "Araña", hint: "Enemigo veloz que se acerca en zigzag." },
+  ghost: { name: "Fantasma", hint: "Enemigo lento que atraviesa las paredes." },
+  brute: { name: "Ogro", hint: "Enemigo lento y muy fuerte: 8 de vida, quita 2." },
+  chest: { name: "Cofre", hint: "Tócalo para abrirlo: suelta un arma o una poción." },
+  potion: { name: "Poción", hint: "Recupera 2 de vida." },
+  sword: { name: "Espada", hint: "Arma: golpe en arco frente a ti." },
+  axe: { name: "Hacha", hint: "Arma: golpe lento y pesado que empuja lejos." },
+  wand: { name: "Varita", hint: "Arma: lanza rayos que atraviesan enemigos." },
+  bow: { name: "Arco", hint: "Arma: dispara flechas a distancia." },
+  barrel: { name: "Barril", hint: "Pesado: se puede empujar despacio." },
+  fence: { name: "Valla", hint: "Bloquea el paso." },
+  bush: { name: "Arbusto", hint: "Decoración sólida." },
 };
 
 /** Friendly 2D characters: they walk around and talk, they never hurt. */
 export const CHARACTER_KINDS: readonly Kind[] = ["villager", "knight", "wizard"];
+export const ENEMY_KINDS: readonly Kind[] = ["enemy", "bat", "spider", "ghost", "brute"];
+export const WEAPON_KINDS: readonly Kind[] = ["sword", "axe", "wand", "bow"];
 
 export function isCharacter(kind: Kind): boolean {
   return CHARACTER_KINDS.includes(kind);
 }
 
+export function isEnemy(kind: Kind): boolean {
+  return ENEMY_KINDS.includes(kind);
+}
+
+export function isWeapon(kind: Kind): boolean {
+  return WEAPON_KINDS.includes(kind);
+}
+
 /** How the library groups the kinds, in the order it shows them. */
 export const CATEGORIES: readonly { id: string; name: string; kinds: readonly Kind[] }[] = [
-  { id: "characters", name: "Personajes", kinds: ["player", "villager", "knight", "wizard", "enemy"] },
-  { id: "building", name: "Construcción", kinds: ["wall", "house", "tree", "box"] },
-  { id: "items", name: "Objetos", kinds: ["coin", "spike"] },
+  { id: "characters", name: "Personajes", kinds: ["player", "villager", "knight", "wizard"] },
+  { id: "enemies", name: "Enemigos", kinds: ["enemy", "bat", "spider", "ghost", "brute"] },
+  { id: "building", name: "Construcción", kinds: ["wall", "house", "tree", "bush", "fence"] },
+  { id: "obstacles", name: "Obstáculos", kinds: ["box", "barrel", "spike"] },
+  { id: "items", name: "Objetos", kinds: ["coin", "chest", "potion", "sword", "axe", "wand", "bow"] },
 ];
 
 export function categoryOf(kind: Kind): string {
