@@ -1,0 +1,101 @@
+/* ---------- in-game HUD ---------- */
+.hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 6;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+  pointer-events: none;
+  color: #e9eef7;
+  animation: enter 0.4s var(--ease);
+}
+.hud-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid #27467d;
+  border-radius: 12px;
+  background: rgba(3, 6, 13, 0.82);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+}
+.hud-hero > img { width: 34px; image-rendering: pixelated; }
+.hud-hero b { font-family: var(--font-brand); font-size: 12px; letter-spacing: 0.06em; }
+.lifebar { position: relative; width: 150px; height: 12px; margin-top: 4px; overflow: hidden; border-radius: 6px; background: #1a0b12; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+.lifebar > b { position: absolute; inset: 0 auto 0 0; width: 100%; background: #33e0a1; transition: width 0.25s var(--ease), background 0.25s; }
+.lifebar > span { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-mono); font-size: 10px; font-weight: 600; text-shadow: 0 1px 2px #000; }
+.slot { position: relative; display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid #38c4ff; border-radius: 10px; background: rgba(31, 123, 255, 0.18); box-shadow: 0 0 14px rgba(56, 196, 255, 0.5); }
+.slot img { position: relative; z-index: 1; width: 28px; image-rendering: pixelated; }
+.slot > span { position: absolute; bottom: -8px; left: 50%; z-index: 2; padding: 0 4px; transform: translateX(-50%); border-radius: 4px; background: #1f7bff; font-family: var(--font-mono); font-size: 8px; }
+.slot-dash .dash-icon { position: relative; z-index: 1; font-size: 22px; font-weight: 900; color: #7cc4ff; }
+/* The dark part of the slot is the time left before the weapon (or the dash) is ready again. */
+.cooldown { position: absolute; inset: 0; z-index: 2; border-radius: 10px; background: conic-gradient(transparent var(--ready, 100%), rgba(3, 6, 13, 0.75) 0); }
+.counter { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+.counter img { width: 20px; image-rendering: pixelated; }
+.ai-meter { display: inline-block; width: 70px; height: 6px; overflow: hidden; border-radius: 3px; background: #0d1a33; }
+.ai-meter span { display: block; height: 100%; background: linear-gradient(90deg, #33e0a1, #ffc547, #ff4d6d); }
+.hud-help {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  z-index: 6;
+  max-width: calc(100% - 32px);
+  padding: 8px 14px;
+  transform: translateX(-50%);
+  border: 1px solid #1a2c4f;
+  border-radius: 999px;
+  background: rgba(3, 6, 13, 0.8);
+  color: #8ea3c4;
+  font-size: 12px;
+  text-align: center;
+}
+.hud-help kbd { color: #e9eef7; }
+
+/* ---------- hero select ---------- */
+.dialog-heroes { width: min(1040px, calc(100vw - 32px)); max-width: none; }
+.dialog-head { display: grid; gap: 4px; }
+.dialog-head h3 { font-family: var(--font-brand); font-size: 22px; }
+.heroes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.hero {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--panel), var(--bg-elevated));
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.25s var(--ease), border-color 0.25s, box-shadow 0.25s;
+}
+.hero:hover { transform: translateY(-4px); border-color: var(--border-strong); }
+.hero[aria-checked="true"] { border-color: var(--accent-hi); box-shadow: var(--glow); }
+.hero[aria-checked="true"]::after { content: "ELEGIDO"; position: absolute; top: 10px; right: 10px; padding: 3px 7px; border-radius: 6px; background: var(--accent); color: #fff; font-family: var(--font-tag); font-size: 9px; letter-spacing: 0.2em; }
+.portrait { position: relative; display: grid; place-items: center; height: 110px; border-radius: 12px; background: radial-gradient(circle at 50% 70%, rgba(31, 123, 255, 0.35), transparent 65%), var(--field-bg); }
+.portrait img { width: 72px; image-rendering: pixelated; filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.6)); animation: idle 1.8s ease-in-out infinite; }
+.portrait .portrait-weapon { position: absolute; right: 22%; bottom: 24%; width: 32px; animation: none; transform: rotate(18deg); }
+.hero[aria-checked="true"] .portrait-weapon { animation: wield 0.9s ease-in-out infinite; }
+@keyframes idle { 50% { transform: translateY(-4px) scaleY(1.02); } }
+@keyframes wield { 50% { transform: rotate(-30deg); } }
+.hero h4 { margin: 0; font-family: var(--font-brand); font-size: 15px; letter-spacing: 0.04em; }
+.hero p { margin: 0; color: var(--text-muted); font-size: 12.5px; }
+.stat-row { display: grid; grid-template-columns: 66px 1fr 18px; align-items: center; gap: 8px; color: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.stat-row i { height: 6px; overflow: hidden; border-radius: 3px; background: var(--field-bg); }
+.stat-row b { display: block; height: 100%; background: linear-gradient(90deg, var(--accent-strong), var(--accent-hi)); }
+.skill { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--field-bg); font-size: 12px; }
+.skill img { width: 22px; image-rendering: pixelated; }
+
+@media (max-width: 900px) {
+  .heroes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .heroes { grid-template-columns: 1fr; }
+  .lifebar { width: 100px; }
+}
