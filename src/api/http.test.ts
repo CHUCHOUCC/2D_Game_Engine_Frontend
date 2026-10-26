@@ -101,3 +101,14 @@ test("friendlyMessage covers validation and AI errors", () => {
   expect(friendlyMessage(418, "teapot")).toBe("Algo salió mal (código 418). Inténtalo de nuevo.");
   expect(friendlyMessage(429, "anything")).toBe("Demasiadas peticiones. Espera un momento.");
 });
+
+test("HttpClient reads the login attempts left from the response", async () => {
+  const { client } = setup(
+    () => new Response(JSON.stringify({ detail: "Invalid email or password" }), { status: 401, headers: { "X-Attempts-Remaining": "2" } }),
+    false,
+  );
+  const error = await client.request("/auth/login", { method: "POST" }).catch((e: unknown) => e);
+  expect(error).toBeInstanceOf(ApiError);
+  expect((error as ApiError).attemptsLeft).toBe(2);
+  expect((error as ApiError).message).toBe("Correo o contraseña incorrectos.");
+});
