@@ -104,3 +104,37 @@ test("RunTracker records talks with 2D characters without points", () => {
   expect(run.score()).toBe(0);
   expect(run.result().events.map((e) => e.kind)).toEqual(["talk_wizard"]);
 });
+
+test("RunTracker counts every enemy type and uses the hero's health", () => {
+  const scene: GameObject[] = [
+    { id: "b", kind: "bat", x: 1, y: 1 },
+    { id: "o", kind: "brute", x: 2, y: 2 },
+    { id: "g", kind: "ghost", x: 3, y: 3 },
+  ];
+  const run = new RunTracker(scene, () => 0, 6);
+  expect(run.enemiesTotal).toBe(3);
+  expect(run.health()).toBe(6);
+  expect(run.maxHealth()).toBe(6);
+});
+
+test("RunTracker uses each enemy's points and damage", () => {
+  const { run } = tracker([{ id: "o", kind: "brute", x: 1, y: 1 }, { id: "s", kind: "spider", x: 2, y: 2 }]);
+  run.takeDamage("brute", 0, 0, 2);
+  expect(run.health()).toBe(1);
+  expect(run.damageTaken).toBe(2);
+  run.defeatEnemy(1, 1, "brute", 15);
+  expect(run.score()).toBe(15);
+  expect(run.result().events.map((e) => e.kind)).toEqual(["hit_brute", "defeated_brute"]);
+});
+
+test("RunTracker records chests and heals with potions", () => {
+  const { run } = tracker();
+  run.takeDamage("spike");
+  run.openChest("potion", 10, 10);
+  run.pickUp("potion", 2);
+  run.pickUp("sword");
+  expect(run.health()).toBe(3);
+  expect(run.chestsOpened).toBe(1);
+  expect(run.itemsPicked).toBe(2);
+  expect(run.result().events.map((e) => e.kind)).toEqual(["hit_spike", "chest_potion", "pick_potion", "pick_sword"]);
+});
