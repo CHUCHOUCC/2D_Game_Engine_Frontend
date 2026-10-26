@@ -16,3 +16,17 @@ export function make<K extends keyof HTMLElementTagNameMap>(tag: K, className = 
 export function errorText(error: unknown): string {
   return error instanceof Error ? error.message : "Error inesperado";
 }
+
+/** The eye buttons (data-toggle-password="<input id>") inside `root` show and hide their password. */
+export function bindPasswordEyes(root: ParentNode): void {
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-toggle-password]")) {
+    button.addEventListener("click", () => {
+      const input = byId<HTMLInputElement>(button.dataset.togglePassword!);
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      button.setAttribute("aria-pressed", String(show));
+      button.setAttribute("aria-label", show ? "Ocultar contraseña" : "Mostrar contraseña");
+      input.focus();
+    });
+  }
+}
