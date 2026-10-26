@@ -104,8 +104,6 @@
 .palette-item:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
 
 .palette-icon { width: 36px; height: 36px; background-repeat: no-repeat; background-size: 100% 100%; image-rendering: pixelated; }
-.palette-icon.is-sheet-4 { background-size: 400% 100%; }
-.palette-icon.is-sheet-2 { background-size: 200% 100%; }
 
 /* Scene tree (hierarchy) */
 .scene-tree { display: flex; flex-direction: column; gap: 2px; }
@@ -207,3 +205,11 @@
 .achievements { display: flex; flex-wrap: wrap; gap: 6px; }
 .badge { padding: 3px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 600; }
 .badge.is-locked { background: var(--panel-2); color: var(--text-muted); }
+
+/* Library cards lift and glow under the pointer; the chosen one stays lit. */
+.palette-item { transition: transform 0.2s var(--ease), border-color 0.2s, box-shadow 0.2s, background 0.2s; }
+.palette-item:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 6px 18px rgba(31, 123, 255, 0.25); }
+.palette-item.is-active { border-color: var(--accent-hi); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-hi), var(--glow-soft); }
+.dock-tab { transition: color var(--transition), border-color var(--transition); }
+.dock-panel:not([hidden]) { animation: enter 0.3s var(--ease); }
+.library-title { font-family: var(--font-tag); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; }
