@@ -17,12 +17,15 @@ import {
 } from "./api/client";
 import type { Tool } from "./game/EditorScene";
 import { GameHost } from "./game/GameHost";
-import { isKind, KIND_INFO, type Kind } from "./model/GameObject";
+import { CHARACTER_KINDS, ENEMY_KINDS, isKind, KIND_INFO, type Kind } from "./model/GameObject";
 import { countByKind, hasPlayer, nextObjectId, SceneModel } from "./model/SceneModel";
 import { AiPanel } from "./ui/AiPanel";
 import { byId, errorText } from "./ui/dom";
+import { chooseHero } from "./ui/HeroDialog";
+import { HomeScreen, type Destination } from "./ui/HomeScreen";
 import { setHudVisible, showHud } from "./ui/Hud";
 import { IdleTimer } from "./ui/IdleTimer";
+import { Intro } from "./ui/Intro";
 import { Inspector } from "./ui/Inspector";
 import { DRAG_TYPE, Library } from "./ui/Library";
 import { hideLoader, showLoader } from "./ui/loader";
@@ -46,11 +49,12 @@ let playing = false;
 let runId: number | null = null;
 let difficulty = 0.5;
 let currentUser: UserDto | null = null;
+let hero = "knight";
 
 /** Used until (or if) the backend's character lines arrive. */
 let characterLines: Record<string, string[]> = {
   villager: ["¡Hola, viajero!"],
-  knight: ["Ataca con Espacio."],
+  knight: ["Ataca con Espacio y esquiva con Shift."],
   wizard: ["La IA aprende de tus partidas."],
 };
 
@@ -129,6 +133,7 @@ const host = new GameHost(
     onHud: showHud,
     onFinish: (result) => void runFinished(result),
     linesFor: (kind) => characterLines[kind] ?? [],
+    onNotice: (text) => toast(text, "success", 2200),
   },
 );
 
@@ -215,9 +220,9 @@ function watchModel(): void {
   if (model.version !== seenVersion) {
     seenVersion = model.version;
     const counts = countByKind(model);
-    const people = (counts.villager ?? 0) + (counts.knight ?? 0) + (counts.wizard ?? 0);
+    const total = (kinds: readonly Kind[]) => kinds.reduce((sum, kind) => sum + (counts[kind] ?? 0), 0);
     byId("status-objects").textContent =
-      `${model.size()} objetos · ${counts.coin ?? 0} monedas · ${counts.enemy ?? 0} enemigos · ${people} personajes`;
+      `${model.size()} objetos · ${counts.coin ?? 0} monedas · ${total(ENEMY_KINDS)} enemigos · ${total(CHARACTER_KINDS)} personajes`;
     library.setPlayerAvailable(!hasPlayer(model));
     const selected = host.editor.selectedId;
     inspector.show(selected === null ? undefined : model.find(selected));
@@ -227,7 +232,7 @@ function watchModel(): void {
     const saveState = byId("save-state");
     saveState.dataset.state = dirty ? "dirty" : "clean";
     saveState.textContent = projectId === null ? "Sin proyecto" : dirty ? "Sin guardar" : "Guardado";
-    document.title = `${dirty ? "● " : ""}Motor 2D · Editor de juegos`;
+    document.title = `${dirty ? "● " : ""}PixelForge · 2D Game Engine`;
     refreshSceneTree();
     refreshEmptyState();
   }
@@ -324,12 +329,15 @@ async function play(): Promise<void> {
   }
   library.pick(null);
   applyTool("select");
+  const chosen = await chooseHero();
+  if (chosen === null) return;
+  hero = chosen;
   if (isDirty()) await save();
   const run = await startRun(projectId);
   runId = run.id;
   difficulty = run.difficulty;
   setPlaying(true);
-  host.play(difficulty);
+  host.play(difficulty, hero);
 }
 
 function setPlaying(value: boolean): void {
@@ -339,7 +347,7 @@ function setPlaying(value: boolean): void {
   byId("btn-stop").hidden = !value;
   setHudVisible(value);
   refreshEmptyState();
-  setStatus(value ? "Jugando: flechas o WASD para moverte, Espacio para atacar." : "Editando.");
+  setStatus(value ? "Jugando: WASD para moverte, Espacio para atacar, Shift para esquivar." : "Editando.");
 }
 
 async function runFinished(result: RunResultDto): Promise<void> {
@@ -356,7 +364,7 @@ async function runFinished(result: RunResultDto): Promise<void> {
       const run = await startRun(projectId!);
       runId = run.id;
       difficulty = run.difficulty;
-      host.restart(difficulty);
+      host.restart(difficulty, hero);
     });
   } else {
     setPlaying(false);
@@ -386,6 +394,7 @@ bind("zoom-out", () => host.editor.zoomBy(1 / 1.2));
 bind("zoom-fit", () => host.editor.fitView());
 bind("zoom-center", () => host.editor.fitView());
 bind("btn-logout", () => leaveApp(true));
+bind("btn-home", () => goHome());
 
 bindShortcuts(
   {
@@ -408,7 +417,7 @@ bindShortcuts(
       if (id !== null) host.editor.focusOn(id);
     },
   },
-  () => !playing && byId("app").hidden === false,
+  () => !playing && byId("app").hidden === false && !home.visible,
 );
 
 window.addEventListener("beforeunload", (event) => {
@@ -436,28 +445,82 @@ const idle = new IdleTimer({
 
 // --- Session ------------------------------------------------------------------------------
 
-const login = new LoginScreen(enterApp);
+const login = new LoginScreen((user) => enterApp(user, true));
+const intro = new Intro();
+const home = new HomeScreen(
+  (to, project) => void attempt(async () => go(to, project)),
+  () => void leaveApp(true),
+);
 
-async function enterApp(user: UserDto): Promise<void> {
+/** Stage of the page: only the access screen before login, the intro, then the engine. */
+function setStage(stage: "auth" | "intro" | "app"): void {
+  document.body.dataset.stage = stage;
+}
+
+async function goHome(): Promise<void> {
+  if (playing) return;
+  byId("app").hidden = true;
+  const projects = await projectList.refresh().catch(() => [] as ProjectDto[]);
+  home.show(currentUser!, projects);
+}
+
+function openEditor(): void {
+  home.hide();
+  const app = byId("app");
+  app.hidden = false;
+  app.classList.remove("is-entering");
+  void app.offsetWidth; // restart the entrance animation
+  app.classList.add("is-entering");
+  host.editor.fitView();
+}
+
+/** Where the menu options and the navigation bar lead. */
+async function go(to: Destination, project?: ProjectDto): Promise<void> {
+  if (to === "home") return goHome();
+  if (project !== undefined && project.id !== projectId) openProject(project);
+  openEditor();
+  if (to === "projects") showTab("projects");
+  if (to === "settings") byId("btn-settings").click();
+  if (to === "play") {
+    if (projectId === null) {
+      toast("Crea un proyecto para jugar: elige una plantilla.", "info");
+      await newProject();
+    }
+    if (projectId !== null) await play();
+  }
+}
+
+async function enterApp(user: UserDto, withIntro: boolean): Promise<void> {
   currentUser = user;
-  showLoader("Preparando tu espacio de trabajo…");
   login.hide();
-  byId("app").hidden = false;
   byId("user-name").textContent = user.username;
-  byId("user-avatar").textContent = user.username.slice(0, 1);
-  host.start();
-  await settings.load();
-  getCharacterLines()
-    .then((lines) => {
-      if (Object.keys(lines).length > 0) characterLines = lines;
-    })
-    .catch(() => undefined);
-  const projects = await projectList.refresh().catch(() => []);
-  openProject(projects[0] ?? null);
-  void refreshProgress();
+  byId("user-avatar").textContent = user.username.slice(0, 1).toUpperCase();
+  // The workspace loads while the intro plays; the menu opens when both are done.
+  const ready = (async () => {
+    host.start();
+    await settings.load();
+    getCharacterLines()
+      .then((lines) => {
+        if (Object.keys(lines).length > 0) characterLines = lines;
+      })
+      .catch(() => undefined);
+    const projects = await projectList.refresh().catch(() => [] as ProjectDto[]);
+    openProject(projects[0] ?? null);
+    void refreshProgress();
+    return projects;
+  })();
+  if (withIntro) {
+    setStage("intro");
+    hideLoader();
+    await intro.play(ready);
+  } else {
+    showLoader("Preparando tu espacio de trabajo…");
+  }
+  const projects = await ready;
+  setStage("app");
   idle.start();
   hideLoader();
-  toast(`¡Hola, ${user.username}!`, "success");
+  home.show(user, projects);
 }
 
 async function leaveApp(callBackend: boolean, note = ""): Promise<void> {
@@ -478,6 +541,8 @@ async function leaveApp(callBackend: boolean, note = ""): Promise<void> {
   projectList.clear();
   settings.close();
   byId("app").hidden = true;
+  home.hide();
+  setStage("auth");
   login.show(note);
 }
 
@@ -492,12 +557,13 @@ async function boot(): Promise<void> {
   requestAnimationFrame(watchModel);
   if (hasSession()) {
     try {
-      await enterApp(await getMe());
+      await enterApp(await getMe(), false);
       return;
     } catch {
       http.tokens.clear();
     }
   }
+  setStage("auth");
   login.show();
   hideLoader();
 }
