@@ -1,3 +1,5 @@
+import { TEXTURE_BASE } from "../game/assets";
+import { healthColor } from "../game/combat";
 import type { HudState } from "../game/PlayScene";
 import { PLAYER_MAX_HEALTH } from "../model/ScoreCounter";
 import { byId } from "./dom";
@@ -16,8 +18,23 @@ export function hearts(health: number, max = PLAYER_MAX_HEALTH): string {
   return "♥".repeat(full) + "♡".repeat(max - full);
 }
 
+const HERO_TEXTURES: Record<string, string> = { Caballero: "hero-knight", Mago: "hero-wizard", Arquero: "hero-archer", "Bárbaro": "hero-barbarian" };
+
 export function showHud(state: HudState): void {
-  byId("hud-hearts").textContent = hearts(state.health);
+  const ratio = state.maxHealth > 0 ? state.health / state.maxHealth : 0;
+  const life = byId("hud-life");
+  life.style.width = `${Math.round(ratio * 100)}%`;
+  life.style.background = `#${healthColor(ratio).toString(16).padStart(6, "0")}`;
+  byId("hud-life-text").textContent = `${state.health}/${state.maxHealth}`;
+  byId("hud-hero").textContent = state.hero;
+  const heroIcon = byId<HTMLImageElement>("hud-hero-icon");
+  const heroSrc = `${TEXTURE_BASE}${HERO_TEXTURES[state.hero] ?? "hero-knight"}.png`;
+  if (!heroIcon.src.endsWith(heroSrc)) heroIcon.src = heroSrc;
+  const weapon = byId<HTMLImageElement>("hud-weapon");
+  const weaponSrc = `${TEXTURE_BASE}${state.weapon}.png`;
+  if (!weapon.src.endsWith(weaponSrc)) weapon.src = weaponSrc;
+  byId("hud-cooldown").style.setProperty("--ready", `${Math.round(state.attackReady * 100)}%`);
+  byId("hud-dash").style.setProperty("--ready", `${Math.round(state.dashReady * 100)}%`);
   byId("hud-score").textContent = String(state.score);
   byId("hud-coins").textContent = `${state.coins}/${state.coinsTotal}`;
   byId("hud-enemies").textContent = `${state.enemies}/${state.enemiesTotal}`;
@@ -27,4 +44,5 @@ export function showHud(state: HudState): void {
 
 export function setHudVisible(visible: boolean): void {
   byId("hud").hidden = !visible;
+  byId("hud-help").hidden = !visible;
 }
