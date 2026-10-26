@@ -1,19 +1,12 @@
 import { iconUrl } from "../game/assets";
-import { CATEGORIES, isCharacter, KIND_INFO, type Kind } from "../model/GameObject";
+import { CATEGORIES, KIND_INFO, type Kind } from "../model/GameObject";
 import { byId, make } from "./dom";
 
 /** MIME type used when a library card is dragged onto the map. */
 export const DRAG_TYPE = "application/x-motor2d-kind";
 
-/** CSS class that shows only the first frame of a sprite sheet. */
-export function iconClass(kind: Kind): string {
-  if (kind === "player" || kind === "coin" || isCharacter(kind)) return "palette-icon is-sheet-4";
-  if (kind === "enemy") return "palette-icon is-sheet-2";
-  return "palette-icon";
-}
-
 export function iconElement(kind: Kind): HTMLElement {
-  const icon = make("span", iconClass(kind));
+  const icon = make("span", "palette-icon");
   icon.style.backgroundImage = `url("${iconUrl(kind)}")`;
   return icon;
 }
