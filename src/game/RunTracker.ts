@@ -1,6 +1,6 @@
 import type { RunResultDto } from "../api/client";
-import type { GameObject } from "../model/GameObject";
-import { ScoreCounter } from "../model/ScoreCounter";
+import { isEnemy, type GameObject } from "../model/GameObject";
+import { PLAYER_MAX_HEALTH, ScoreCounter } from "../model/ScoreCounter";
 import { LinkedList } from "../structures/LinkedList";
 
 /** At most this many events are sent to the backend for one run. */
@@ -16,7 +16,7 @@ type Outcome = RunResultDto["outcome"];
  * backend (and the AI that learns from them) receives at the end.
  */
 export class RunTracker {
-  private readonly counter = new ScoreCounter();
+  private readonly counter: ScoreCounter;
   private readonly events = new LinkedList<RunResultDto["events"][number]>();
   private readonly startedAt: number;
   private readonly now: () => number;
@@ -28,13 +28,17 @@ export class RunTracker {
   enemiesDefeated = 0;
   damageTaken = 0;
 
-  constructor(scene: Iterable<GameObject>, now: () => number = () => performance.now()) {
+  chestsOpened = 0;
+  itemsPicked = 0;
+
+  constructor(scene: Iterable<GameObject>, now: () => number = () => performance.now(), maxHealth = PLAYER_MAX_HEALTH) {
     let coins = 0;
     let enemies = 0;
     for (const object of scene) {
       if (object.kind === "coin") coins += 1;
-      if (object.kind === "enemy") enemies += 1;
+      if (isEnemy(object.kind)) enemies += 1;
     }
+    this.counter = new ScoreCounter(maxHealth);
     this.coinsTotal = coins;
     this.enemiesTotal = enemies;
     this.now = now;
@@ -47,6 +51,10 @@ export class RunTracker {
 
   health(): number {
     return this.counter.health();
+  }
+
+  maxHealth(): number {
+    return this.counter.maxHealth;
   }
 
   elapsedMs(): number {
@@ -82,12 +90,13 @@ export class RunTracker {
     return this.enemiesTotal > 0 && this.enemiesDefeated >= this.enemiesTotal;
   }
 
-  defeatEnemy(x?: number, y?: number): void {
+  /** `kind` is the enemy type (slime, bat...), `points` what it is worth. */
+  defeatEnemy(x?: number, y?: number, kind = "enemy", points?: number): void {
     if (this.isOver()) return;
     this.enemiesDefeated += 1;
-    this.counter.receive({ type: "defeated" });
+    this.counter.receive({ type: "defeated", points });
     this.counter.process();
-    this.record("enemy_defeated", x, y);
+    this.record(kind === "enemy" ? "enemy_defeated" : `defeated_${kind}`, x, y);
     if (this.hasWon()) this.finish("won");
   }
 
@@ -97,11 +106,29 @@ export class RunTracker {
     this.record(`talk_${kind}`);
   }
 
+  /** A chest was opened; `loot` is what came out. */
+  openChest(loot: string, x?: number, y?: number): void {
+    if (this.isOver()) return;
+    this.chestsOpened += 1;
+    this.record(`chest_${loot}`, x, y);
+  }
+
+  /** A weapon or potion was picked up. Potions heal `heal` points. */
+  pickUp(item: string, heal = 0): void {
+    if (this.isOver()) return;
+    this.itemsPicked += 1;
+    if (heal > 0) {
+      this.counter.receive({ type: "heal", amount: heal });
+      this.counter.process();
+    }
+    this.record(`pick_${item}`);
+  }
+
   /** The player was hurt by an enemy or spikes. Returns true if the run is now lost. */
-  takeDamage(source: string, x?: number, y?: number): boolean {
+  takeDamage(source: string, x?: number, y?: number, amount = 1): boolean {
     if (this.isOver()) return false;
-    this.damageTaken += 1;
-    this.counter.receive({ type: "hit" });
+    this.damageTaken += amount;
+    this.counter.receive({ type: "hit", amount });
     this.counter.process();
     this.record(`hit_${source}`, x, y);
     if (this.counter.isGameOver()) {
