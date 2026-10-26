@@ -1,35 +1,65 @@
 import { getMe, logIn, registerAccount, type UserDto } from "../api/client";
-import { byId, errorText } from "./dom";
-import { hideLoader, showLoader } from "./loader";
-import { passwordProblem } from "./passwordPolicy";
+import { ApiError } from "../api/http";
+import { bindPasswordEyes, byId, errorText } from "./dom";
+import { LivingLogo } from "./LivingLogo";
 import { passwordStrength } from "./passwordStrength";
+import {
+  attemptsMessage, checkConfirmation, checkEmail, checkNewPassword, checkUsername, passwordRules,
+  type Check, type PasswordRules,
+} from "./validation";
 
 type Mode = "login" | "register";
+type FieldName = "username" | "email" | "password" | "confirm";
 
-const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const STRENGTH_COLORS = ["#ff4d6d", "#ff8a3d", "#ffc547", "#33e0a1"];
 
 /**
- * The full-screen login page: tabs to log in or create an account, an eye to
- * show the password, a strength meter and a loading logo while it works.
+ * The full-screen access page, the only thing shown before logging in.
+ *
+ * The left side is the living PixelForge logo; the right side is the form.
+ * Every field is checked while typing and says how to fix it; the register
+ * form also has a password checklist and meter, a confirmation, the terms
+ * checkbox and a Caps Lock warning. A failed login shows how many attempts
+ * are left before the lockout (the backend sends the number).
  */
 export class LoginScreen {
   private mode: Mode = "login";
   private readonly screen = byId("login-screen");
   private readonly form = byId<HTMLFormElement>("auth-form");
-  private readonly username = byId<HTMLInputElement>("auth-username");
-  private readonly email = byId<HTMLInputElement>("auth-email");
-  private readonly password = byId<HTMLInputElement>("auth-password");
-  private readonly eye = byId<HTMLButtonElement>("toggle-password");
+  private readonly inputs: Record<FieldName, HTMLInputElement> = {
+    username: byId<HTMLInputElement>("auth-username"),
+    email: byId<HTMLInputElement>("auth-email"),
+    password: byId<HTMLInputElement>("auth-password"),
+    confirm: byId<HTMLInputElement>("auth-confirm"),
+  };
+  private readonly terms = byId<HTMLInputElement>("auth-terms");
   private readonly submit = byId<HTMLButtonElement>("auth-submit");
   private readonly message = byId("auth-message");
+  private readonly banner = byId("auth-banner");
+  private readonly living: LivingLogo;
+  /** Fields the user already left once: only those show their errors while typing. */
+  private readonly touched = new Set<FieldName>();
   private readonly onLoggedIn: (user: UserDto) => Promise<void>;
 
   constructor(onLoggedIn: (user: UserDto) => Promise<void>) {
     this.onLoggedIn = onLoggedIn;
+    this.living = new LivingLogo(byId("login-art"), byId("login-actors"), byId<HTMLCanvasElement>("login-fx"), byId("login-emblem"));
     byId("tab-login").addEventListener("click", () => this.setMode("login"));
     byId("tab-register").addEventListener("click", () => this.setMode("register"));
-    this.eye.addEventListener("click", () => this.togglePassword());
-    this.password.addEventListener("input", () => this.showStrength());
+    byId("auth-switch").addEventListener("click", () => this.setMode(this.mode === "login" ? "register" : "login"));
+    bindPasswordEyes(this.form);
+    for (const [name, input] of Object.entries(this.inputs) as [FieldName, HTMLInputElement][]) {
+      input.addEventListener("input", () => this.refresh(name));
+      input.addEventListener("blur", () => {
+        if (input.value !== "") this.touched.add(name);
+        this.refresh(name);
+      });
+    }
+    for (const input of [this.inputs.password, this.inputs.confirm]) {
+      input.addEventListener("keyup", (event) => this.showCapsLock(event));
+      input.addEventListener("keydown", (event) => this.showCapsLock(event));
+    }
+    this.terms.addEventListener("change", () => byId("terms-row").classList.remove("is-bad"));
     this.form.addEventListener("submit", (event) => {
       event.preventDefault();
       void this.send();
@@ -39,88 +69,151 @@ export class LoginScreen {
   setMode(mode: Mode): void {
     this.mode = mode;
     const register = mode === "register";
-    byId("tab-login").classList.toggle("is-active", !register);
-    byId("tab-register").classList.toggle("is-active", register);
+    byId("auth-tabs").dataset.mode = mode;
     byId("tab-login").setAttribute("aria-selected", String(!register));
     byId("tab-register").setAttribute("aria-selected", String(register));
-    byId("field-username").hidden = !register;
-    byId("strength").hidden = !register;
-    this.password.autocomplete = register ? "new-password" : "current-password";
-    this.submit.querySelector(".btn-label")!.textContent = register ? "Crear cuenta" : "Iniciar sesión";
+    for (const element of this.form.querySelectorAll<HTMLElement>(".is-register")) element.hidden = !register;
+    this.inputs.password.autocomplete = register ? "new-password" : "current-password";
+    this.submit.querySelector(".btn-label")!.textContent = register ? "Crear cuenta" : "Entrar a la forja";
+    byId("auth-switch-text").textContent = register ? "¿Ya tienes cuenta?" : "¿No tienes cuenta?";
+    byId("auth-switch").textContent = register ? "Inicia sesión" : "Crea una";
+    this.touched.clear();
+    this.banner.hidden = true;
     this.setMessage("");
-    this.showStrength();
+    for (const name of Object.keys(this.inputs) as FieldName[]) this.paint(name, { state: "", message: "" });
+    this.showPasswordHelp();
   }
 
-  private togglePassword(): void {
-    const visible = this.password.type === "password";
-    this.password.type = visible ? "text" : "password";
-    this.eye.setAttribute("aria-pressed", String(visible));
-    this.eye.setAttribute("aria-label", visible ? "Ocultar contraseña" : "Mostrar contraseña");
-    this.password.focus();
+  /** The check of one field for the current mode. */
+  private checkOf(name: FieldName): Check {
+    const { username, email, password, confirm } = this.inputs;
+    switch (name) {
+      case "username":
+        return checkUsername(username.value);
+      case "email":
+        return checkEmail(email.value);
+      case "password":
+        if (this.mode === "login") return password.value === "" ? { state: "bad", message: "Escribe tu contraseña." } : { state: "", message: "" };
+        return checkNewPassword(password.value, email.value.trim(), username.value.trim());
+      case "confirm":
+        return checkConfirmation(password.value, confirm.value);
+    }
   }
 
-  private showStrength(): void {
+  /** While typing only good news shows; errors wait until the field has been left once. */
+  private live(name: FieldName): void {
+    const check = this.checkOf(name);
+    this.paint(name, this.touched.has(name) || check.state === "ok" ? check : { state: "", message: "" });
+  }
+
+  private refresh(name: FieldName): void {
+    this.setMessage("");
+    this.live(name);
     if (this.mode !== "register") return;
-    const strength = passwordStrength(this.password.value);
-    const fill = byId("strength-fill");
-    fill.style.width = `${this.password.value ? (strength.score + 1) * 20 : 0}%`;
-    fill.style.background = strength.color;
-    byId("strength-label").textContent = this.password.value ? strength.label : "Escribe una contraseña";
+    this.showPasswordHelp();
+    if (name !== "confirm" && this.inputs.confirm.value !== "") this.live("confirm");
+    if ((name === "username" || name === "email") && this.inputs.password.value !== "") this.live("password");
   }
 
-  private validate(): string | null {
-    for (const input of [this.username, this.email, this.password]) input.removeAttribute("aria-invalid");
-    if (this.mode === "register" && this.username.value.trim() === "") {
-      this.username.setAttribute("aria-invalid", "true");
-      return "Elige un nombre de usuario.";
+  private paint(name: FieldName, check: Check): void {
+    const field = byId(`field-${name}`);
+    field.dataset.state = check.state;
+    byId(`msg-${name}`).textContent = check.message;
+    field.querySelector(".state")!.textContent = check.state === "ok" ? "✓" : check.state === "bad" ? "!" : "";
+    this.inputs[name].toggleAttribute("aria-invalid", check.state === "bad");
+  }
+
+  private showPasswordHelp(): void {
+    if (this.mode !== "register") return;
+    const { username, email, password } = this.inputs;
+    const rules: PasswordRules = passwordRules(password.value, email.value.trim(), username.value.trim());
+    for (const item of byId("password-rules").querySelectorAll<HTMLElement>("li")) {
+      item.classList.toggle("is-ok", password.value !== "" && rules[item.dataset.rule as keyof PasswordRules]);
     }
-    if (!EMAIL.test(this.email.value.trim())) {
-      this.email.setAttribute("aria-invalid", "true");
-      return "Escribe un correo válido.";
+    const strength = passwordStrength(password.value);
+    const filled = password.value === "" ? 0 : Math.max(1, strength.score);
+    byId("strength").querySelectorAll<HTMLElement>("i").forEach((bar, i) => {
+      bar.style.background = i < filled ? STRENGTH_COLORS[filled - 1] : "";
+    });
+    byId("strength-label").textContent = password.value === "" ? "Escribe una contraseña" : strength.label;
+  }
+
+  private showCapsLock(event: KeyboardEvent): void {
+    byId("caps-warning").hidden = !event.getModifierState?.("CapsLock");
+  }
+
+  /** Check every visible field; returns the first input that is wrong, or null. */
+  private validateAll(): HTMLInputElement | null {
+    const names: FieldName[] = this.mode === "register" ? ["username", "email", "password", "confirm"] : ["email", "password"];
+    let first: HTMLInputElement | null = null;
+    for (const name of names) {
+      this.touched.add(name);
+      const check = this.checkOf(name);
+      this.paint(name, check);
+      if (check.state === "bad" && first === null) first = this.inputs[name];
     }
-    if (this.mode === "login" && this.password.value === "") {
-      this.password.setAttribute("aria-invalid", "true");
-      return "Escribe tu contraseña.";
-    }
-    if (this.mode === "register") {
-      const problem = passwordProblem(this.password.value, this.email.value.trim(), this.username.value.trim());
-      if (problem !== null) {
-        this.password.setAttribute("aria-invalid", "true");
-        return problem;
-      }
-    }
-    return null;
+    return first;
   }
 
   private async send(): Promise<void> {
-    const problem = this.validate();
-    if (problem !== null) {
-      this.setMessage(problem, true);
+    const wrong = this.validateAll();
+    if (wrong !== null) {
+      this.setMessage("Revisa los campos marcados en rojo.", true);
+      wrong.focus();
+      return;
+    }
+    if (this.mode === "register" && !this.terms.checked) {
+      byId("terms-row").classList.add("is-bad");
+      this.setMessage("Debes aceptar las condiciones para crear la cuenta.", true);
+      this.terms.focus();
       return;
     }
     this.setBusy(true);
     try {
-      const email = this.email.value.trim();
-      if (this.mode === "register") {
-        await registerAccount(this.username.value.trim(), email, this.password.value);
-      }
-      await logIn(email, this.password.value);
-      showLoader("Iniciando sesión…");
+      const email = this.inputs.email.value.trim();
+      const password = this.inputs.password.value;
+      if (this.mode === "register") await registerAccount(this.inputs.username.value.trim(), email, password);
+      await logIn(email, password);
       const user = await getMe();
-      this.password.value = "";
+      this.inputs.password.value = "";
+      this.inputs.confirm.value = "";
+      await this.celebrate();
       await this.onLoggedIn(user);
     } catch (error) {
-      hideLoader();
-      this.setMessage(errorText(error), true);
+      this.showError(error);
     } finally {
       this.setBusy(false);
     }
   }
 
+  private showError(error: unknown): void {
+    if (error instanceof ApiError && error.attemptsLeft !== null && this.mode === "login") {
+      this.banner.textContent = `⚠ Correo o contraseña incorrectos. ${attemptsMessage(error.attemptsLeft)}`;
+      this.banner.hidden = false;
+      this.setMessage("");
+      this.paint("password", { state: "bad", message: "Revisa la contraseña y el correo." });
+      this.inputs.password.select();
+      return;
+    }
+    this.setMessage(errorText(error), true);
+  }
+
+  /** The tick, a lightning strike on the logo and a short pause before the intro. */
+  private async celebrate(): Promise<void> {
+    byId("auth-success-title").textContent = this.mode === "login" ? "¡Bienvenido de nuevo!" : "¡Cuenta creada!";
+    this.form.classList.add("is-done");
+    byId("auth-success").hidden = false;
+    this.living.fx.strikeNow();
+    await new Promise((resolve) => window.setTimeout(resolve, 900));
+  }
+
   private setBusy(busy: boolean): void {
     this.submit.classList.toggle("is-loading", busy);
     this.submit.disabled = busy;
-    for (const input of [this.username, this.email, this.password]) input.disabled = busy;
+    const idle = this.mode === "login" ? "Entrar a la forja" : "Crear cuenta";
+    const working = this.mode === "login" ? "Entrando…" : "Creando tu cuenta…";
+    this.submit.querySelector(".btn-label")!.textContent = busy ? working : idle;
+    for (const input of [...Object.values(this.inputs), this.terms]) input.disabled = busy;
   }
 
   private setMessage(text: string, isError = false): void {
@@ -130,13 +223,18 @@ export class LoginScreen {
 
   show(note = ""): void {
     // Coming back after a logout always starts on "Iniciar sesión", never on the register form.
+    this.form.classList.remove("is-done");
+    byId("auth-success").hidden = true;
+    this.terms.checked = false;
     this.setMode("login");
     this.screen.hidden = false;
     this.setMessage(note, note !== "");
-    this.email.focus();
+    this.living.start();
+    this.inputs.email.focus();
   }
 
   hide(): void {
     this.screen.hidden = true;
+    this.living.stop();
   }
 }
