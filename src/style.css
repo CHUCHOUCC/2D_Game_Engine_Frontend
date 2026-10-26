@@ -2,6 +2,9 @@
 @import "./styles/base.css";
 @import "./styles/loader.css";
 @import "./styles/login.css";
+@import "./styles/intro.css";
+@import "./styles/home.css";
 @import "./styles/app.css";
 @import "./styles/panels.css";
 @import "./styles/overlays.css";
+@import "./styles/game.css";
