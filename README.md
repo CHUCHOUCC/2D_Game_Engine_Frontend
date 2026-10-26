@@ -1,9 +1,9 @@
-# Motor 2D · Frontend
+# PixelForge · 2D Game Engine · Frontend
 
-TypeScript + Vite + **Phaser 4 with Arcade Physics**. A full-screen 2D game editor and player:
-build a top-down level with houses, walls, boxes, trees, spikes, coins, enemies and friendly 2D characters
-(villager, knight, wizard) that walk around and talk, play it, and let
-the AI learn from your runs to place harder (or easier) obstacles.
+TypeScript + Vite + **Phaser 4 with Arcade Physics**. A full-screen 2D game engine: build a top-down
+level with houses, walls, fences, boxes, barrels, spikes, coins, chests, weapons, five kinds of
+enemies and friendly 2D characters, pick a hero and play it, and let the AI learn from your runs to
+place harder (or easier) obstacles.
 
 ```
 Frontend (this repo) ──► Backend (FastAPI) ──► PostgreSQL (53 tables)
@@ -15,29 +15,56 @@ The frontend only talks to the backend; it never calls the AI service or the dat
 
 ## Screens
 
+The flow is **access → intro → home → editor**. Nothing of the engine (menu, options, navigation)
+exists on the page until the user has logged in or registered.
+
 | Screen | What it has |
 |---|---|
-| **Login** | Full window. Log in / create account tabs, eye button to show the password, strength meter, spinner in the button and an animated loading logo while it signs in. |
-| **Editor** | Laid out like a 2D engine. Top bar: project, tools (Seleccionar `V`, Mano `H`, Pincel `B`, Borrar `E`), undo/redo, **Jugar** in the middle, save state, settings, user. Left dock: **Biblioteca** (search, categories, drag onto the map), **Escena** (hierarchy of the scene's objects; click selects, double click centres) and **Proyectos**. Right dock: **Inspector**, **IA** and **Progreso**. Viewport with zoom controls and a getting-started guide when the scene is empty. |
-| **Settings wheel** | Light, dark or system theme; grid on/off, snap and size; music and effects volume; shortcuts. Saved to the account. |
-| **Play** | The map fills the window. HUD with hearts, score, coins, enemies, time and the AI difficulty. A dialog at the end shows the result, what the AI learned and new achievements. |
+| **Access** | Full window, always in the logo's dark look. Left: the living PixelForge logo (halo, rotating energy ring, light sweep over the letters, sparks, electric arcs and lightning strikes on a canvas) with the heroes walking around it: the knight chased by a slime, the barbarian and the archer on a lane, the wizard casting a bolt with his wand, a bat circling the logo and a ghost. Right: log in / create account with live validation (see below). |
+| **Intro** | About 5 seconds after logging in or registering, while the workspace loads: the emblem lights up between lightning, the wordmark is wiped in with a glint and a bar fills. Skippable with any key or *Saltar*. Not shown again when a session is restored on reload. |
+| **Home** | Navigation bar (*Inicio, Editor, Jugar, Proyectos, Ajustes*, it wraps instead of cutting options off), welcome with projects, games, best score and achievements, the four options and the recent projects. |
+| **Editor** | Laid out like a 2D engine. Top bar: PixelForge button back to the home, project, tools (Seleccionar `V`, Mano `H`, Pincel `B`, Borrar `E`), undo/redo, **Jugar** in the middle, save state, settings, user. Left dock: **Biblioteca** (search; *Personajes, Enemigos, Construcción, Obstáculos, Objetos*; drag onto the map), **Escena** and **Proyectos**. Right dock: **Inspector**, **IA** and **Progreso**. Docks slide in, tools and cards glow in the logo's blue. |
+| **Settings wheel** | Light, dark or system theme; grid on/off, snap and size; music and effects volume; security; shortcuts. Saved to the account. |
+| **Hero select** | Before every run: Caballero (sword), Mago (wand), Arquero (bow) or Bárbaro (axe), each with its health, speed and power. The last choice is remembered on the device. |
+| **Play** | The map fills the window. HUD with the hero, a health bar, the weapon slot and the dash slot with their cooldowns, score, coins, enemies, time and the AI difficulty. A dialog at the end shows the result, what the AI learned and new achievements. |
 
-## Texture pack and physics
+### Validation of the access form
 
-| Kind | Texture | Arcade Physics body |
+Every field is checked while typing (errors wait until the field has been left once) and says how to
+fix the problem: username of 3-20 letters, digits or `_`; email with a detailed message for a missing
+`@`, name, domain or ending; password checklist (length, letters with numbers or symbols, not common,
+not your name or email) with a strength meter; confirmation; terms checkbox; Caps Lock warning. A
+wrong login shows how many attempts are left before the 15-minute lockout (the backend sends
+`X-Attempts-Remaining`). The backend checks the same rules again.
+
+## Combat, objects and physics
+
+| Kind | Arcade Physics body | In the game |
 |---|---|---|
-| Jugador | `player.png` (4-frame walk) | dynamic, moved by arrows/WASD, Space attacks |
-| Caja | `box.png` | dynamic and **pushable**, drag 400 |
-| Pared | `wall.png` | static |
-| Casa | `house.png` (96 × 96) | static |
-| Árbol | `tree.png` | static |
-| Pinchos | `spike.png` | overlap: hurts |
-| Moneda | `coin.png` (4-frame spin) | overlap: collected |
-| Enemigo | `enemy-slime.png` (2 frames) | dynamic, chases the player; 3 hits to defeat |
-| Aldeano, Caballero, Mago | `villager.png`, `knight.png`, `wizard.png` (4-frame walk) | dynamic, not pushable; wander, stop to face the player and say a line in a speech bubble |
+| Héroe | dynamic, WASD/arrows | `Espacio` attacks with the weapon, `Shift` dashes (short invulnerability) |
+| Espada, Hacha | — | melee arc in front of the hero: the weapon sweeps with a glowing trail |
+| Varita | — | lightning ray that goes through every enemy in its line, stopped by walls |
+| Arco | arrows are dynamic bodies | arrows fly until they hit an enemy or a wall |
+| Slime, Murciélago, Araña, Fantasma, Ogro | dynamic | each has its own health bar, speed, damage, points and way of moving; bats and ghosts pass over walls |
+| Cofre | static | touching it opens it: a weapon or a potion jumps out |
+| Poción, armas | overlap | picked up: heals 2, or changes the weapon |
+| Caja, Barril | dynamic and **pushable** (the barrel is heavier) | |
+| Pared, Casa, Árbol, Arbusto, Valla | static | |
+| Pinchos | overlap | hurt |
+| Moneda | overlap | collected; all coins win the level |
+| Aldeana, Caballero, Mago | dynamic, not pushable | wander, stop to face the player and say a line |
 
-All textures are original pixel art drawn by `tools/make_textures.py` (no third-party assets).
-Enemies chase faster and from further away as the AI difficulty grows.
+Hits flash the target, push it back and show the damage; enemies get faster as the AI difficulty grows.
+The rules live without Phaser in `src/game/combat.ts`, `RunTracker.ts` and `ScoreCounter.ts` and are
+unit tested.
+
+### Textures and brand
+
+The textures are the **Kenney "Tiny Dungeon" and "Tiny Town"** packs (CC0, by kenney.nl; the original
+sheets and licences are in `assets-src/kenney/`). `tools/import_kenney.py` cuts the 16 px tiles, scales
+them 2× with nearest neighbour and writes `public/textures/`. `tools/make_textures.py` draws the
+spikes. `tools/make_brand.py` cuts the PixelForge logo (`assets-src/brand/`) into the emblem, the
+wordmark and the favicon, turning its black background into transparency.
 
 ## Tokens
 
@@ -79,7 +106,9 @@ cp .env.example .env     # set VITE_API_URL if the backend is not on localhost:8
 npm run dev              # http://localhost:5173
 npm test                 # unit tests (Vitest)
 npm run build            # production build in dist/
-npm run textures         # redraw the texture pack
+npm run textures         # rebuild the textures from the Kenney sheets
+npm run brand            # rebuild the logo images
+npm run e2e              # browser tests (Playwright) on a local stack
 ```
 
 | Variable | Meaning | Default |
