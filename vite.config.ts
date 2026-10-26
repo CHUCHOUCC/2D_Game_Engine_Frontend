@@ -1,8 +1,8 @@
 import { defineConfig, loadEnv, type Plugin } from "vite";
 
 /**
- * Production builds get a strict Content-Security-Policy: scripts and styles
- * only from this site, network calls only to the backend. In development Vite
+ * Production builds get a strict Content-Security-Policy: scripts only from
+ * this site, styles from it and Google Fonts, network calls only to the backend. In development Vite
  * needs inline scripts and a websocket for hot reload, so the policy is skipped.
  */
 function contentSecurityPolicy(apiUrl: string): Plugin {
@@ -10,9 +10,9 @@ function contentSecurityPolicy(apiUrl: string): Plugin {
   const policy = [
     "default-src 'self'",
     "script-src 'self'",
-    "style-src 'self'",
+    "style-src 'self' https://fonts.googleapis.com",
     "img-src 'self' data: blob:",
-    "font-src 'self'",
+    "font-src 'self' https://fonts.gstatic.com",
     `connect-src 'self' ${api}`,
     "worker-src 'self' blob:",
     "object-src 'none'",
