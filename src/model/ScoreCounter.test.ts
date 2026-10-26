@@ -50,3 +50,37 @@ describe("ScoreCounter", () => {
     expect(counter.isGameOver()).toBe(false);
   });
 });
+
+describe("ScoreCounter with heroes", () => {
+  it("starts with the hero's own maximum health", () => {
+    expect(new ScoreCounter(6).health()).toBe(6);
+  });
+
+  it("strong hits take more health and enemies give their own points", () => {
+    const counter = new ScoreCounter(6);
+    counter.receive({ type: "hit", amount: 2 });
+    counter.receive({ type: "defeated", points: 15 });
+    counter.process();
+    expect(counter.health()).toBe(4);
+    expect(counter.score()).toBe(15);
+  });
+
+  it("potions heal but never above the maximum", () => {
+    const counter = new ScoreCounter(5);
+    counter.receive({ type: "hit", amount: 3 });
+    counter.receive({ type: "heal", amount: 2 });
+    counter.process();
+    expect(counter.health()).toBe(4);
+    counter.receive({ type: "heal", amount: 2 });
+    counter.process();
+    expect(counter.health()).toBe(5);
+  });
+
+  it("a potion does not bring a dead player back", () => {
+    const counter = new ScoreCounter(2);
+    counter.receive({ type: "hit", amount: 2 });
+    counter.receive({ type: "heal", amount: 2 });
+    counter.process();
+    expect(counter.isGameOver()).toBe(true);
+  });
+});
