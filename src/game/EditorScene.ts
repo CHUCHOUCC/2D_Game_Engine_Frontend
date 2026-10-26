@@ -1,8 +1,8 @@
 import Phaser from "phaser";
-import { SIZES, WORLD_HEIGHT, WORLD_WIDTH, type GameObject, type Kind } from "../model/GameObject";
+import { isCharacter, isEnemy, SIZES, WORLD_HEIGHT, WORLD_WIDTH, type GameObject, type Kind } from "../model/GameObject";
 import { clampToWorld, fitZoom, snap } from "../model/geometry";
 import type { SceneModel } from "../model/SceneModel";
-import { createAnimations, KIND_TEXTURE, loadTextures } from "./textures";
+import { bob, KIND_TEXTURE, loadTextures } from "./textures";
 
 export interface EditorOptions {
   showGrid: boolean;
@@ -56,7 +56,6 @@ export class EditorScene extends Phaser.Scene {
   }
 
   create(): void {
-    createAnimations(this);
     this.drawnVersion = -1; // the scene starts again when we come back from Play
     this.ghost = null;
     this.add.tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, "grass").setDepth(-10);
@@ -213,7 +212,7 @@ export class EditorScene extends Phaser.Scene {
     this.ghost = null;
     if (this.placing !== null) {
       const texture = KIND_TEXTURE[this.placing];
-      this.ghost = this.add.image(-100, -100, texture.key, 0).setAlpha(0.6).setDepth(60).setVisible(false);
+      this.ghost = this.add.image(-100, -100, texture.key).setAlpha(0.6).setDepth(60).setVisible(false);
     }
     const cursors: Record<Tool, string> = { select: "default", hand: "grab", brush: "crosshair", erase: "not-allowed" };
     this.input.setDefaultCursor(cursors[tool]);
@@ -264,8 +263,8 @@ export class EditorScene extends Phaser.Scene {
 
   private drawObject(object: GameObject): void {
     const texture = KIND_TEXTURE[object.kind];
-    const sprite = this.add.sprite(object.x, object.y, texture.key, 0);
-    if (texture.anim) sprite.play(texture.anim);
+    const sprite = this.add.sprite(object.x, object.y, texture.key);
+    if (object.kind === "coin" || isEnemy(object.kind) || isCharacter(object.kind)) bob(this, sprite);
     // Taller objects further down the screen are drawn on top (fake depth).
     sprite.setDepth(object.y / WORLD_HEIGHT);
     sprite.setData("objectId", object.id);
