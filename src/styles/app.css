@@ -38,7 +38,9 @@
   z-index: 5;
 }
 
-.brand-small strong { font-size: 15px; letter-spacing: -0.01em; }
+.brand-small { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 4px; border: 0; border-radius: var(--radius); background: none; color: var(--text); cursor: pointer; transition: background var(--transition); }
+.brand-small:hover { background: var(--accent-soft); }
+.brand-small img { filter: drop-shadow(0 0 6px rgba(56, 196, 255, 0.6)); }
 
 .project-field {
   display: flex;
@@ -89,14 +91,14 @@
 }
 .tool:hover { background: var(--bg-elevated); color: var(--text); }
 .tool:disabled { opacity: 0.35; cursor: not-allowed; background: transparent; }
-.tool.is-active { background: var(--accent); color: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25); }
+.tool.is-active { background: linear-gradient(180deg, var(--accent), var(--accent-strong)); color: #fff; box-shadow: var(--glow-soft); }
 .tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* Play controls in the middle, like Godot and Unity */
 .play-controls { display: flex; gap: 6px; }
 .btn-play, .btn-stop { min-width: 110px; gap: 8px; border-radius: 999px; }
-.btn-play { background: var(--success); border-color: var(--success); color: #062b1b; }
-.btn-play:hover { filter: brightness(1.08); background: var(--success); border-color: var(--success); }
+.btn-play { border: 0; background: linear-gradient(90deg, var(--accent-hi), #7be3ff); color: #04121f; font-weight: 700; letter-spacing: 0.04em; box-shadow: 0 0 18px rgba(56, 196, 255, 0.55); }
+.btn-play:hover { filter: brightness(1.08); background: linear-gradient(90deg, var(--accent-hi), #7be3ff); box-shadow: 0 0 26px rgba(56, 196, 255, 0.8); }
 .btn-stop { background: var(--danger); border-color: var(--danger); color: #fff; }
 .btn-stop:hover { filter: brightness(1.08); background: var(--danger); border-color: var(--danger); }
 
@@ -251,3 +253,13 @@
   .dock { visibility: hidden; }
   .project-field, .toolgroup[aria-label="Historial"] { display: none; }
 }
+
+/* Entering the editor: the docks slide in from the sides and the viewport fades up. */
+.app.is-entering .dock-left { animation: dock-left 0.55s var(--ease) both 0.05s; }
+.app.is-entering .dock-right { animation: dock-right 0.55s var(--ease) both 0.1s; }
+.app.is-entering .stage { animation: enter 0.6s var(--ease) both; }
+.app.is-entering .topbar { animation: drop 0.45s var(--ease) both; }
+@keyframes dock-left { from { transform: translateX(-18px); opacity: 0; } }
+@keyframes dock-right { from { transform: translateX(18px); opacity: 0; } }
+@keyframes drop { from { transform: translateY(-10px); opacity: 0; } }
+.app.is-playing .stage { animation: enter 0.45s var(--ease) both; }
