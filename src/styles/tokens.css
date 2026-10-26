@@ -1,42 +1,51 @@
+/* PixelForge: the black, silver and electric blue of the logo. */
 :root,
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0b0f17;
-  --bg-elevated: #121826;
-  --panel: #151c2b;
-  --panel-2: #1b2436;
-  --border: #263049;
-  --border-strong: #34405e;
-  --text: #e8edf7;
-  --text-muted: #8f9bb3;
-  --accent: #6c8cff;
-  --accent-strong: #5070f0;
-  --accent-soft: rgba(108, 140, 255, 0.16);
-  --success: #3ccf91;
-  --warning: #f6c945;
-  --danger: #ff6b6b;
-  --canvas-bg: #070a10;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --bg: #03060d;
+  --bg-elevated: #070d1b;
+  --panel: #0b1426;
+  --panel-2: #101d36;
+  --border: #1a2c4f;
+  --border-strong: #27467d;
+  --text: #e9eef7;
+  --text-muted: #8ea3c4;
+  --accent: #1f7bff;
+  --accent-strong: #0b3fd6;
+  --accent-hi: #38c4ff;
+  --accent-soft: rgba(31, 123, 255, 0.16);
+  --success: #33e0a1;
+  --warning: #ffc547;
+  --danger: #ff4d6d;
+  --canvas-bg: #02050c;
+  --field-bg: #050b18;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+  --glow: 0 0 24px rgba(56, 160, 255, 0.45), 0 0 64px rgba(31, 123, 255, 0.25);
+  --glow-soft: 0 0 14px rgba(31, 123, 255, 0.45);
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #eef1f7;
+  --bg: #eef2f9;
   --bg-elevated: #ffffff;
   --panel: #ffffff;
-  --panel-2: #f4f6fb;
-  --border: #dde3ee;
-  --border-strong: #c5cede;
-  --text: #182033;
-  --text-muted: #5f6b84;
-  --accent: #4560e6;
-  --accent-strong: #3049c9;
-  --accent-soft: rgba(69, 96, 230, 0.12);
-  --success: #1e9e6a;
-  --warning: #c99512;
-  --danger: #d64545;
-  --canvas-bg: #cfd6e4;
-  --shadow: 0 10px 30px rgba(24, 32, 51, 0.12);
+  --panel-2: #f2f6fc;
+  --border: #d6dfee;
+  --border-strong: #b8c6de;
+  --text: #0b1530;
+  --text-muted: #55658a;
+  --accent: #1463e6;
+  --accent-strong: #0b3fb8;
+  --accent-hi: #0e8fd8;
+  --accent-soft: rgba(20, 99, 230, 0.12);
+  --success: #12a173;
+  --warning: #b8860b;
+  --danger: #d6334f;
+  --canvas-bg: #c9d4e6;
+  --field-bg: #f6f9fe;
+  --shadow: 0 10px 30px rgba(11, 21, 48, 0.12);
+  --glow: 0 0 18px rgba(20, 99, 230, 0.28);
+  --glow-soft: 0 0 10px rgba(20, 99, 230, 0.25);
 }
 
 :root {
@@ -47,7 +56,15 @@
   --topbar-h: 54px;
   --statusbar-h: 28px;
   --panel-w: 300px;
-  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-pixel: "Press Start 2P", ui-monospace, "Cascadia Mono", monospace;
-  --transition: 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --font: "Exo 2", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --font-brand: "Orbitron", "Eurostile", "Arial Black", sans-serif;
+  --font-tag: "Michroma", "Orbitron", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Mono", ui-monospace, monospace;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --transition: 160ms var(--ease);
+  /* The access screen, the intro and the menu always use the logo's dark world. */
+  --void: #03060d;
+  --forge: #1f7bff;
+  --forge-hi: #38c4ff;
+  --forge-deep: #0b3fd6;
 }
