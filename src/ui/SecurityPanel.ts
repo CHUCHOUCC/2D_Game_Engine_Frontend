@@ -1,5 +1,5 @@
 import { changePassword, logOutEverywhere, myActivity } from "../api/client";
-import { byId, errorText, make } from "./dom";
+import { bindPasswordEyes, byId, errorText, make } from "./dom";
 import { passwordProblem } from "./passwordPolicy";
 import { relativeTime } from "./ProjectList";
 import { toast } from "./toast";
@@ -34,15 +34,7 @@ export class SecurityPanel {
       void this.changePassword();
     });
     byId("btn-logout-all").addEventListener("click", () => void this.logOutEverywhere());
-    for (const button of document.querySelectorAll<HTMLButtonElement>("[data-toggle-password]")) {
-      button.addEventListener("click", () => {
-        const input = byId<HTMLInputElement>(button.dataset.togglePassword!);
-        const show = input.type === "password";
-        input.type = show ? "text" : "password";
-        button.setAttribute("aria-pressed", String(show));
-        button.setAttribute("aria-label", show ? "Ocultar contraseña" : "Mostrar contraseña");
-      });
-    }
+    bindPasswordEyes(byId("password-form"));
   }
 
   private async changePassword(): Promise<void> {
