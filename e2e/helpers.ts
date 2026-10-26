@@ -5,28 +5,51 @@ export const PASSWORD = "caballo verde saltarin";
 /** A fresh account for each test, so tests never depend on each other. */
 export function newUser() {
   const id = Math.random().toString(36).slice(2, 10);
-  return { username: `jugador${id}`, email: `jugador.${id}@motor2d.test`, password: PASSWORD };
+  return { username: `jugador${id}`, email: `jugador.${id}@pixelforge.test`, password: PASSWORD };
 }
 
 export type User = ReturnType<typeof newUser>;
 
-export async function register(page: Page, user: User): Promise<void> {
+/** Fill and send the register form; the intro starts after it. */
+export async function fillRegister(page: Page, user: User): Promise<void> {
   await page.goto("/");
   await page.getByRole("tab", { name: "Crear cuenta" }).click();
   await page.getByLabel("Nombre de usuario").fill(user.username);
   await page.getByLabel("Correo electrónico").fill(user.email);
   await page.locator("#auth-password").fill(user.password);
+  await page.locator("#auth-confirm").fill(user.password);
+  await page.locator("#auth-terms").check();
   await page.locator("#auth-submit").click();
-  await expect(page.locator("#app")).toBeVisible();
+}
+
+/** After logging in: skip the intro and wait for the home menu. */
+export async function reachHome(page: Page): Promise<void> {
+  await expect(page.locator("#intro")).toBeVisible();
+  await page.locator("#intro-skip").click();
+  await expect(page.locator("#home")).toBeVisible();
   await expect(page.locator("#loader")).toBeHidden();
 }
 
-export async function logIn(page: Page, user: User): Promise<void> {
+/** From the home menu to the editor. */
+export async function openEditor(page: Page): Promise<void> {
+  await page.locator('.option[data-go="editor"]').click();
+  await expect(page.locator("#app")).toBeVisible();
+}
+
+/** Register a new account and end in the editor (or in the home menu). */
+export async function register(page: Page, user: User, to: "editor" | "home" = "editor"): Promise<void> {
+  await fillRegister(page, user);
+  await reachHome(page);
+  if (to === "editor") await openEditor(page);
+}
+
+export async function logIn(page: Page, user: User, to: "editor" | "home" = "editor"): Promise<void> {
   await page.goto("/");
   await page.getByLabel("Correo electrónico").fill(user.email);
   await page.locator("#auth-password").fill(user.password);
   await page.locator("#auth-submit").click();
-  await expect(page.locator("#app")).toBeVisible();
+  await reachHome(page);
+  if (to === "editor") await openEditor(page);
 }
 
 /** Create a project from a template through the dialog. */
