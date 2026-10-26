@@ -4,89 +4,158 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark light" />
-    <title>Motor 2D · Editor de juegos</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>PixelForge · 2D Game Engine</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Michroma&family=Exo+2:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" />
   </head>
   <body>
     <!-- Loading logo: shown while the app starts and while logging in -->
     <div id="loader" class="loader" role="status" aria-live="polite">
       <div class="loader-logo" aria-hidden="true">
-        <span class="loader-cube"></span><span class="loader-cube"></span><span class="loader-cube"></span><span class="loader-cube"></span>
+        <img class="loader-emblem" src="/brand/emblem.png" alt="" width="120" />
+        <span class="loader-ring"></span>
       </div>
       <p id="loader-text" class="loader-text">Cargando motor…</p>
     </div>
 
-    <!-- Login / register: takes the whole screen -->
+    <!-- Login / register: the only thing shown until the user is in -->
     <section id="login-screen" class="login" hidden>
-      <div class="login-art" aria-hidden="true">
-        <div class="login-art-scene">
-          <span class="sprite sprite-house at-1"></span>
-          <span class="sprite sprite-tree at-2"></span>
-          <span class="sprite sprite-tree at-3"></span>
-          <span class="sprite sprite-wall at-4"></span>
-          <span class="sprite sprite-wall at-5"></span>
-          <span class="sprite sprite-wall at-6"></span>
-          <span class="sprite sprite-box at-7"></span>
-          <span class="sprite sprite-coin at-8"></span>
-          <span class="sprite sprite-coin at-9"></span>
-          <span class="sprite sprite-enemy at-10"></span>
-          <span class="sprite sprite-player at-11"></span>
+      <div id="login-art" class="login-art">
+        <div class="ground" aria-hidden="true"></div>
+        <div class="logo">
+          <div class="emblem-wrap"><img id="login-emblem" class="emblem" src="/brand/emblem.png" alt="" width="240" /></div>
+          <div class="wordmark-wrap"><img class="wordmark" src="/brand/wordmark.png" alt="PixelForge · 2D Game Engine" width="420" /><i class="sweep" aria-hidden="true"></i></div>
         </div>
-        <div class="login-art-copy">
-          <h2>Crea, juega y deja que la IA aprenda.</h2>
-          <ul>
-            <li>Editor visual con física Arcade integrada</li>
-            <li>Pack de texturas pixel art: casas, paredes, cajas, monedas y enemigos</li>
-            <li>Una IA que coloca obstáculos según cómo juegas</li>
-          </ul>
-        </div>
+        <ul class="features">
+          <li><img src="/textures/hero-wizard.png" alt="" />Héroes con armas y habilidades propias</li>
+          <li><img src="/textures/chest.png" alt="" />Cofres, pociones y armas para recoger</li>
+          <li><img src="/textures/brute.png" alt="" />Una IA que adapta los enemigos a cómo juegas</li>
+        </ul>
+        <div id="login-actors" class="actors" aria-hidden="true"></div>
+        <canvas id="login-fx" class="fx" aria-hidden="true"></canvas>
       </div>
 
       <div class="login-panel">
-        <div class="login-card">
-          <div class="brand">
-            <img src="/favicon.svg" alt="" width="40" height="40" />
-            <div>
-              <strong>Motor 2D</strong>
-              <span>Editor de juegos</span>
-            </div>
+        <form id="auth-form" class="auth-form" novalidate>
+          <div id="auth-tabs" class="seg" data-mode="login" role="tablist" aria-label="Acceso">
+            <span class="seg-pill" aria-hidden="true"></span>
+            <button id="tab-login" type="button" role="tab" aria-selected="true">Iniciar sesión</button>
+            <button id="tab-register" type="button" role="tab" aria-selected="false">Crear cuenta</button>
           </div>
 
-          <div class="tabs" role="tablist">
-            <button id="tab-login" class="tab is-active" role="tab" aria-selected="true" type="button">Iniciar sesión</button>
-            <button id="tab-register" class="tab" role="tab" aria-selected="false" type="button">Crear cuenta</button>
-          </div>
+          <div id="auth-banner" class="banner" role="alert" hidden></div>
 
-          <form id="auth-form" class="form" novalidate>
-            <label class="field" id="field-username" hidden>
-              <span>Nombre de usuario</span>
-              <input id="auth-username" type="text" autocomplete="username" maxlength="50" />
-            </label>
-            <label class="field">
-              <span>Correo electrónico</span>
-              <input id="auth-email" type="email" autocomplete="email" required placeholder="tu@correo.com" />
-            </label>
-            <label class="field">
-              <span>Contraseña</span>
-              <span class="password">
-                <input id="auth-password" type="password" autocomplete="current-password" required minlength="8" />
-                <button id="toggle-password" class="eye" type="button" aria-label="Mostrar contraseña" aria-pressed="false">
+          <div class="field is-register" id="field-username" hidden>
+            <label for="auth-username">Nombre de usuario <span>3–20 caracteres</span></label>
+            <div class="control"><input id="auth-username" type="text" autocomplete="username" maxlength="20" spellcheck="false" /><span class="state" aria-hidden="true"></span></div>
+            <p class="msg" id="msg-username"></p>
+          </div>
+          <div class="field" id="field-email">
+            <label for="auth-email">Correo electrónico</label>
+            <div class="control"><input id="auth-email" type="email" autocomplete="email" maxlength="254" placeholder="tu@correo.com" spellcheck="false" /><span class="state" aria-hidden="true"></span></div>
+            <p class="msg" id="msg-email"></p>
+          </div>
+          <div class="field" id="field-password">
+            <label for="auth-password">Contraseña <span id="caps-warning" class="caps" hidden>Bloq Mayús activado</span></label>
+            <div class="control">
+              <input id="auth-password" type="password" autocomplete="current-password" maxlength="128" /><span class="state" aria-hidden="true"></span>
+              <button class="eye" type="button" data-toggle-password="auth-password" aria-label="Mostrar contraseña" aria-pressed="false">
                   <svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" /><circle cx="12" cy="12" r="3" /></svg>
                   <svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
-                </button>
-              </span>
-            </label>
-            <div id="strength" class="strength" hidden>
-              <span class="strength-bar"><span id="strength-fill"></span></span>
-              <span id="strength-label">Escribe una contraseña</span>
+              </button>
             </div>
-            <p id="auth-message" class="form-message" role="alert"></p>
-            <button id="auth-submit" class="btn btn-primary btn-block" type="submit">
-              <span class="btn-spinner" aria-hidden="true"></span>
-              <span class="btn-label">Iniciar sesión</span>
-            </button>
-          </form>
+            <p class="msg" id="msg-password"></p>
+          </div>
+          <div id="password-help" class="password-help is-register" hidden>
+            <div id="strength" class="meter" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            <div class="meter-label"><span id="strength-label">Escribe una contraseña</span><span>Una frase larga es más segura que los símbolos</span></div>
+            <ul id="password-rules" class="rules">
+              <li data-rule="length">Al menos 8 caracteres</li>
+              <li data-rule="mix">Letras y números o símbolos</li>
+              <li data-rule="common">No es una contraseña común</li>
+              <li data-rule="personal">No contiene tu usuario ni tu correo</li>
+            </ul>
+          </div>
+          <div class="field is-register" id="field-confirm" hidden>
+            <label for="auth-confirm">Confirmar contraseña</label>
+            <div class="control">
+              <input id="auth-confirm" type="password" autocomplete="new-password" maxlength="128" /><span class="state" aria-hidden="true"></span>
+              <button class="eye" type="button" data-toggle-password="auth-confirm" aria-label="Mostrar contraseña" aria-pressed="false">
+                  <svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                  <svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+              </button>
+            </div>
+            <p class="msg" id="msg-confirm"></p>
+          </div>
+          <label class="check is-register" id="terms-row" hidden><input id="auth-terms" type="checkbox" /> <span>Acepto las condiciones de uso y la política de privacidad.</span></label>
+
+          <p id="auth-message" class="form-message" role="alert"></p>
+          <button id="auth-submit" class="btn btn-forge btn-block" type="submit">
+            <span class="btn-spinner" aria-hidden="true"></span>
+            <span class="btn-label">Entrar a la forja</span>
+          </button>
+          <div id="auth-success" class="success" aria-live="polite" hidden>
+            <div class="success-ring" aria-hidden="true">✓</div>
+            <h2 id="auth-success-title">¡Bienvenido!</h2>
+            <p>Preparando tu forja…</p>
+          </div>
+          <p class="form-foot"><span id="auth-switch-text">¿No tienes cuenta?</span> <button id="auth-switch" class="link" type="button">Crea una</button></p>
           <p class="login-footnote">Tu sesión usa tokens seguros que se renuevan solos.</p>
+        </form>
+      </div>
+    </section>
+
+    <!-- Intro: plays once after logging in or registering, before the menu -->
+    <section id="intro" class="intro" hidden aria-label="Intro de PixelForge">
+      <div class="intro-floor" aria-hidden="true"></div>
+      <canvas id="intro-fx" class="fx" aria-hidden="true"></canvas>
+      <div class="intro-logo">
+        <div class="emblem-wrap"><img id="intro-emblem" class="emblem" src="/brand/emblem.png" alt="" width="300" /></div>
+        <div class="wordmark-wrap"><img class="wordmark" src="/brand/wordmark.png" alt="PixelForge · 2D Game Engine" width="560" /><i class="glint" aria-hidden="true"></i></div>
+      </div>
+      <button id="intro-skip" class="btn btn-ghost intro-skip" type="button">Saltar ›</button>
+      <div class="intro-boot">
+        <div class="intro-bar"><i></i></div>
+        <div class="intro-row"><span id="intro-text">Forjando el mundo…</span><span>Cualquier tecla para saltar</span></div>
+      </div>
+      <div class="intro-scan" aria-hidden="true"></div>
+    </section>
+
+    <!-- Home: the menu of the engine, only after the intro -->
+    <section id="home" class="home" hidden>
+      <header class="topnav">
+        <div class="mark"><img src="/brand/emblem.png" alt="" width="36" /><b><span class="mark-pixel">PIXEL</span><span class="mark-forge">FORGE</span></b></div>
+        <nav class="topnav-tabs" aria-label="Opciones del motor">
+          <button class="nav-tab" type="button" data-go="home" aria-current="page">Inicio</button>
+          <button class="nav-tab" type="button" data-go="editor">Editor</button>
+          <button class="nav-tab" type="button" data-go="play">Jugar</button>
+          <button class="nav-tab" type="button" data-go="projects">Proyectos</button>
+          <button class="nav-tab" type="button" data-go="settings">Ajustes</button>
+        </nav>
+        <div class="userchip"><span class="avatar" id="home-avatar" aria-hidden="true">?</span><span id="home-user"></span><button id="home-logout" class="btn btn-ghost btn-small" type="button">Salir</button></div>
+      </header>
+      <div class="home-body">
+        <div class="welcome">
+          <span class="avatar avatar-big" id="welcome-avatar" aria-hidden="true">?</span>
+          <div class="welcome-text"><h1 id="welcome-title">Bienvenido</h1><p id="welcome-sub">Tu forja está lista.</p></div>
+          <div class="kpis">
+            <div class="kpi"><b id="kpi-projects">0</b><span>Proyectos</span></div>
+            <div class="kpi"><b id="kpi-games">0</b><span>Partidas</span></div>
+            <div class="kpi"><b id="kpi-best">0</b><span>Mejor puntuación</span></div>
+            <div class="kpi"><b id="kpi-achievements">0/5</b><span>Logros</span></div>
+          </div>
+        </div>
+        <div class="menu">
+          <button class="option is-primary" type="button" data-go="editor"><span class="option-icons"><img src="/textures/house.png" alt="" class="is-wide" /><img src="/textures/tree.png" alt="" /></span><h3>Abrir el editor</h3><p>Construye niveles con la Biblioteca, la Escena y el Inspector.</p><span class="go" id="option-editor-go">Continuar ›</span></button>
+          <button class="option" type="button" data-go="play"><span class="option-icons"><img src="/textures/hero-wizard.png" alt="" /><img src="/textures/wand.png" alt="" class="is-small" /></span><h3>Jugar</h3><p>Elige héroe y prueba tu nivel. La IA ajusta la dificultad.</p><span class="go">Elegir héroe ›</span></button>
+          <button class="option" type="button" data-go="projects"><span class="option-icons"><img src="/textures/chest.png" alt="" /><img src="/textures/coin.png" alt="" class="is-small" /></span><h3>Mis proyectos</h3><p>Crea uno nuevo desde una plantilla o abre otro.</p><span class="go" id="option-projects-go">Ver proyectos ›</span></button>
+          <button class="option" type="button" data-go="settings"><span class="option-icons"><img src="/textures/knight.png" alt="" /><img src="/textures/potion.png" alt="" class="is-small" /></span><h3>Ajustes</h3><p>Tema claro u oscuro, cuadrícula, sonido y seguridad.</p><span class="go">Abrir ajustes ›</span></button>
+        </div>
+        <div class="recent">
+          <h2 class="eyebrow">Recientes</h2>
+          <ul id="recent-projects" class="recent-list"></ul>
         </div>
       </div>
     </section>
@@ -116,10 +185,10 @@
     <!-- The editor: laid out like a 2D engine (toolbar, left and right docks, viewport, status bar) -->
     <div id="app" class="app" hidden>
       <header class="topbar">
-        <div class="brand brand-small">
-          <img src="/favicon.svg" alt="" width="26" height="26" />
-          <strong>Motor 2D</strong>
-        </div>
+        <button id="btn-home" class="brand brand-small" type="button" title="Volver al inicio">
+          <img src="/brand/emblem.png" alt="" width="30" />
+          <strong><span class="mark-pixel">PIXEL</span><span class="mark-forge">FORGE</span></strong>
+        </button>
         <div class="project-field">
           <svg class="icon" aria-hidden="true"><use href="#i-folder" /></svg>
           <input id="project-name" class="project-name" type="text" maxlength="100" placeholder="Sin proyecto" aria-label="Nombre del proyecto" disabled />
@@ -219,14 +288,24 @@
 
         <div id="placing-hint" class="floating-hint" hidden></div>
         <div id="hud" class="hud" hidden>
-          <span class="hud-item" title="Vida"><span id="hud-hearts"></span></span>
-          <span class="hud-item">⭐ <strong id="hud-score">0</strong></span>
-          <span class="hud-item"><img src="/textures/coin.png" class="hud-icon hud-icon-sheet" alt="" /> <strong id="hud-coins">0/0</strong></span>
-          <span class="hud-item"><img src="/textures/enemy-slime.png" class="hud-icon hud-icon-sheet" alt="" /> <strong id="hud-enemies">0/0</strong></span>
-          <span class="hud-item">⏱ <strong id="hud-time">0:00</strong></span>
-          <span class="hud-item">IA <span class="meter"><span id="hud-difficulty"></span></span></span>
-          <span class="hud-help">Flechas/WASD mover · Espacio atacar · acércate a los personajes · Esc salir</span>
+          <div class="hud-card hud-hero">
+            <img id="hud-hero-icon" src="/textures/hero-knight.png" alt="" />
+            <div>
+              <b id="hud-hero">Caballero</b>
+              <div class="lifebar" title="Vida"><b id="hud-life"></b><span id="hud-life-text">6/6</span></div>
+            </div>
+            <div class="slot" title="Arma (Espacio)"><img id="hud-weapon" src="/textures/sword.png" alt="" /><i id="hud-cooldown" class="cooldown"></i><span>ESPACIO</span></div>
+            <div class="slot slot-dash" title="Esquivar (Shift)"><span class="dash-icon" aria-hidden="true">»</span><i id="hud-dash" class="cooldown"></i><span>SHIFT</span></div>
+          </div>
+          <div class="hud-card">
+            <span class="counter" title="Puntos">⭐ <strong id="hud-score">0</strong></span>
+            <span class="counter" title="Monedas"><img src="/textures/coin.png" alt="" /> <strong id="hud-coins">0/0</strong></span>
+            <span class="counter" title="Enemigos"><img src="/textures/enemy-slime.png" alt="" /> <strong id="hud-enemies">0/0</strong></span>
+            <span class="counter" title="Tiempo">⏱ <strong id="hud-time">0:00</strong></span>
+            <span class="counter" title="Dificultad de la IA">IA <span class="ai-meter"><span id="hud-difficulty"></span></span></span>
+          </div>
         </div>
+        <div id="hud-help" class="hud-help" hidden><kbd>WASD</kbd> mover · <kbd>Espacio</kbd> atacar · <kbd>Shift</kbd> esquivar · toca los cofres · <kbd>Esc</kbd> salir</div>
       </main>
 
       <aside class="dock dock-right" data-tabs>
@@ -377,6 +456,22 @@
         <div class="dialog-actions">
           <button class="btn" value="edit">Volver al editor</button>
           <button class="btn btn-primary" value="again">Jugar otra vez</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="hero-dialog" class="dialog dialog-heroes">
+      <form method="dialog" class="form">
+        <div class="dialog-head">
+          <p class="eyebrow">Antes de la partida</p>
+          <h3>Elige tu héroe</h3>
+          <p class="hint">Cada héroe empieza con su arma. Durante la partida puedes cambiarla recogiendo otra del suelo o de un cofre.</p>
+        </div>
+        <div id="hero-list" class="heroes" role="radiogroup" aria-label="Héroes"></div>
+        <p class="hint">Todos: <kbd>WASD</kbd> o flechas para moverse, <kbd>Shift</kbd> para esquivar, <kbd>Espacio</kbd> para atacar.</p>
+        <div class="dialog-actions">
+          <button class="btn" value="cancel" formnovalidate>Cancelar</button>
+          <button id="hero-go" class="btn btn-forge" value="play">Jugar con este héroe ›</button>
         </div>
       </form>
     </dialog>
