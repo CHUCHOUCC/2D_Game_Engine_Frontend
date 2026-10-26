@@ -1,7 +1,11 @@
 import { Queue } from "../structures/Queue";
 
 /** Something that happened while playing. */
-export type GameEvent = { type: "coin" } | { type: "defeated" } | { type: "hit" };
+export type GameEvent =
+  | { type: "coin" }
+  | { type: "defeated"; points?: number }
+  | { type: "hit"; amount?: number }
+  | { type: "heal"; amount: number };
 
 export const COIN_POINTS = 1;
 export const DEFEAT_POINTS = 5;
@@ -14,7 +18,13 @@ export const PLAYER_MAX_HEALTH = 3;
 export class ScoreCounter {
   private pending = new Queue<GameEvent>();
   private points = 0;
-  private lives = PLAYER_MAX_HEALTH;
+  private lives: number;
+  readonly maxHealth: number;
+
+  constructor(maxHealth = PLAYER_MAX_HEALTH) {
+    this.maxHealth = maxHealth;
+    this.lives = maxHealth;
+  }
 
   /** Put an event in the queue. It does not change anything yet. */
   receive(event: GameEvent): void {
@@ -28,9 +38,12 @@ export class ScoreCounter {
       if (event.type === "coin") {
         this.points += COIN_POINTS;
       } else if (event.type === "defeated") {
-        this.points += DEFEAT_POINTS;
+        this.points += event.points ?? DEFEAT_POINTS;
+      } else if (event.type === "heal") {
+        // A dead player stays dead: a potion in the same frame does not revive.
+        if (this.lives > 0) this.lives = Math.min(this.maxHealth, this.lives + event.amount);
       } else {
-        this.lives = Math.max(0, this.lives - 1);
+        this.lives = Math.max(0, this.lives - (event.amount ?? 1));
       }
       event = this.pending.dequeue();
     }
@@ -53,6 +66,6 @@ export class ScoreCounter {
   reset(): void {
     this.pending.clear();
     this.points = 0;
-    this.lives = PLAYER_MAX_HEALTH;
+    this.lives = this.maxHealth;
   }
 }
