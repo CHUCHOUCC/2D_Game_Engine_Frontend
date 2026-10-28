@@ -1,5 +1,6 @@
 import { listTemplates, type TemplateDto } from "../api/client";
 import { byId, make } from "./dom";
+import { drawPreview } from "./mapPreview";
 
 const FALLBACK: TemplateDto[] = [{ code: "empty", name: "Vacío", description: "Una escena sin objetos", object_count: 0 }];
 
@@ -34,6 +35,16 @@ function templateOption(template: TemplateDto, checked: boolean): HTMLElement {
   radio.checked = checked;
   const text = make("span");
   text.append(make("strong", "", template.name), make("small", "", `${template.description} · ${template.object_count} objetos`));
-  label.append(radio, text);
+  label.append(radio);
+  if (template.scene !== undefined) {
+    // A small picture of the map, so the player sees what they are choosing.
+    const preview = make("canvas", "template-preview");
+    preview.width = 100;
+    preview.height = 60;
+    preview.setAttribute("aria-hidden", "true");
+    drawPreview(preview, template.scene);
+    label.append(preview);
+  }
+  label.append(text);
   return label;
 }

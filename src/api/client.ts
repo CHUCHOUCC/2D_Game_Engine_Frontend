@@ -28,6 +28,8 @@ export interface TemplateDto {
   name: string;
   description: string;
   object_count: number;
+  /** The scene itself, for the map preview (older backends do not send it). */
+  scene?: GameObject[];
 }
 
 export interface VersionDto {
