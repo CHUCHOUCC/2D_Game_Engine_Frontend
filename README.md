@@ -25,7 +25,7 @@ exists on the page until the user has logged in or registered.
 | **Home** | Navigation bar (*Inicio, Editor, Jugar, Proyectos, Ajustes*, it wraps instead of cutting options off), welcome with projects, games, best score and achievements, the four options and the recent projects. |
 | **Editor** | Laid out like a 2D engine. Top bar: PixelForge button back to the home, project, tools (Seleccionar `V`, Mano `H`, Pincel `B`, Borrar `E`), undo/redo, **Jugar** in the middle, save state, settings, user. Left dock: **Biblioteca** (search; *Personajes, Enemigos, Construcción, Obstáculos, Objetos*; drag onto the map), **Escena** and **Proyectos**. Right dock: **Inspector**, **IA** and **Progreso**. Docks slide in, tools and cards glow in the logo's blue. |
 | **Settings wheel** | Light, dark or system theme; grid on/off, snap and size; music and effects volume; security; shortcuts. Saved to the account. |
-| **Hero select** | Before every run: Caballero (sword), Mago (wand), Arquero (bow) or Bárbaro (axe), each with its health, speed and power. The last choice is remembered on the device. |
+| **Hero select** | Before every run, one of eight heroes: Caballero (sword), Mago (wand), Arquero (bow), Bárbaro (axe), Pícaro (daggers), Vikingo (hammer), Lancero (spear) or Druida (staff), each with its health, speed and power. The last choice is remembered on the device. |
 | **Play** | The map fills the window. HUD with the hero, a health bar, the weapon slot and the dash slot with their cooldowns, score, coins, enemies, time and the AI difficulty. A dialog at the end shows the result, what the AI learned and new achievements. |
 
 ### Validation of the access form
@@ -41,10 +41,14 @@ wrong login shows how many attempts are left before the 15-minute lockout (the b
 
 | Kind | Arcade Physics body | In the game |
 |---|---|---|
-| Héroe | dynamic, WASD/arrows | `Espacio` attacks with the weapon, `Shift` dashes (short invulnerability) |
-| Espada, Hacha | — | melee arc in front of the hero: the weapon sweeps with a glowing trail |
-| Varita | — | lightning ray that goes through every enemy in its line, stopped by walls |
-| Arco | arrows are dynamic bodies | arrows fly until they hit an enemy or a wall |
+| Héroe | dynamic, WASD/arrows | walking has inertia (agility per hero) and slows while aiming; `Espacio` attacks after a windup, `Shift` dashes (short invulnerability) |
+| Espada, Hacha | — | the weapon goes back, the hero steps forward and sweeps an arc in front |
+| Martillo | — | raised overhead, then slams the ground: a shockwave hits and pushes everything around |
+| Lanza | — | pulled back, then a long thrust with a jump forward |
+| Varita | — | an orb gathers at the tip, then flies, speeds up and explodes on contact (area damage) |
+| Báculo | — | a spark that bounces off walls up to three times and goes through one enemy |
+| Dagas | — | three spinning daggers thrown in a fan |
+| Arco | arrows are dynamic bodies | the hero draws the bow (hold `Espacio` to draw further); the arrow flies in an arc with a shadow, tilts as it rises and falls, and sticks in walls and the ground |
 | Slime, Murciélago, Araña, Fantasma, Ogro | dynamic | each has its own health bar, speed, damage, points and way of moving; bats and ghosts pass over walls |
 | Cofre | static | touching it opens it: a weapon or a potion jumps out |
 | Poción, armas | overlap | picked up: heals 2, or changes the weapon |
@@ -55,7 +59,7 @@ wrong login shows how many attempts are left before the 15-minute lockout (the b
 | Aldeana, Caballero, Mago | dynamic, not pushable | wander, stop to face the player and say a line |
 
 Hits flash the target, push it back and show the damage; enemies get faster as the AI difficulty grows.
-The rules live without Phaser in `src/game/combat.ts`, `RunTracker.ts` and `ScoreCounter.ts` and are
+Projectiles have a ground position and a height with gravity (`src/game/projectiles.ts`): the shadow carries the physics body and the sprite is drawn above it. The rules live without Phaser in `src/game/combat.ts`, `projectiles.ts`, `RunTracker.ts` and `ScoreCounter.ts` and are
 unit tested.
 
 ### Textures and brand
@@ -69,9 +73,11 @@ wordmark and the favicon, turning its black background into transparency.
 ### Ready-made maps
 
 "Nuevo proyecto" shows each map with a small picture of it (`src/ui/mapPreview.ts`). Besides the
-empty scene and the village, the backend offers three of Kenney's sample maps (CC0): a dungeon
-(Tiny Dungeon), a kingdom and a house (1-Bit Pack). Where they come from and how they were
-converted is in the backend repo, `maps/README.md`.
+empty scene and the village, the backend offers five of Kenney's sample maps (CC0): a dungeon
+(Tiny Dungeon), a kingdom, a house and a city with streets (1-Bit Pack), and a village with a lake,
+forest and camp (Roguelike/RPG pack). Streets and stone paths use the `path` kind: ground drawn
+under everything, with no body. Where the maps come from and how they were converted is in the
+backend repo, `maps/README.md`.
 
 ## Tokens
 
