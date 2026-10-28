@@ -1,8 +1,10 @@
-"""Draw the textures the Kenney packs do not have (the spike trap) as PNG files.
+"""Draw the textures the Kenney packs do not have as PNG files: the spike trap
+and the projectiles (arrow, flying dagger, magic orb, spark) with their shadow.
 
 Usage:  python tools/make_textures.py
-Writes public/textures/spike.png. Every other texture comes from
-tools/import_kenney.py. The sprite is drawn on a small pixel grid and scaled
+Writes public/textures/<name>.png. Every other texture comes from
+tools/import_kenney.py. The projectiles point to the right; the game rotates
+them along their flight. The sprite is drawn on a small pixel grid and scaled
 up 2x, so it stays crisp. No image library is needed.
 """
 import pathlib
@@ -72,8 +74,79 @@ def spike() -> list:
     return from_grid(SPIKE, {"s": "c9d1dc", "S": "7c8796", "b": "3b3f4a", "B": "565c6a"})
 
 
+# A thin arrow pointing right: red fletching, wooden shaft, steel head.
+ARROW = [
+    "rr..........k..",
+    ".rrsssssssssshk",
+    "rr..........k..",
+]
+
+# A throwing dagger pointing right: leather grip, brass guard, steel blade.
+DAGGER = [
+    "...g.......",
+    "bbbgsssssh.",
+    "bbbgSSSSShh",
+    "...g.......",
+]
+
+# A magic orb: white core, blue glow.
+ORB = [
+    "..bbbb..",
+    ".bBBBBb.",
+    "bBBwwBBb",
+    "bBwwwwBb",
+    "bBwwwwBb",
+    "bBBwwBBb",
+    ".bBBBBb.",
+    "..bbbb..",
+]
+
+# The druid's spark: a small green star.
+SPARK = [
+    "...g...",
+    "..gGg..",
+    ".gGwGg.",
+    "gGwwwGg",
+    ".gGwGg.",
+    "..gGg..",
+    "...g...",
+]
+
+# The shadow under anything that flies.
+SHADOW = [
+    ".ssssss.",
+    "ssssssss",
+    ".ssssss.",
+]
+
+
+def arrow() -> list:
+    return from_grid(ARROW, {"r": "d64545", "s": "a0693a", "h": "e8eef6", "k": "8a96a8"})
+
+
+def dagger() -> list:
+    return from_grid(DAGGER, {"b": "6b3f25", "g": "e0b84a", "s": "dfe7f1", "S": "9aa6b8", "h": "ffffff"})
+
+
+def orb() -> list:
+    return from_grid(ORB, {"b": "2d6cdf", "B": "5aa9ff", "w": "ffffff"})
+
+
+def spark() -> list:
+    return from_grid(SPARK, {"g": "1f9d6b", "G": "6ee7b7", "w": "ffffff"})
+
+
+def shadow() -> list:
+    return [[(0, 0, 0, 90) if ch == "s" else CLEAR for ch in row] for row in SHADOW]
+
+
 SPRITES = {
     "spike": spike,
+    "arrow": arrow,
+    "dagger-flying": dagger,
+    "orb": orb,
+    "spark": spark,
+    "shadow": shadow,
 }
 
 

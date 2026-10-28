@@ -3,9 +3,10 @@ import type { RunResultDto } from "../api/client";
 import { isCharacter, isEnemy, isWeapon, WORLD_HEIGHT, WORLD_WIDTH, type GameObject, type Kind } from "../model/GameObject";
 import type { SceneModel } from "../model/SceneModel";
 import {
-  distanceToSegment, enemyStats, healthColor, heroById, inSwing, POTION_HEAL, rollLoot, speedFor, WEAPONS,
-  type EnemyStats, type Hero, type Weapon, type WeaponId,
+  aimAngle, chargePower, enemyStats, healthColor, heroById, inSwing, POTION_HEAL, rollLoot, speedFor, WEAPONS,
+  type EnemyStats, type Hero, type ProjectileSpec, type Weapon, type WeaponId,
 } from "./combat";
+import { approach, fanAngles, launch, screenAngle, step, type Flight } from "./projectiles";
 import { RunTracker } from "./RunTracker";
 import { bob, KIND_TEXTURE, loadTextures } from "./textures";
 
@@ -14,8 +15,39 @@ export const DASH_SPEED = 520;
 export const DASH_MS = 160;
 export const DASH_COOLDOWN_MS = 900;
 const DEFAULT_SPAWN = { x: 64, y: WORLD_HEIGHT / 2 };
-const ARROW_SPEED = 560;
-const SWING_MS = 160;
+const SWING_MS = 170;
+/** Longest a drawn bow can be held before the arrow goes by itself. */
+const MAX_HOLD_MS = 1600;
+/** Projectiles only hit what is on the ground if they fly lower than this. */
+const HIT_HEIGHT = 34;
+/** Walking speed while drawing a bow or casting, as a share of the normal speed. */
+const AIMING_SPEED = 0.45;
+
+/** An attack being prepared: the bow being drawn, the axe going up. */
+interface Windup {
+  weapon: Weapon;
+  startedAt: number;
+  /** When the hit or the shot happens (for a charged bow: when the key is released). */
+  readyAt: number;
+  released: boolean;
+  aim: number;
+}
+
+/** Something flying: the shadow carries the physics body, the sprite is drawn above it. */
+interface Shot {
+  sprite: Phaser.GameObjects.Image;
+  shadow: Sprite;
+  flight: Flight;
+  spec: ProjectileSpec;
+  damage: number;
+  knockback: number;
+  range: number;
+  travelled: number;
+  pierceLeft: number;
+  bouncesLeft: number;
+  hit: Set<Sprite>;
+  trailAt: number;
+}
 
 /** What the HUD shows; sent to the page a few times per second. */
 export interface HudState {
@@ -61,8 +93,10 @@ const ITEM_NAMES: Partial<Record<Kind, string>> = { sword: "una espada", axe: "u
  * Walls, houses, trees, bushes and fences are static bodies; boxes and barrels
  * are dynamic and can be pushed; enemies chase the player (bats and ghosts
  * pass over walls); chests drop loot, and weapons and potions are picked up.
- * The hero fights with its weapon: a melee swing, the wand's lightning ray or
- * arrows. RunTracker turns every contact into score and health.
+ * The hero fights with its weapon. Every attack has a windup (the bow is drawn,
+ * the hammer goes up) and then a melee hit or a projectile; projectiles fly
+ * with the physics of projectiles.ts (arcs, spin, bounces, explosions).
+ * RunTracker turns every contact into score and health.
  */
 export class PlayScene extends Phaser.Scene {
   private readonly model: SceneModel;
@@ -83,6 +117,13 @@ export class PlayScene extends Phaser.Scene {
   private enemies!: Phaser.Physics.Arcade.Group;
   private characters!: Phaser.Physics.Arcade.Group;
   private arrows!: Phaser.Physics.Arcade.Group;
+  private shots: Shot[] = [];
+  private windup: Windup | null = null;
+  private bowString!: Phaser.GameObjects.Graphics;
+  private chargeGlow!: Phaser.GameObjects.Image;
+  private lungeUntil = 0;
+  private lungeAngle = 0;
+  private lungeSpeed = 0;
   private keys!: Record<"up" | "down" | "left" | "right" | "w" | "a" | "s" | "d" | "space" | "shift" | "esc", Phaser.Input.Keyboard.Key>;
   private facing = 0;
   private invulnerableUntil = 0;
@@ -112,6 +153,9 @@ export class PlayScene extends Phaser.Scene {
     this.dashUntil = 0;
     this.nextDashAt = 0;
     this.swingUntil = 0;
+    this.windup = null;
+    this.shots = [];
+    this.lungeUntil = 0;
   }
 
   preload(): void {
@@ -219,8 +263,10 @@ export class PlayScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(spawn.x, spawn.y, this.hero.texture);
     this.player.setCollideWorldBounds(true).setDepth(spawn.y / WORLD_HEIGHT);
     (this.player.body as Body).setSize(18, 20).setOffset(7, 11);
-    this.held = this.add.image(spawn.x, spawn.y, KIND_TEXTURE[this.weapon.id].key).setOrigin(0.5, 0.85).setScale(0.7);
+    this.held = this.add.image(spawn.x, spawn.y, this.weapon.id).setOrigin(0.5, 0.85).setScale(0.7);
     this.playerBar = this.add.graphics().setDepth(36);
+    this.bowString = this.add.graphics();
+    this.chargeGlow = this.add.image(spawn.x, spawn.y, "orb").setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
   }
 
   private addColliders(): void {
@@ -242,16 +288,17 @@ export class PlayScene extends Phaser.Scene {
     physics.collider(this.characters, this.characters);
     physics.collider(this.characters, this.enemies, undefined, (_c, enemy) => blocksEnemy(enemy));
     physics.collider(this.player, this.characters);
-    physics.collider(this.arrows, this.solids, (arrow) => (arrow as Sprite).destroy());
-    physics.collider(this.arrows, this.boxes, (arrow) => (arrow as Sprite).destroy());
-    physics.overlap(this.arrows, this.enemies, (arrow, enemy) => {
-      const a = arrow as Sprite;
-      const e = enemy as Sprite;
-      if (!a.active || !e.body?.enable) return;
-      this.damageEnemy(e, this.weapon.damage, a.rotation);
-      a.destroy();
-      if (this.tracker.isOver()) this.end(this.tracker.outcome()!);
+    // Projectiles: the shadow on the ground carries the body. Sparks bounce off
+    // walls (Arcade does the bounce); everything else sticks or explodes.
+    physics.collider(this.arrows, this.solids, (shadow) => this.shotHitWall(shadow as Sprite));
+    physics.collider(this.arrows, this.chests, (shadow) => this.shotHitWall(shadow as Sprite));
+    physics.collider(this.arrows, this.boxes, (shadow, box) => {
+      const b = box as Sprite;
+      const shot = this.shotOf(shadow as Sprite);
+      if (shot) b.setVelocity(shot.flight.vx * 0.25, shot.flight.vy * 0.25);
+      this.shotHitWall(shadow as Sprite);
     });
+    physics.overlap(this.arrows, this.enemies, (shadow, enemy) => this.shotHitEnemy(shadow as Sprite, enemy as Sprite));
     physics.overlap(this.player, this.coins, (_player, coin) => this.collect(coin as Sprite));
     physics.overlap(this.player, this.items, (_player, item) => this.pickUp(item as Sprite));
     physics.overlap(this.player, this.spikes, (_player, spike) => this.hurt("spike", spike as Sprite, 1));
@@ -296,8 +343,9 @@ export class PlayScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off(Phaser.Scale.Events.RESIZE, onResize));
   }
 
-  update(time: number): void {
+  update(time: number, delta: number): void {
     if (this.finished) return;
+    const dt = Math.min(delta, 50) / 1000;
     if (Phaser.Input.Keyboard.JustDown(this.keys.esc)) {
       this.end("quit");
       return;
@@ -308,21 +356,40 @@ export class PlayScene extends Phaser.Scene {
     const length = Math.hypot(x, y) || 1;
     if (x !== 0 || y !== 0) this.facing = Math.atan2(y, x);
     if (Phaser.Input.Keyboard.JustDown(k.shift)) this.dash(time);
+    const body = this.player.body as Body;
     if (time < this.dashUntil) {
       this.player.setVelocity(Math.cos(this.facing) * DASH_SPEED, Math.sin(this.facing) * DASH_SPEED);
       if (Math.floor(time / 30) % 2 === 0) this.afterimage();
+    } else if (time < this.lungeUntil) {
+      // The step forward of a melee hit (long for the lancer's thrust).
+      this.player.setVelocity(Math.cos(this.lungeAngle) * this.lungeSpeed, Math.sin(this.lungeAngle) * this.lungeSpeed);
     } else if (time >= this.stunnedUntil) {
+      // Walking has some weight: the hero speeds up and slows down over a few frames.
       // While knocked back the player cannot steer, so the push is visible.
-      this.player.setVelocity((x / length) * this.hero.speed, (y / length) * this.hero.speed);
+      const slow = this.windup && !this.windup.released ? AIMING_SPEED : 1;
+      const speed = this.hero.speed * slow;
+      body.setVelocity(
+        approach(body.velocity.x, (x / length) * speed, this.hero.agility, dt),
+        approach(body.velocity.y, (y / length) * speed, this.hero.agility, dt),
+      );
     }
-    if (x !== 0) this.player.setFlipX(x < 0);
+    if (this.windup) this.player.setFlipX(Math.cos(this.windup.aim) < 0);
+    else if (x !== 0) this.player.setFlipX(x < 0);
     // Walking: a small hop on every step; standing: a slow breath.
     const moving = x !== 0 || y !== 0;
-    this.player.setScale(1, moving ? 1 - 0.06 * Math.abs(Math.sin(time / 70)) : 1 - 0.03 * Math.sin(time / 300));
+    if (this.windup && !this.windup.released) {
+      // Getting ready: the hero leans back and tenses up.
+      const t = Phaser.Math.Clamp((time - this.windup.startedAt) / Math.max(1, this.windup.weapon.windupMs), 0, 1);
+      this.player.setScale(1 + 0.08 * t, 1 - 0.07 * t);
+    } else {
+      this.player.setScale(1, moving ? 1 - 0.06 * Math.abs(Math.sin(time / 70)) : 1 - 0.03 * Math.sin(time / 300));
+    }
     this.player.setDepth(this.player.y / WORLD_HEIGHT);
     this.player.setAlpha(time < this.invulnerableUntil ? 0.45 + 0.4 * Math.sin(time / 40) : 1);
-    if (Phaser.Input.Keyboard.JustDown(k.space)) this.attack(time);
+    if (Phaser.Input.Keyboard.JustDown(k.space)) this.startAttack(time);
+    this.updateWindup(time, k.space.isDown);
     this.placeWeapon(time);
+    this.updateShots(time, dt);
     this.drawBar(this.playerBar, this.player, this.tracker.health(), this.tracker.maxHealth(), 30);
     this.moveEnemies(time);
     this.moveCharacters(time);
@@ -342,10 +409,17 @@ export class PlayScene extends Phaser.Scene {
     this.tweens.add({ targets: ghost, alpha: 0, duration: 220, onComplete: () => ghost.destroy() });
   }
 
-  /** The weapon sits in the hero's hand; during a melee swing it sweeps the arc. */
+  /** The weapon sits in the hero's hand; it moves with every stage of an attack. */
   private placeWeapon(time: number): void {
     const side = this.player.flipX ? -1 : 1;
-    this.held.setDepth(this.player.depth + 0.0001);
+    this.held.setDepth(this.player.depth + 0.0001).setVisible(true);
+    this.bowString.clear();
+    this.chargeGlow.setVisible(false);
+    const windup = this.windup;
+    if (windup && !windup.released) {
+      this.poseWindup(windup, time);
+      return;
+    }
     if (time < this.swingUntil) {
       const t = 1 - (this.swingUntil - time) / SWING_MS;
       const half = Phaser.Math.DegToRad(this.weapon.spread / 2);
@@ -356,6 +430,86 @@ export class PlayScene extends Phaser.Scene {
       this.held.setScale(0.7).setFlipX(side < 0).setRotation(0.35 * side);
       this.held.setPosition(this.player.x + 9 * side, this.player.y + 6);
     }
+  }
+
+  /** How the hero holds the weapon while getting ready to hit or shoot. */
+  private poseWindup(windup: Windup, time: number): void {
+    const weapon = windup.weapon;
+    const aim = windup.aim;
+    const ax = Math.cos(aim);
+    const ay = Math.sin(aim);
+    const t = Phaser.Math.Clamp((time - windup.startedAt) / Math.max(1, weapon.windupMs), 0, 1);
+    const { x, y } = this.player;
+    this.held.setFlipX(false);
+    if (weapon.id === "bow") {
+      // The bow points at the target; the string comes back as it is drawn.
+      const power = chargePower(weapon, time - windup.startedAt);
+      this.drawBow(x + ax * 10, y + ay * 10 + 2, aim, Math.max(t, (power - 0.55) / 0.45) * 0.999);
+      this.held.setVisible(false);
+    } else if (weapon.style === "projectile" && weapon.id !== "dagger") {
+      // Wand and staff: raised above the head while the magic gathers at the tip.
+      this.held.setScale(0.85).setRotation(aim + Math.PI / 2 - 0.25 * (1 - t));
+      this.held.setPosition(x + ax * 6, y - 6 - 6 * t);
+      const tipX = x + ax * 14;
+      const tipY = y - 18 - 6 * t;
+      const tint = weapon.projectile!.color;
+      this.chargeGlow.setVisible(true).setPosition(tipX, tipY).setScale(0.3 + 0.9 * t).setTint(tint).setAlpha(0.6 + 0.4 * Math.sin(time / 40));
+      this.chargeGlow.setDepth(this.player.depth + 0.0002);
+      if (Math.random() < 0.5) this.gatherSpark(tipX, tipY, tint);
+    } else if (weapon.id === "dagger") {
+      // The arm goes back before the throw.
+      this.held.setScale(0.8).setRotation(aim + Math.PI / 2 + 1.6 * t);
+      this.held.setPosition(x - ax * 8 * t, y - ay * 8 * t - 4);
+    } else if (weapon.id === "hammer") {
+      // Raised high overhead.
+      this.held.setScale(0.8 + 0.25 * t).setRotation(-0.4 * Math.sign(ax || 1) - 0.6 * t * Math.sign(ax || 1));
+      this.held.setPosition(x + ax * 4, y - 6 - 14 * t);
+    } else if (weapon.id === "spear") {
+      // Pulled back along the line of the thrust.
+      this.held.setScale(0.9).setRotation(aim + Math.PI / 2);
+      this.held.setPosition(x - ax * 10 * t, y - ay * 10 * t);
+    } else {
+      // Sword and axe: brought back behind the shoulder.
+      const half = Phaser.Math.DegToRad(weapon.spread / 2);
+      this.held.setScale(0.9).setRotation(aim + Math.PI / 2 - half - 0.7 * t);
+      this.held.setPosition(x - ax * 4 * t, y - ay * 4 * t);
+    }
+  }
+
+  /** A bow drawn with lines: the limbs, the string pulled back by `pull` (0..1), and the arrow on it. */
+  private drawBow(cx: number, cy: number, aim: number, pull: number): void {
+    const g = this.bowString.setDepth(this.player.depth + 0.0003);
+    const nx = -Math.sin(aim);
+    const ny = Math.cos(aim);
+    const ax = Math.cos(aim);
+    const ay = Math.sin(aim);
+    const half = 12;
+    const bend = 5 + 3 * pull;
+    const topX = cx + nx * half - ax * 2;
+    const topY = cy + ny * half - ay * 2;
+    const botX = cx - nx * half - ax * 2;
+    const botY = cy - ny * half - ay * 2;
+    const gripX = cx + ax * bend;
+    const gripY = cy + ay * bend;
+    const nockX = cx - ax * (2 + 12 * pull);
+    const nockY = cy - ay * (2 + 12 * pull);
+    g.lineStyle(3, 0x6b3f25, 1).beginPath().moveTo(topX, topY).lineTo(gripX, gripY).lineTo(botX, botY).strokePath();
+    g.lineStyle(1, 0xf2f2f2, 0.95).beginPath().moveTo(topX, topY).lineTo(nockX, nockY).lineTo(botX, botY).strokePath();
+    // The arrow rests on the string and the bow.
+    g.lineStyle(2, 0xa0693a, 1).beginPath().moveTo(nockX, nockY).lineTo(gripX + ax * 6, gripY + ay * 6).strokePath();
+    g.fillStyle(0xe8eef6, 1).fillTriangle(
+      gripX + ax * 10, gripY + ay * 10,
+      gripX + ax * 5 + nx * 3, gripY + ay * 5 + ny * 3,
+      gripX + ax * 5 - nx * 3, gripY + ay * 5 - ny * 3,
+    );
+    if (pull >= 0.99) g.lineStyle(1, 0xffc547, 0.8).strokeCircle(cx, cy, 15); // fully drawn
+  }
+
+  /** A dot of light flying into the tip of a staff while a spell gathers. */
+  private gatherSpark(x: number, y: number, color: number): void {
+    const angle = Math.random() * Math.PI * 2;
+    const dot = this.add.rectangle(x + Math.cos(angle) * 18, y + Math.sin(angle) * 18, 2, 2, color).setDepth(45).setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({ targets: dot, x, y, alpha: 0.2, duration: 180, ease: "Quad.easeIn", onComplete: () => dot.destroy() });
   }
 
   private moveEnemies(time: number): void {
@@ -505,7 +659,7 @@ export class PlayScene extends Phaser.Scene {
       this.sparkle(item.x, item.y, 0x33e0a1);
     } else if (isWeapon(kind)) {
       this.weapon = WEAPONS[kind as WeaponId];
-      this.held.setTexture(KIND_TEXTURE[kind].key);
+      this.held.setTexture(this.weapon.id);
       this.tracker.pickUp(kind);
       this.sparkle(item.x, item.y, 0x2d8cff);
       this.floatText(this.player.x, this.player.y - 20, this.weapon.name, "#7cc4ff");
@@ -529,92 +683,286 @@ export class PlayScene extends Phaser.Scene {
     if (this.tracker.takeDamage(source, this.player.x, this.player.y, amount)) this.end("lost");
   }
 
-  private attack(now: number): void {
-    if (now < this.nextAttackAt) return;
-    this.nextAttackAt = now + this.weapon.cooldownMs;
-    if (this.weapon.style === "melee") this.swing();
-    else if (this.weapon.style === "ray") this.lightning();
-    else this.shoot();
+  /** Space pressed: start getting ready. The hit or the shot comes after the windup. */
+  private startAttack(now: number): void {
+    if (now < this.nextAttackAt || this.windup) return;
+    const weapon = this.weapon;
+    const reach = weapon.style === "melee" ? weapon.range + 40 : weapon.range;
+    this.windup = {
+      weapon,
+      startedAt: now,
+      readyAt: now + weapon.windupMs,
+      released: false,
+      aim: this.aimAt(reach),
+    };
+  }
+
+  /** Soft aim: the nearest enemy close to where the hero faces, or straight ahead. */
+  private aimAt(reach: number): number {
+    const targets: { x: number; y: number }[] = [];
+    for (const child of this.enemies.getChildren()) {
+      const enemy = child as Sprite;
+      if (enemy.body?.enable) targets.push(enemy);
+    }
+    return aimAngle(this.facing, this.player.x, this.player.y, targets, reach);
+  }
+
+  /** Follow the attack being prepared and release it at the right moment. */
+  private updateWindup(now: number, keyDown: boolean): void {
+    const windup = this.windup;
+    if (!windup || windup.released) return;
+    const weapon = windup.weapon;
+    if (weapon.style === "projectile") windup.aim = this.aimAt(weapon.range);
+    if (now < windup.readyAt) return;
+    // A bow can be held to draw it further; everything else goes as soon as it is ready.
+    const charging = weapon.chargeMs > 0 && keyDown && now - windup.startedAt < MAX_HOLD_MS;
+    if (charging) return;
+    windup.released = true;
+    this.nextAttackAt = now + weapon.cooldownMs;
+    if (weapon.style === "melee") this.strike(weapon, windup.aim);
+    else this.fire(weapon, windup.aim, chargePower(weapon, now - windup.startedAt));
+    this.time.delayedCall(140, () => {
+      if (this.windup === windup) this.windup = null;
+    });
     if (this.tracker.isOver()) this.end(this.tracker.outcome()!);
   }
 
-  /** Sword or axe: the weapon sweeps an arc and hits everything inside it. */
-  private swing(): void {
+  /** A melee hit: a step forward, the swing (or thrust, or slam) and everything it reaches. */
+  private strike(weapon: Weapon, aim: number): void {
+    this.facing = aim;
+    if (weapon.lunge > 0) {
+      this.lungeAngle = aim;
+      this.lungeSpeed = weapon.lunge;
+      this.lungeUntil = this.time.now + 110;
+    }
     this.swingUntil = this.time.now + SWING_MS;
     const { x, y } = this.player;
-    const half = Phaser.Math.DegToRad(this.weapon.spread / 2);
-    const radius = this.weapon.range - 6;
-    const arc = this.add.graphics().setDepth(39).setBlendMode(Phaser.BlendModes.ADD);
-    arc.lineStyle(10, 0x2d8cff, 0.3).beginPath().arc(x, y, radius, this.facing - half, this.facing + half).strokePath();
-    arc.lineStyle(3, 0xd6ecff, 0.95).beginPath().arc(x, y, radius, this.facing - half, this.facing + half).strokePath();
-    this.tweens.add({ targets: arc, alpha: 0, duration: 200, onComplete: () => arc.destroy() });
+    if (weapon.shockwave > 0) this.slam(weapon);
+    if (weapon.id === "spear") this.thrustTrail(aim, weapon.range);
+    else {
+      const half = Phaser.Math.DegToRad(weapon.spread / 2);
+      const radius = weapon.range - 6;
+      const arc = this.add.graphics().setDepth(39).setBlendMode(Phaser.BlendModes.ADD);
+      arc.lineStyle(10, 0x2d8cff, 0.3).beginPath().arc(x, y, radius, aim - half, aim + half).strokePath();
+      arc.lineStyle(3, 0xd6ecff, 0.95).beginPath().arc(x, y, radius, aim - half, aim + half).strokePath();
+      this.tweens.add({ targets: arc, alpha: 0, duration: 200, onComplete: () => arc.destroy() });
+    }
+    // The hit lands as the step forward ends, from where the hero then stands.
+    this.time.delayedCall(weapon.lunge > 0 ? 70 : 0, () => {
+      if (this.finished) return;
+      for (const child of [...this.enemies.getChildren()]) {
+        const enemy = child as Sprite;
+        if (!enemy.body?.enable) continue;
+        if (inSwing(enemy.x - this.player.x, enemy.y - this.player.y, aim, weapon)) this.damageEnemy(enemy, weapon.damage, aim, weapon.knockback);
+      }
+      if (this.tracker.isOver()) this.end(this.tracker.outcome()!);
+    });
+  }
+
+  /** The spear's thrust: a bright streak along the line it reaches. */
+  private thrustTrail(aim: number, range: number): void {
+    const { x, y } = this.player;
+    const line = this.add.graphics().setDepth(39).setBlendMode(Phaser.BlendModes.ADD);
+    const ex = x + Math.cos(aim) * range;
+    const ey = y + Math.sin(aim) * range;
+    line.lineStyle(8, 0x2d8cff, 0.3).lineBetween(x, y, ex, ey);
+    line.lineStyle(2, 0xffffff, 0.9).lineBetween(x, y, ex, ey);
+    this.tweens.add({ targets: line, alpha: 0, duration: 180, onComplete: () => line.destroy() });
+  }
+
+  /** The hammer hits the ground: a shockwave pushes back everything around the hero. */
+  private slam(weapon: Weapon): void {
+    const { x, y } = this.player;
+    this.cameras.main.shake(180, 0.01);
+    const ring = this.add.circle(x, y + 8, 10).setStrokeStyle(4, 0xffc547, 0.9).setDepth(38);
+    this.tweens.add({ targets: ring, radius: weapon.shockwave, alpha: 0, duration: 320, ease: "Cubic.easeOut", onComplete: () => ring.destroy() });
+    for (let i = 0; i < 10; i++) {
+      const angle = (i / 10) * Math.PI * 2;
+      const dust = this.add.rectangle(x, y + 10, 4, 4, 0xb08a5a).setDepth(37);
+      this.tweens.add({ targets: dust, x: x + Math.cos(angle) * 40, y: y + 10 + Math.sin(angle) * 20, alpha: 0, duration: 380, onComplete: () => dust.destroy() });
+    }
     for (const child of [...this.enemies.getChildren()]) {
       const enemy = child as Sprite;
       if (!enemy.body?.enable) continue;
-      if (inSwing(enemy.x - x, enemy.y - y, this.facing, this.weapon)) this.damageEnemy(enemy, this.weapon.damage, this.facing);
+      const distance = Phaser.Math.Distance.Between(x, y, enemy.x, enemy.y);
+      if (distance <= weapon.shockwave) this.damageEnemy(enemy, weapon.damage, Phaser.Math.Angle.Between(x, y, enemy.x, enemy.y), weapon.knockback);
     }
   }
 
-  /** The wand: a lightning ray that goes through every enemy in its line, up to the first wall. */
-  private lightning(): void {
-    const ax = this.player.x + Math.cos(this.facing) * 14;
-    const ay = this.player.y + Math.sin(this.facing) * 14;
-    let bx = this.player.x + Math.cos(this.facing) * this.weapon.range;
-    let by = this.player.y + Math.sin(this.facing) * this.weapon.range;
-    const line = new Phaser.Geom.Line(ax, ay, bx, by);
-    for (const child of this.solids.getChildren()) {
-      const rect = (child as Sprite).getBounds();
-      for (const point of Phaser.Geom.Intersects.GetLineToRectangle(line, rect)) {
-        if (Phaser.Math.Distance.Between(ax, ay, point.x, point.y) < Phaser.Math.Distance.Between(ax, ay, bx, by)) {
-          bx = point.x;
-          by = point.y;
-        }
+  /** Bow, wand, daggers, staff: launch what the weapon throws, with a little recoil. */
+  private fire(weapon: Weapon, aim: number, power: number): void {
+    const spec = weapon.projectile!;
+    this.facing = aim;
+    const startX = this.player.x + Math.cos(aim) * 12;
+    const startY = this.player.y + Math.sin(aim) * 12;
+    for (const angle of fanAngles(aim, spec.count, spec.fanDeg)) this.spawnShot(weapon, spec, startX, startY, angle, power);
+    // Letting go pushes the hero back a little and makes the weapon kick.
+    const body = this.player.body as Body;
+    body.velocity.x -= Math.cos(aim) * 70 * power;
+    body.velocity.y -= Math.sin(aim) * 70 * power;
+    this.tweens.add({ targets: this.player, scaleX: 0.92, scaleY: 1.06, duration: 70, yoyo: true });
+    if (weapon.id === "bow") this.twang(aim);
+    if (spec.splash > 0) this.cameras.main.flash(60, 45, 140, 255, false);
+  }
+
+  /** The string of the bow snaps forward and shakes for a moment after the shot. */
+  private twang(aim: number): void {
+    const g = this.add.graphics().setDepth(this.player.depth + 0.0003);
+    const cx = this.player.x + Math.cos(aim) * 10;
+    const cy = this.player.y + Math.sin(aim) * 10 + 2;
+    const nx = -Math.sin(aim);
+    const ny = Math.cos(aim);
+    let frame = 0;
+    const timer = this.time.addEvent({
+      delay: 25, repeat: 5,
+      callback: () => {
+        g.clear();
+        const wobble = (frame % 2 === 0 ? 1 : -1) * (4 - frame * 0.7);
+        g.lineStyle(3, 0x6b3f25, 1).beginPath().moveTo(cx + nx * 12, cy + ny * 12).lineTo(cx + Math.cos(aim) * 6, cy + Math.sin(aim) * 6).lineTo(cx - nx * 12, cy - ny * 12).strokePath();
+        g.lineStyle(1, 0xf2f2f2, 0.95).beginPath().moveTo(cx + nx * 12, cy + ny * 12).lineTo(cx + Math.cos(aim) * wobble, cy + Math.sin(aim) * wobble).lineTo(cx - nx * 12, cy - ny * 12).strokePath();
+        frame++;
+        if (frame > 5) g.destroy();
+      },
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => timer.remove());
+  }
+
+  private spawnShot(weapon: Weapon, spec: ProjectileSpec, x: number, y: number, angle: number, power: number): void {
+    const flight = launch(spec, x, y, angle, weapon.range, power);
+    const shadow = this.arrows.create(x, y, "shadow") as Sprite;
+    const body = shadow.body as Body;
+    body.setSize(10, 6).setAllowGravity(false);
+    shadow.setDepth(-1).setAlpha(0.8);
+    shadow.setVelocity(flight.vx, flight.vy);
+    shadow.setBounce(spec.bounces > 0 ? 1 : 0);
+    shadow.setCollideWorldBounds(spec.bounces > 0);
+    const sprite = this.add.image(x, y - flight.z, spec.texture).setRotation(screenAngle(flight));
+    if (spec.texture === "orb" || spec.texture === "spark") sprite.setBlendMode(Phaser.BlendModes.ADD);
+    const shot: Shot = {
+      sprite, shadow, flight, spec,
+      damage: weapon.damage, knockback: weapon.knockback, range: weapon.range * power,
+      travelled: 0, pierceLeft: spec.pierce, bouncesLeft: spec.bounces, hit: new Set(), trailAt: 0,
+    };
+    shadow.setData("shot", shot);
+    this.shots.push(shot);
+  }
+
+  private shotOf(shadow: Sprite): Shot | undefined {
+    return shadow.getData("shot") as Shot | undefined;
+  }
+
+  /** Move every projectile: physics on the ground, height and tilt above it, trails, landing. */
+  private updateShots(time: number, dt: number): void {
+    for (const shot of [...this.shots]) {
+      const { shadow, sprite, flight, spec } = shot;
+      if (!shadow.active) continue;
+      const body = shadow.body as Body;
+      // The ground motion comes from Arcade (so walls can bounce it); height and speed-up from the flight.
+      flight.x = shadow.x;
+      flight.y = shadow.y;
+      flight.vx = body.velocity.x;
+      flight.vy = body.velocity.y;
+      const landed = step(flight, dt);
+      body.setVelocity(flight.vx, flight.vy);
+      shot.travelled += Math.hypot(flight.vx, flight.vy) * dt;
+      sprite.setPosition(shadow.x, shadow.y - flight.z).setRotation(screenAngle(flight));
+      sprite.setDepth(shadow.y / WORLD_HEIGHT + 0.01);
+      shadow.setScale(1 - Math.min(0.5, flight.z / 80));
+      if (time >= shot.trailAt && (spec.texture === "orb" || spec.texture === "spark")) {
+        shot.trailAt = time + 30;
+        const dot = this.add.image(sprite.x, sprite.y, spec.texture).setScale(0.5).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD).setDepth(sprite.depth - 0.001);
+        this.tweens.add({ targets: dot, alpha: 0, scale: 0.1, duration: 220, onComplete: () => dot.destroy() });
+      }
+      if (landed) this.landShot(shot);
+      else if (spec.gravity <= 0 && shot.travelled >= shot.range) this.endShot(shot, true);
+    }
+  }
+
+  /** Touching the ground: arrows and daggers stick in it and fade; magic bursts. */
+  private landShot(shot: Shot): void {
+    if (shot.spec.splash > 0) return this.endShot(shot, true);
+    this.stick(shot, shot.flight.vx, shot.flight.vy, 0.35);
+  }
+
+  private shotHitWall(shadow: Sprite): void {
+    const shot = this.shotOf(shadow);
+    if (!shot || !shadow.active) return;
+    if (shot.bouncesLeft > 0) {
+      // Arcade already bounced it; it loses a little each time.
+      shot.bouncesLeft--;
+      shot.travelled = Math.max(0, shot.travelled - 120);
+      this.sparkle(shadow.x, shadow.y - shot.flight.z, shot.spec.color, 4);
+      return;
+    }
+    if (shot.spec.splash > 0 || shot.spec.texture === "spark") return this.endShot(shot, true);
+    this.stick(shot, shot.flight.vx, shot.flight.vy, 0);
+  }
+
+  /** The projectile stays where it hit, quivers, then fades away. */
+  private stick(shot: Shot, vx: number, vy: number, dip: number): void {
+    const { shadow, sprite } = shot;
+    shadow.disableBody(true, true);
+    this.removeShot(shot);
+    sprite.setRotation(Math.atan2(vy, vx) + dip * Math.sign(vx || 1));
+    this.tweens.add({ targets: sprite, angle: sprite.angle + 6, duration: 40, yoyo: true, repeat: 3 });
+    this.tweens.add({ targets: sprite, alpha: 0, delay: 900, duration: 400, onComplete: () => sprite.destroy() });
+  }
+
+  private shotHitEnemy(shadow: Sprite, enemy: Sprite): void {
+    const shot = this.shotOf(shadow);
+    if (!shot || !shadow.active || !enemy.body?.enable || shot.hit.has(enemy)) return;
+    if (shot.flight.z > HIT_HEIGHT) return; // flew over it
+    shot.hit.add(enemy);
+    const angle = Math.atan2(shot.flight.vy, shot.flight.vx);
+    if (shot.spec.splash > 0) {
+      this.endShot(shot, true);
+    } else {
+      this.damageEnemy(enemy, shot.damage, angle, shot.knockback);
+      if (shot.pierceLeft > 0) shot.pierceLeft--;
+      else {
+        shadow.disableBody(true, true);
+        this.removeShot(shot);
+        this.tweens.add({ targets: shot.sprite, alpha: 0, duration: 80, onComplete: () => shot.sprite.destroy() });
       }
     }
-    this.drawBolt(ax, ay, bx, by);
-    this.cameras.main.flash(60, 45, 140, 255, false);
+    if (this.tracker.isOver()) this.end(this.tracker.outcome()!);
+  }
+
+  /** End a projectile; magic ones burst and hurt everything around. */
+  private endShot(shot: Shot, burst: boolean): void {
+    const { shadow, sprite, spec } = shot;
+    const x = shadow.x;
+    const y = shadow.y;
+    shadow.disableBody(true, true);
+    this.removeShot(shot);
+    sprite.destroy();
+    if (!burst) return;
+    this.sparkle(x, y - shot.flight.z, spec.color, 10);
+    if (spec.splash <= 0) return;
+    const ring = this.add.circle(x, y, 6, spec.color, 0.35).setStrokeStyle(2, 0xffffff, 0.9).setBlendMode(Phaser.BlendModes.ADD).setDepth(40);
+    this.tweens.add({ targets: ring, radius: spec.splash, alpha: 0, duration: 260, ease: "Cubic.easeOut", onComplete: () => ring.destroy() });
     for (const child of [...this.enemies.getChildren()]) {
       const enemy = child as Sprite;
       if (!enemy.body?.enable) continue;
-      if (distanceToSegment(enemy.x, enemy.y, ax, ay, bx, by) <= this.weapon.spread) this.damageEnemy(enemy, this.weapon.damage, this.facing);
+      if (Phaser.Math.Distance.Between(x, y, enemy.x, enemy.y) <= spec.splash) {
+        this.damageEnemy(enemy, shot.damage, Phaser.Math.Angle.Between(x, y, enemy.x, enemy.y), shot.knockback);
+      }
     }
+    if (this.tracker.isOver()) this.end(this.tracker.outcome()!);
   }
 
-  /** A jagged bolt in three glowing strokes, like the lightning of the PixelForge logo. */
-  private drawBolt(ax: number, ay: number, bx: number, by: number): void {
-    const steps = 9;
-    const length = Math.hypot(bx - ax, by - ay) || 1;
-    const nx = -(by - ay) / length;
-    const ny = (bx - ax) / length;
-    const points = [new Phaser.Math.Vector2(ax, ay)];
-    for (let i = 1; i < steps; i++) {
-      const t = i / steps;
-      const off = Phaser.Math.Between(-10, 10);
-      points.push(new Phaser.Math.Vector2(ax + (bx - ax) * t + nx * off, ay + (by - ay) * t + ny * off));
-    }
-    points.push(new Phaser.Math.Vector2(bx, by));
-    const bolt = this.add.graphics().setDepth(41).setBlendMode(Phaser.BlendModes.ADD);
-    for (const [width, color, alpha] of [[10, 0x2d8cff, 0.25], [5, 0x5aa9ff, 0.6], [2, 0xffffff, 1]] as const) {
-      bolt.lineStyle(width, color, alpha).strokePoints(points);
-    }
-    this.sparkle(bx, by, 0x7cc4ff);
-    this.tweens.add({ targets: bolt, alpha: 0, duration: 180, onComplete: () => bolt.destroy() });
+  private removeShot(shot: Shot): void {
+    const index = this.shots.indexOf(shot);
+    if (index >= 0) this.shots.splice(index, 1);
+    this.time.delayedCall(0, () => shot.shadow.destroy());
   }
 
-  /** The bow: an arrow flies until it hits an enemy or a wall. */
-  private shoot(): void {
-    const arrow = this.arrows.create(this.player.x, this.player.y, "arrow") as Sprite;
-    arrow.setRotation(this.facing).setDepth(this.player.depth + 0.001);
-    (arrow.body as Body).setSize(10, 10);
-    arrow.setVelocity(Math.cos(this.facing) * ARROW_SPEED, Math.sin(this.facing) * ARROW_SPEED);
-    this.time.delayedCall((this.weapon.range / ARROW_SPEED) * 1000, () => arrow.active && arrow.destroy());
-  }
-
-  private damageEnemy(enemy: Sprite, damage: number, angle: number): void {
+  private damageEnemy(enemy: Sprite, damage: number, angle: number, knockback = this.weapon.knockback): void {
+    if (!enemy.body?.enable) return;
     const stats = enemy.getData("stats") as EnemyStats;
     const hp = (enemy.getData("hp") as number) - damage;
     enemy.setData("hp", hp);
-    const push = this.weapon.knockback / (enemy.getData("kind") === "brute" ? 2 : 1);
+    const push = knockback / (enemy.getData("kind") === "brute" ? 2 : 1);
     enemy.setVelocity(Math.cos(angle) * push, Math.sin(angle) * push);
     enemy.setData("knockedUntil", this.time.now + 140);
     this.flash(enemy, 0xffffff, 80);

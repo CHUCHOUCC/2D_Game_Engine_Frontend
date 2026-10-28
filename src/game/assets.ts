@@ -11,9 +11,12 @@ export const KIND_TEXTURE: Record<Kind, { key: string }> = Object.fromEntries(
   KINDS.map((kind) => [kind, { key: kind === "enemy" ? "enemy-slime" : kind }]),
 ) as Record<Kind, { key: string }>;
 
-/** Textures that are not a kind: heroes, the open chest, arrows and the ground. */
+/** Textures that are not a kind: heroes, their weapons, projectiles, the open chest and the ground. */
 export const EXTRA_TEXTURES = [
-  "hero-knight", "hero-wizard", "hero-archer", "hero-barbarian", "chest-open", "arrow", "grass", "path",
+  "hero-knight", "hero-wizard", "hero-archer", "hero-barbarian", "hero-rogue", "hero-viking", "hero-lancer", "hero-druid",
+  "dagger", "hammer", "spear", "staff",
+  "arrow", "dagger-flying", "orb", "spark", "shadow",
+  "chest-open", "grass", "path",
 ] as const;
 
 /** Image for the HTML library cards. */
