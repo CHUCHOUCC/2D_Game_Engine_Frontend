@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import type { RunResultDto } from "../api/client";
-import { isCharacter, isEnemy, isWeapon, WORLD_HEIGHT, WORLD_WIDTH, type GameObject, type Kind } from "../model/GameObject";
+import { isCharacter, isEnemy, isGround, isWeapon, WORLD_HEIGHT, WORLD_WIDTH, type GameObject, type Kind } from "../model/GameObject";
 import type { SceneModel } from "../model/SceneModel";
 import {
   aimAngle, chargePower, enemyStats, healthColor, heroById, inSwing, POTION_HEAL, rollLoot, speedFor, WEAPONS,
@@ -189,6 +189,10 @@ export class PlayScene extends Phaser.Scene {
   private spawn(object: GameObject): void {
     const depth = object.y / WORLD_HEIGHT;
     const key = KIND_TEXTURE[object.kind].key;
+    if (isGround(object.kind)) {
+      this.add.image(object.x, object.y, key).setDepth(-5); // roads: under everything, no body
+      return;
+    }
     if (isEnemy(object.kind)) {
       this.spawnEnemy(object.kind, object.x, object.y);
       return;

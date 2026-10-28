@@ -144,7 +144,9 @@ export function speedFor(stats: EnemyStats, difficulty: number): number {
 }
 
 /** What a chest drops. `random` returns 0..1 (Math.random in the game, fixed in tests). */
-export const LOOT: readonly Kind[] = ["sword", "axe", "wand", "bow", "potion", "potion"];
+export const LOOT: readonly Kind[] = [
+  "sword", "axe", "wand", "bow", "dagger", "hammer", "spear", "staff", "potion", "potion", "potion", "potion",
+];
 
 export function rollLoot(random: () => number = Math.random): Kind {
   return LOOT[Math.min(LOOT.length - 1, Math.floor(random() * LOOT.length))];

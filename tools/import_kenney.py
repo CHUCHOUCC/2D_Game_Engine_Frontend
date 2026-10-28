@@ -66,7 +66,7 @@ SINGLE_TILES = {
     "staff": (DUNGEON, 129),
     # ground
     "grass": (TOWN, 0),
-    "path": (TOWN, 25),
+    "path": (TOWN, 109),  # light stone: reads as a street, a square or a stone path
 }
 
 # Buildings made of several tiles: rows of (pack, tile index).

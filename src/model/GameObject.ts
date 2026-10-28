@@ -2,6 +2,7 @@
 export const KINDS = [
   "player", "box", "wall", "house", "tree", "spike", "coin", "enemy", "villager", "knight", "wizard",
   "bat", "spider", "ghost", "brute", "chest", "potion", "sword", "axe", "wand", "bow", "barrel", "fence", "bush",
+  "dagger", "hammer", "spear", "staff", "path",
 ] as const;
 export type Kind = (typeof KINDS)[number];
 
@@ -43,6 +44,11 @@ export const SIZES: Record<Kind, [number, number]> = {
   barrel: [28, 30],
   fence: [32, 16],
   bush: [30, 28],
+  dagger: [16, 24],
+  hammer: [24, 28],
+  spear: [16, 32],
+  staff: [16, 32],
+  path: [32, 32],
 };
 
 export const KIND_INFO: Record<Kind, { name: string; hint: string }> = {
@@ -65,8 +71,13 @@ export const KIND_INFO: Record<Kind, { name: string; hint: string }> = {
   potion: { name: "Poción", hint: "Recupera 2 de vida." },
   sword: { name: "Espada", hint: "Arma: golpe en arco frente a ti." },
   axe: { name: "Hacha", hint: "Arma: golpe lento y pesado que empuja lejos." },
-  wand: { name: "Varita", hint: "Arma: lanza rayos que atraviesan enemigos." },
-  bow: { name: "Arco", hint: "Arma: dispara flechas a distancia." },
+  wand: { name: "Varita", hint: "Arma: un orbe mágico que acelera y explota al chocar." },
+  bow: { name: "Arco", hint: "Arma: flechas en parábola; mantén Espacio para tensar más." },
+  dagger: { name: "Dagas", hint: "Arma: lanza tres dagas que giran en el aire." },
+  hammer: { name: "Martillo", hint: "Arma: golpea el suelo y empuja a todos alrededor." },
+  spear: { name: "Lanza", hint: "Arma: estocada larga con un salto hacia delante." },
+  staff: { name: "Báculo", hint: "Arma: una chispa que rebota en las paredes." },
+  path: { name: "Camino", hint: "Suelo de calle o piedra: se dibuja debajo de todo y no bloquea." },
   barrel: { name: "Barril", hint: "Pesado: se puede empujar despacio." },
   fence: { name: "Valla", hint: "Bloquea el paso." },
   bush: { name: "Arbusto", hint: "Decoración sólida." },
@@ -75,7 +86,13 @@ export const KIND_INFO: Record<Kind, { name: string; hint: string }> = {
 /** Friendly 2D characters: they walk around and talk, they never hurt. */
 export const CHARACTER_KINDS: readonly Kind[] = ["villager", "knight", "wizard"];
 export const ENEMY_KINDS: readonly Kind[] = ["enemy", "bat", "spider", "ghost", "brute"];
-export const WEAPON_KINDS: readonly Kind[] = ["sword", "axe", "wand", "bow"];
+export const WEAPON_KINDS: readonly Kind[] = ["sword", "axe", "wand", "bow", "dagger", "hammer", "spear", "staff"];
+/** Ground drawn under everything, with no body. */
+export const GROUND_KINDS: readonly Kind[] = ["path"];
+
+export function isGround(kind: Kind): boolean {
+  return GROUND_KINDS.includes(kind);
+}
 
 export function isCharacter(kind: Kind): boolean {
   return CHARACTER_KINDS.includes(kind);
@@ -93,9 +110,9 @@ export function isWeapon(kind: Kind): boolean {
 export const CATEGORIES: readonly { id: string; name: string; kinds: readonly Kind[] }[] = [
   { id: "characters", name: "Personajes", kinds: ["player", "villager", "knight", "wizard"] },
   { id: "enemies", name: "Enemigos", kinds: ["enemy", "bat", "spider", "ghost", "brute"] },
-  { id: "building", name: "Construcción", kinds: ["wall", "house", "tree", "bush", "fence"] },
+  { id: "building", name: "Construcción", kinds: ["wall", "house", "tree", "bush", "fence", "path"] },
   { id: "obstacles", name: "Obstáculos", kinds: ["box", "barrel", "spike"] },
-  { id: "items", name: "Objetos", kinds: ["coin", "chest", "potion", "sword", "axe", "wand", "bow"] },
+  { id: "items", name: "Objetos", kinds: ["coin", "chest", "potion", "sword", "axe", "wand", "bow", "dagger", "hammer", "spear", "staff"] },
 ];
 
 export function categoryOf(kind: Kind): string {
