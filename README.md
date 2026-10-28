@@ -66,6 +66,13 @@ them 2× with nearest neighbour and writes `public/textures/`. `tools/make_textu
 spikes. `tools/make_brand.py` cuts the PixelForge logo (`assets-src/brand/`) into the emblem, the
 wordmark and the favicon, turning its black background into transparency.
 
+### Ready-made maps
+
+"Nuevo proyecto" shows each map with a small picture of it (`src/ui/mapPreview.ts`). Besides the
+empty scene and the village, the backend offers three of Kenney's sample maps (CC0): a dungeon
+(Tiny Dungeon), a kingdom and a house (1-Bit Pack). Where they come from and how they were
+converted is in the backend repo, `maps/README.md`.
+
 ## Tokens
 
 `src/api/tokens.ts` keeps the access token (15 min) and the refresh token in `sessionStorage`.
@@ -99,6 +106,10 @@ only to send it to the backend as JSON.
 | Right-click drag, wheel | Move and zoom the map |
 
 ## Run it
+
+To publish the game on GitHub Pages, turn Pages on (Settings > Pages > Source: "GitHub Actions"),
+add `https://chuchoucc.github.io` to the backend's `FRONTEND_ORIGINS`, then run the
+"Deploy to GitHub Pages" workflow from the Actions tab.
 
 ```bash
 npm install
