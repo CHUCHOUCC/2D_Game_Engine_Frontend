@@ -29,6 +29,10 @@ SINGLE_TILES = {
     "hero-wizard": (DUNGEON, 84),
     "hero-archer": (DUNGEON, 112),
     "hero-barbarian": (DUNGEON, 88),
+    "hero-rogue": (DUNGEON, 98),
+    "hero-viking": (DUNGEON, 87),
+    "hero-lancer": (DUNGEON, 86),
+    "hero-druid": (DUNGEON, 100),
     # friendly 2D characters
     "villager": (DUNGEON, 99),
     "knight": (DUNGEON, 97),
@@ -55,10 +59,14 @@ SINGLE_TILES = {
     "axe": (DUNGEON, 118),
     "wand": (DUNGEON, 130),
     "bow": (TOWN, 118),
-    "arrow": (TOWN, 119),
+    # weapons only heroes carry (named after the weapon, like the ones above)
+    "dagger": (DUNGEON, 103),
+    "hammer": (DUNGEON, 117),
+    "spear": (DUNGEON, 131),
+    "staff": (DUNGEON, 129),
     # ground
     "grass": (TOWN, 0),
-    "path": (TOWN, 25),
+    "path": (TOWN, 109),  # light stone: reads as a street, a square or a stone path
 }
 
 # Buildings made of several tiles: rows of (pack, tile index).

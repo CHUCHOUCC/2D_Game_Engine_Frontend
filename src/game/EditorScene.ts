@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { isCharacter, isEnemy, SIZES, WORLD_HEIGHT, WORLD_WIDTH, type GameObject, type Kind } from "../model/GameObject";
+import { isCharacter, isEnemy, isGround, SIZES, WORLD_HEIGHT, WORLD_WIDTH, type GameObject, type Kind } from "../model/GameObject";
 import { clampToWorld, fitZoom, snap } from "../model/geometry";
 import type { SceneModel } from "../model/SceneModel";
 import { bob, KIND_TEXTURE, loadTextures } from "./textures";
@@ -266,7 +266,7 @@ export class EditorScene extends Phaser.Scene {
     const sprite = this.add.sprite(object.x, object.y, texture.key);
     if (object.kind === "coin" || isEnemy(object.kind) || isCharacter(object.kind)) bob(this, sprite);
     // Taller objects further down the screen are drawn on top (fake depth).
-    sprite.setDepth(object.y / WORLD_HEIGHT);
+    sprite.setDepth(isGround(object.kind) ? -5 : object.y / WORLD_HEIGHT);
     sprite.setData("objectId", object.id);
     sprite.setData("kind", object.kind);
     sprite.setInteractive({ draggable: true, cursor: this.tool === "select" ? "pointer" : undefined });

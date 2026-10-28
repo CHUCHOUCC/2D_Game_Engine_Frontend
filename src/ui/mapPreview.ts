@@ -1,8 +1,9 @@
-import { isCharacter, isEnemy, SIZES, WORLD_HEIGHT, WORLD_WIDTH, type GameObject, type Kind } from "../model/GameObject";
+import { isCharacter, isEnemy, isGround, SIZES, WORLD_HEIGHT, WORLD_WIDTH, type GameObject, type Kind } from "../model/GameObject";
 
 /** Colour of each kind in the small map previews of the "Nuevo proyecto" dialog. */
 export function previewColor(kind: Kind): string {
   if (kind === "player") return "#3b82f6";
+  if (isGround(kind)) return "#c9a36b";
   if (isEnemy(kind) || kind === "spike") return "#ef4444";
   if (isCharacter(kind)) return "#c084fc";
   switch (kind) {
@@ -31,7 +32,9 @@ export function drawPreview(canvas: HTMLCanvasElement, scene: readonly GameObjec
   const scale = Math.min(canvas.width / WORLD_WIDTH, canvas.height / WORLD_HEIGHT);
   context.fillStyle = "#8fbf6a";
   context.fillRect(0, 0, canvas.width, canvas.height);
-  for (const object of scene) {
+  // Roads first, so everything standing on them is drawn on top.
+  const ordered = [...scene.filter((o) => isGround(o.kind)), ...scene.filter((o) => !isGround(o.kind))];
+  for (const object of ordered) {
     const [width, height] = SIZES[object.kind] ?? [32, 32];
     context.fillStyle = previewColor(object.kind);
     context.fillRect(

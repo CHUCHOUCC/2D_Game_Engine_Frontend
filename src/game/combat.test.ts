@@ -1,14 +1,33 @@
 import { describe, expect, it } from "vitest";
 import { ENEMY_KINDS } from "../model/GameObject";
-import { distanceToSegment, enemyStats, healthColor, heroById, HEROES, inSwing, LOOT, rollLoot, speedFor, WEAPONS } from "./combat";
+import { aimAngle, chargePower, distanceToSegment, enemyStats, healthColor, heroById, HEROES, inSwing, LOOT, rollLoot, speedFor, WEAPONS } from "./combat";
 
 describe("heroes and weapons", () => {
   it("each hero carries a weapon that exists", () => {
     for (const hero of HEROES) expect(WEAPONS[hero.weapon].id).toBe(hero.weapon);
   });
 
-  it("the wizard fights with the wand's lightning ray", () => {
-    expect(WEAPONS[heroById("wizard").weapon].style).toBe("ray");
+  it("the wizard casts an exploding orb", () => {
+    const wand = WEAPONS[heroById("wizard").weapon];
+    expect(wand.style).toBe("projectile");
+    expect(wand.projectile!.splash).toBeGreaterThan(0);
+  });
+
+  it("there are eight heroes, each with its own texture and a weapon that flies or hits", () => {
+    expect(HEROES).toHaveLength(8);
+    expect(new Set(HEROES.map((h) => h.texture)).size).toBe(8);
+    for (const hero of HEROES) {
+      const weapon = WEAPONS[hero.weapon];
+      expect(weapon.windupMs).toBeGreaterThan(0);
+      expect(weapon.style === "melee" || weapon.projectile !== undefined).toBe(true);
+    }
+  });
+
+  it("a held bow shoots harder than a tapped one", () => {
+    const bow = WEAPONS.bow;
+    expect(chargePower(bow, 0)).toBeCloseTo(0.55);
+    expect(chargePower(bow, bow.windupMs + bow.chargeMs)).toBe(1);
+    expect(chargePower(WEAPONS.sword, 0)).toBe(1);
   });
 
   it("an unknown hero falls back to the knight", () => {
@@ -59,6 +78,14 @@ describe("hit tests", () => {
     expect(distanceToSegment(5, 3, 0, 0, 10, 0)).toBe(3);
     expect(distanceToSegment(-4, 3, 0, 0, 10, 0)).toBe(5);
     expect(distanceToSegment(1, 1, 0, 0, 0, 0)).toBeCloseTo(Math.SQRT2);
+  });
+
+  it("aims at an enemy close to where the hero faces, not at one behind", () => {
+    const ahead = { x: 100, y: 20 };
+    const behind = { x: -50, y: 0 };
+    expect(aimAngle(0, 0, 0, [ahead, behind], 300)).toBeCloseTo(Math.atan2(20, 100));
+    expect(aimAngle(0, 0, 0, [behind], 300)).toBe(0);
+    expect(aimAngle(0, 0, 0, [{ x: 900, y: 0 }], 300)).toBe(0);
   });
 
   it("health bars go from green to red", () => {

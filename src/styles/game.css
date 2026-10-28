@@ -57,7 +57,7 @@
 .hud-help kbd { color: #e9eef7; }
 
 /* ---------- hero select ---------- */
-.dialog-heroes { width: min(1040px, calc(100vw - 32px)); max-width: none; }
+.dialog-heroes { width: min(1100px, calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; }
 .dialog-head { display: grid; gap: 4px; }
 .dialog-head h3 { font-family: var(--font-brand); font-size: 22px; }
 .heroes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
@@ -78,8 +78,8 @@
 .hero:hover { transform: translateY(-4px); border-color: var(--border-strong); }
 .hero[aria-checked="true"] { border-color: var(--accent-hi); box-shadow: var(--glow); }
 .hero[aria-checked="true"]::after { content: "ELEGIDO"; position: absolute; top: 10px; right: 10px; padding: 3px 7px; border-radius: 6px; background: var(--accent); color: #fff; font-family: var(--font-tag); font-size: 9px; letter-spacing: 0.2em; }
-.portrait { position: relative; display: grid; place-items: center; height: 110px; border-radius: 12px; background: radial-gradient(circle at 50% 70%, rgba(31, 123, 255, 0.35), transparent 65%), var(--field-bg); }
-.portrait img { width: 72px; image-rendering: pixelated; filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.6)); animation: idle 1.8s ease-in-out infinite; }
+.portrait { position: relative; display: grid; place-items: center; height: clamp(72px, 12vh, 104px); border-radius: 12px; background: radial-gradient(circle at 50% 70%, rgba(31, 123, 255, 0.35), transparent 65%), var(--field-bg); }
+.portrait img { width: clamp(52px, 8vh, 72px); image-rendering: pixelated; filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.6)); animation: idle 1.8s ease-in-out infinite; }
 .portrait .portrait-weapon { position: absolute; right: 22%; bottom: 24%; width: 32px; animation: none; transform: rotate(18deg); }
 .hero[aria-checked="true"] .portrait-weapon { animation: wield 0.9s ease-in-out infinite; }
 @keyframes idle { 50% { transform: translateY(-4px) scaleY(1.02); } }
@@ -96,6 +96,9 @@
   .heroes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 520px) {
-  .heroes { grid-template-columns: 1fr; }
+  .heroes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .hero { padding: 10px; gap: 8px; }
+  .hero p, .skill { display: none; }
+  .stat-row { grid-template-columns: 52px 1fr 14px; gap: 6px; font-size: 11px; }
   .lifebar { width: 100px; }
 }
