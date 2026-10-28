@@ -69,13 +69,13 @@
   mask: radial-gradient(circle, transparent 62%, #000 63%, #000 65%, transparent 66%);
   animation: spin 4s linear infinite;
 }
-.emblem { width: min(240px, 46vw); height: auto; animation: float 4s ease-in-out infinite; transition: filter 0.08s; }
+.emblem { width: min(240px, 46vw, 30vh); height: auto; animation: float 4s ease-in-out infinite; transition: filter 0.08s; }
 .emblem.is-zapped { filter: brightness(1.8) drop-shadow(0 0 18px #9fe6ff); }
 @keyframes halo { 50% { transform: scale(1.08); opacity: 0.75; } }
 @keyframes float { 50% { transform: translateY(-6px); } }
 
 .wordmark-wrap { position: relative; display: block; }
-.wordmark { display: block; width: min(420px, 70vw); height: auto; filter: drop-shadow(0 0 10px rgba(31, 123, 255, 0.35)); }
+.wordmark { display: block; width: min(420px, 70vw, 52vh); height: auto; filter: drop-shadow(0 0 10px rgba(31, 123, 255, 0.35)); }
 /* A light sweep that only paints inside the letters. */
 .wordmark-wrap .sweep, .wordmark-wrap .glint {
   position: absolute;
@@ -136,16 +136,23 @@
 .actor.is-small { width: 30px; height: 30px; }
 
 /* ---------- the form ---------- */
+/* The form is centred with auto margins instead of align-items: center. When
+   the register form is taller than the window, a centred flex item overflows
+   above the top edge, where no scrolling can reach it; auto margins collapse
+   to 0 instead, so the form starts at the top and scrolls. The scrollbar
+   space is kept on both sides, so the form sits exactly in the middle. */
 .login-panel {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 32px max(24px, env(safe-area-inset-right, 0px)) 32px 24px;
+  padding: 32px max(24px, env(safe-area-inset-right, 0px)) 32px max(24px, env(safe-area-inset-left, 0px));
   background: var(--bg-elevated);
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable both-edges;
 }
 
-.auth-form { width: 100%; max-width: 420px; display: grid; gap: 14px; }
+.auth-form { width: 100%; max-width: 420px; margin-block: auto; display: grid; gap: 14px; }
 .auth-form.is-done > :not(.success) { display: none !important; }
 
 .seg { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 4px; border-radius: 12px; background: var(--field-bg); border: 1px solid var(--border); }
@@ -155,7 +162,7 @@
 .seg[data-mode="register"] .seg-pill { transform: translateX(100%); }
 
 .auth-form .field { display: grid; gap: 6px; }
-.auth-form .field label { display: flex; justify-content: space-between; gap: 8px; font-family: var(--font-tag); font-size: 9.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); }
+.auth-form .field label { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; white-space: nowrap; font-family: var(--font-tag); font-size: 9.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); }
 .control { position: relative; display: flex; align-items: center; }
 .control input {
   width: 100%;
@@ -244,12 +251,14 @@
 .login-footnote { margin: 0; color: var(--text-muted); font-size: 12px; text-align: center; }
 
 @media (max-width: 900px) {
-  .login { grid-template-columns: 1fr; grid-template-rows: auto 1fr; overflow-y: auto; }
-  .login-art { padding: 28px 16px 110px; gap: 18px; border-right: 0; border-bottom: 1px solid var(--border); }
+  /* One column that scrolls as a whole. A column flexbox (not a grid row) so
+     the logo band keeps its full height instead of being squeezed and cut. */
+  .login { display: flex; flex-direction: column; overflow-x: hidden; overflow-y: auto; scrollbar-gutter: stable both-edges; }
+  .login-art { flex: none; padding: 28px 16px 96px; gap: 18px; border-right: 0; border-bottom: 1px solid var(--border); }
   .features { display: none; }
   .emblem { width: 150px; }
   .wordmark { width: min(300px, 80vw); }
-  .login-panel { overflow: visible; }
+  .login-panel { flex: 1 0 auto; overflow: visible; scrollbar-gutter: auto; padding: 24px 16px 32px; }
 }
 @media (max-width: 480px) {
   .rules { grid-template-columns: 1fr; }
