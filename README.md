@@ -107,9 +107,8 @@ only to send it to the backend as JSON.
 
 ## Run it
 
-To publish the game on GitHub Pages, turn Pages on (Settings > Pages > Source: "GitHub Actions"),
-add `https://chuchoucc.github.io` to the backend's `FRONTEND_ORIGINS`, then run the
-"Deploy to GitHub Pages" workflow from the Actions tab.
+The game is published on Vercel: https://2-d-game-engine-frontend.vercel.app. Every merge to
+`main` goes to production by itself, and every pull request gets its own preview link.
 
 ```bash
 npm install
