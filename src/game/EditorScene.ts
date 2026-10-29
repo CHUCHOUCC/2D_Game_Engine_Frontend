@@ -266,7 +266,7 @@ export class EditorScene extends Phaser.Scene {
     const sprite = this.add.sprite(object.x, object.y, texture.key);
     if (object.kind === "coin" || isEnemy(object.kind) || isCharacter(object.kind)) bob(this, sprite);
     // Taller objects further down the screen are drawn on top (fake depth).
-    sprite.setDepth(isGround(object.kind) ? -5 : object.y / WORLD_HEIGHT);
+    sprite.setDepth(object.kind === "water" ? -6 : isGround(object.kind) ? (object.kind === "bridge" ? -4 : -5) : object.y / WORLD_HEIGHT);
     sprite.setData("objectId", object.id);
     sprite.setData("kind", object.kind);
     sprite.setInteractive({ draggable: true, cursor: this.tool === "select" ? "pointer" : undefined });

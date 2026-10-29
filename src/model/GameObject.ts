@@ -3,6 +3,7 @@ export const KINDS = [
   "player", "box", "wall", "house", "tree", "spike", "coin", "enemy", "villager", "knight", "wizard",
   "bat", "spider", "ghost", "brute", "chest", "potion", "sword", "axe", "wand", "bow", "barrel", "fence", "bush",
   "dagger", "hammer", "spear", "staff", "path",
+  "water", "sand", "bridge", "marksman", "necromancer", "demon", "mimic", "rat",
 ] as const;
 export type Kind = (typeof KINDS)[number];
 
@@ -49,6 +50,14 @@ export const SIZES: Record<Kind, [number, number]> = {
   spear: [16, 32],
   staff: [16, 32],
   path: [32, 32],
+  water: [32, 32],
+  sand: [32, 32],
+  bridge: [32, 32],
+  marksman: [24, 28],
+  necromancer: [24, 28],
+  demon: [56, 56],
+  mimic: [30, 28],
+  rat: [24, 20],
 };
 
 export const KIND_INFO: Record<Kind, { name: string; hint: string }> = {
@@ -78,6 +87,14 @@ export const KIND_INFO: Record<Kind, { name: string; hint: string }> = {
   spear: { name: "Lanza", hint: "Arma: estocada larga con un salto hacia delante." },
   staff: { name: "Báculo", hint: "Arma: una chispa que rebota en las paredes." },
   path: { name: "Camino", hint: "Suelo de calle o piedra: se dibuja debajo de todo y no bloquea." },
+  water: { name: "Agua", hint: "Nadie la cruza a pie; las flechas y los murciélagos pasan por encima." },
+  sand: { name: "Arena", hint: "Suelo de playa o desierto: no bloquea." },
+  bridge: { name: "Puente", hint: "Suelo de madera para cruzar el agua." },
+  marksman: { name: "Arquero oscuro", hint: "Enemigo a distancia: guarda las distancias y dispara flechas. Esquívalas." },
+  necromancer: { name: "Nigromante", hint: "Enemigo a distancia: lanza tres orbes malditos. 4 de vida." },
+  demon: { name: "Demonio (jefe)", hint: "Jefe: 30 de vida, lanza anillos de bolas de fuego y se enfurece a media vida." },
+  mimic: { name: "Mímico", hint: "Parece un cofre… hasta que te acercas. Muerde fuerte." },
+  rat: { name: "Rata", hint: "Enemigo rápido y débil que corre en zigzag." },
   barrel: { name: "Barril", hint: "Pesado: se puede empujar despacio." },
   fence: { name: "Valla", hint: "Bloquea el paso." },
   bush: { name: "Arbusto", hint: "Decoración sólida." },
@@ -85,10 +102,10 @@ export const KIND_INFO: Record<Kind, { name: string; hint: string }> = {
 
 /** Friendly 2D characters: they walk around and talk, they never hurt. */
 export const CHARACTER_KINDS: readonly Kind[] = ["villager", "knight", "wizard"];
-export const ENEMY_KINDS: readonly Kind[] = ["enemy", "bat", "spider", "ghost", "brute"];
+export const ENEMY_KINDS: readonly Kind[] = ["enemy", "bat", "spider", "ghost", "brute", "marksman", "necromancer", "demon", "mimic", "rat"];
 export const WEAPON_KINDS: readonly Kind[] = ["sword", "axe", "wand", "bow", "dagger", "hammer", "spear", "staff"];
 /** Ground drawn under everything, with no body. */
-export const GROUND_KINDS: readonly Kind[] = ["path"];
+export const GROUND_KINDS: readonly Kind[] = ["path", "sand", "bridge"];
 
 export function isGround(kind: Kind): boolean {
   return GROUND_KINDS.includes(kind);
@@ -109,8 +126,9 @@ export function isWeapon(kind: Kind): boolean {
 /** How the library groups the kinds, in the order it shows them. */
 export const CATEGORIES: readonly { id: string; name: string; kinds: readonly Kind[] }[] = [
   { id: "characters", name: "Personajes", kinds: ["player", "villager", "knight", "wizard"] },
-  { id: "enemies", name: "Enemigos", kinds: ["enemy", "bat", "spider", "ghost", "brute"] },
-  { id: "building", name: "Construcción", kinds: ["wall", "house", "tree", "bush", "fence", "path"] },
+  { id: "enemies", name: "Enemigos", kinds: ["enemy", "bat", "spider", "ghost", "brute", "rat", "mimic", "marksman", "necromancer", "demon"] },
+  { id: "building", name: "Construcción", kinds: ["wall", "house", "tree", "bush", "fence"] },
+  { id: "terrain", name: "Terreno", kinds: ["path", "sand", "water", "bridge"] },
   { id: "obstacles", name: "Obstáculos", kinds: ["box", "barrel", "spike"] },
   { id: "items", name: "Objetos", kinds: ["coin", "chest", "potion", "sword", "axe", "wand", "bow", "dagger", "hammer", "spear", "staff"] },
 ];

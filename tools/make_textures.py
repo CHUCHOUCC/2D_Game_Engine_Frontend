@@ -140,7 +140,100 @@ def shadow() -> list:
     return [[(0, 0, 0, 90) if ch == "s" else CLEAR for ch in row] for row in SHADOW]
 
 
+# Ground tiles (16 x 16, drawn at 2x like the Kenney tiles).
+WATER = [
+    "bbbbbbbbbbbbbbbb",
+    "bbbbbbbbbbbbbbbb",
+    "bbblllbbbbbbbbbb",
+    "bbllwllbbbbbbbbb",
+    "bbbbbbbbbbbbbbbb",
+    "bbbbbbbbbbdddbbb",
+    "bbbbbbbbbbbbbbbb",
+    "bbbbbbbbbbbbbbbb",
+    "bbbbbbbbbbbbbbbb",
+    "bbbbbbbblllbbbbb",
+    "bbbbbbbllwllbbbb",
+    "bbbbbbbbbbbbbbbb",
+    "bdddbbbbbbbbbbbb",
+    "bbbbbbbbbbbbbbbb",
+    "bbbbbbbbbbbbbllb",
+    "bbbbbbbbbbbbbbbb",
+]
+
+SAND = [
+    "ssssssssssssssss",
+    "sssssdssssssssss",
+    "ssssssssssslssss",
+    "ssssssssssssssss",
+    "sslsssssssssssds",
+    "ssssssssssssssss",
+    "ssssssssdsssssss",
+    "ssssssssssssssss",
+    "ssssssssssssslss",
+    "sdssssssssssssss",
+    "ssssslssssssssss",
+    "ssssssssssssssss",
+    "ssssssssssdsssss",
+    "sssssssssssssssl",
+    "sssdssssssssssss",
+    "ssssssssssssssss",
+]
+
+# Wooden planks running across, with the dark gaps between them.
+BRIDGE = [
+    "rrrrrrrrrrrrrrrr",
+    "pppppppppppppppp",
+    "pPPPPPPPPPPPPPPp",
+    "pppppppppppppppp",
+    "kkkkkkkkkkkkkkkk",
+    "pppppppppppppppp",
+    "pPPPPPPnPPPPPPPp",
+    "pppppppppppppppp",
+    "kkkkkkkkkkkkkkkk",
+    "pppppppppppppppp",
+    "pPPPPPPPPPPPPnPp",
+    "pppppppppppppppp",
+    "kkkkkkkkkkkkkkkk",
+    "pppppppppppppppp",
+    "pPPnPPPPPPPPPPPp",
+    "rrrrrrrrrrrrrrrr",
+]
+
+
+def water() -> list:
+    return from_grid(WATER, {"b": "3b8bd8", "l": "7cc4ff", "w": "e6f6ff", "d": "2f6fb3"})
+
+
+def sand() -> list:
+    return from_grid(SAND, {"s": "e6cf92", "d": "c4a66a", "l": "f6e6b8"})
+
+
+def bridge() -> list:
+    return from_grid(BRIDGE, {"r": "5a3520", "p": "a8713f", "P": "c48a52", "k": "4a2c1a", "n": "6b3f25"})
+
+
+# Fireball thrown by the demon: yellow core, orange and red flames.
+FIREBALL = [
+    "..rrrr..",
+    ".rooooR.",
+    "royyyyor",
+    "roywwyor",
+    "roywwyor",
+    "royyyyor",
+    ".rooooR.",
+    "..rrrr..",
+]
+
+
+def fireball() -> list:
+    return from_grid(FIREBALL, {"r": "b8321f", "R": "8a2414", "o": "f2702a", "y": "ffc547", "w": "fff6d6"})
+
+
 SPRITES = {
+    "water": water,
+    "sand": sand,
+    "bridge": bridge,
+    "fireball": fireball,
     "spike": spike,
     "arrow": arrow,
     "dagger-flying": dagger,

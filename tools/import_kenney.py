@@ -43,6 +43,9 @@ SINGLE_TILES = {
     "spider": (DUNGEON, 122),
     "ghost": (DUNGEON, 121),
     "brute": (DUNGEON, 109),
+    "demon": (DUNGEON, 110),
+    "mimic": (DUNGEON, 92),
+    "rat": (DUNGEON, 123),
     # obstacles and buildings
     "wall": (DUNGEON, 40),
     "box": (DUNGEON, 63),
@@ -67,6 +70,13 @@ SINGLE_TILES = {
     # ground
     "grass": (TOWN, 0),
     "path": (TOWN, 109),  # light stone: reads as a street, a square or a stone path
+}
+
+# Enemies made by repainting a character: (pack, tile index, gradient from dark to light).
+# Every pixel except the outline takes the colour of the gradient at its brightness.
+RECOLORED = {
+    "marksman": (DUNGEON, 112, ["2a1d3d", "5b3f7a", "9b86b8", "e9e4d8"]),     # dark archer: purple and bone
+    "necromancer": (DUNGEON, 84, ["10241a", "1f5a3a", "54b37c", "d8f5c4"]),  # necromancer: sickly green
 }
 
 # Buildings made of several tiles: rows of (pack, tile index).
@@ -100,11 +110,37 @@ def composite(sheets: dict, rows: list) -> Image.Image:
     return image
 
 
+def gradient(colors: list, t: float) -> tuple:
+    rgb = [tuple(int(c[i:i + 2], 16) for i in (0, 2, 4)) for c in colors]
+    t = max(0.0, min(1.0, t)) * (len(rgb) - 1)
+    i = min(int(t), len(rgb) - 2)
+    f = t - i
+    return tuple(round(rgb[i][k] + (rgb[i + 1][k] - rgb[i][k]) * f) for k in range(3))
+
+
+def recolor(image: Image.Image, colors: list) -> Image.Image:
+    out = image.copy()
+    pixels = out.load()
+    for y in range(out.height):
+        for x in range(out.width):
+            r, g, b, a = pixels[x, y]
+            if a == 0:
+                continue
+            light = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+            if light < 0.2:
+                continue  # keep the dark outline
+            pixels[x, y] = gradient(colors, (light - 0.2) / 0.8) + (a,)
+    return out
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     sheets = load_sheets()
     for name, (pack, index) in SINGLE_TILES.items():
         scaled(tile(sheets, pack, index)).save(OUT / f"{name}.png")
+        print(f"textures/{name}.png")
+    for name, (pack, index, colors) in RECOLORED.items():
+        scaled(recolor(tile(sheets, pack, index), colors)).save(OUT / f"{name}.png")
         print(f"textures/{name}.png")
     for name, rows in COMPOSITES.items():
         scaled(composite(sheets, rows)).save(OUT / f"{name}.png")
