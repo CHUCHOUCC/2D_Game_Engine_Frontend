@@ -7,6 +7,7 @@ import {
   rollLoot, speedFor, WEAPONS,
   type EnemyStats, type Hero, type ProjectileSpec, type Weapon, type WeaponId,
 } from "./combat";
+import { loadSounds, playEffect, playJingle } from "./audio";
 import { approach, fanAngles, launch, screenAngle, step, type Flight } from "./projectiles";
 import { RunTracker } from "./RunTracker";
 import { bob, KIND_TEXTURE, loadTextures } from "./textures";
@@ -163,6 +164,8 @@ export class PlayScene extends Phaser.Scene {
   private nextDashAt = 0;
   private swingUntil = 0;
   private lastHud = 0;
+  private nextStepAt = 0;
+  private stepIndex = 0;
   private finished = false;
 
   constructor(model: SceneModel, hooks: PlayHooks) {
@@ -192,6 +195,7 @@ export class PlayScene extends Phaser.Scene {
 
   preload(): void {
     loadTextures(this);
+    loadSounds(this);
   }
 
   create(): void {
@@ -439,6 +443,11 @@ export class PlayScene extends Phaser.Scene {
     else if (x !== 0) this.player.setFlipX(x < 0);
     // Walking: a small hop on every step; standing: a slow breath.
     const moving = x !== 0 || y !== 0;
+    if (moving && time >= this.nextStepAt && time >= this.dashUntil) {
+      this.nextStepAt = time + 290;
+      this.stepIndex = (this.stepIndex + 1) % 3;
+      playEffect(this, `step-${this.stepIndex}` as "step-0", { volume: 0.25 });
+    }
     if (this.windup && !this.windup.released) {
       // Getting ready: the hero leans back and tenses up.
       const t = Phaser.Math.Clamp((time - this.windup.startedAt) / Math.max(1, this.windup.weapon.windupMs), 0, 1);
@@ -463,6 +472,7 @@ export class PlayScene extends Phaser.Scene {
     this.nextDashAt = time + DASH_COOLDOWN_MS;
     this.dashUntil = time + DASH_MS;
     this.invulnerableUntil = Math.max(this.invulnerableUntil, time + DASH_MS + 60);
+    playEffect(this, "dash", { volume: 0.7 });
   }
 
   /** A fading blue copy of the hero: the trail of the dash. */
@@ -614,6 +624,7 @@ export class PlayScene extends Phaser.Scene {
           this.bossSeen = true;
           this.cameras.main.shake(300, 0.012);
           this.floatText(enemy.x, enemy.y - 50, "¡JEFE!", "#ff6b6b");
+          playEffect(this, "boss", { vary: false });
           this.hooks.onNotice?.(`¡Cuidado! ${stats.name}: esquiva sus bolas de fuego con Shift`);
         }
         if (stats.attack && time >= (enemy.getData("nextShotAt") as number) && distance < stats.attack.range) {
@@ -698,6 +709,7 @@ export class PlayScene extends Phaser.Scene {
       });
     }
     this.tweens.add({ targets: enemy, scaleX: stats.scale * 0.9, scaleY: stats.scale * 1.08, duration: 80, yoyo: true });
+    playEffect(this, stats.behavior === "boss" ? "fireball" : spec.texture === "arrow" ? "enemy-shot" : "enemy-cast", { volume: 0.6 });
   }
 
   /** A mimic stops pretending: it jumps up, shows its teeth and gives chase. */
@@ -707,6 +719,7 @@ export class PlayScene extends Phaser.Scene {
     enemy.setTexture("mimic");
     (enemy.body as Body).setImmovable(false);
     this.floatText(enemy.x, enemy.y - 24, "¡Un mímico!", "#ff6b6b");
+    playEffect(this, "mimic");
     this.tweens.add({ targets: enemy, y: enemy.y - 14, duration: 120, yoyo: true, ease: "Quad.easeOut" });
     this.cameras.main.shake(120, 0.006);
   }
@@ -784,6 +797,7 @@ export class PlayScene extends Phaser.Scene {
   private collect(coin: Sprite): void {
     if (!coin.active || !coin.body?.enable) return;
     this.tracker.collectCoin(coin.x, coin.y);
+    playEffect(this, "coin", { volume: 0.7 });
     this.sparkle(coin.x, coin.y, 0xffc547);
     this.floatText(coin.x, coin.y - 10, "+1", "#ffc547");
     this.tweens.killTweensOf(coin);
@@ -797,6 +811,7 @@ export class PlayScene extends Phaser.Scene {
     if (chest.getData("open")) return;
     chest.setData("open", true);
     chest.setTexture("chest-open");
+    playEffect(this, "chest", { volume: 0.7 });
     const loot = rollLoot();
     this.tracker.openChest(loot, chest.x, chest.y);
     this.sparkle(chest.x, chest.y - 8, 0xffc547, 12);
@@ -823,12 +838,14 @@ export class PlayScene extends Phaser.Scene {
     const kind = item.getData("kind") as Kind;
     if (kind === "potion") {
       this.tracker.pickUp("potion", POTION_HEAL);
+      playEffect(this, "potion", { volume: 0.7 });
       this.floatText(this.player.x, this.player.y - 20, `+${POTION_HEAL} ♥`, "#33e0a1");
       this.sparkle(item.x, item.y, 0x33e0a1);
     } else if (isWeapon(kind)) {
       this.weapon = WEAPONS[kind as WeaponId];
       this.held.setTexture(this.weapon.id);
       this.tracker.pickUp(kind);
+      playEffect(this, "pickup");
       this.sparkle(item.x, item.y, 0x2d8cff);
       this.floatText(this.player.x, this.player.y - 20, this.weapon.name, "#7cc4ff");
     }
@@ -846,6 +863,7 @@ export class PlayScene extends Phaser.Scene {
     const angle = Phaser.Math.Angle.Between(from.x, from.y, this.player.x, this.player.y);
     this.player.setVelocity(Math.cos(angle) * 420, Math.sin(angle) * 420);
     this.flash(this.player, 0xff4d6d, 90);
+    playEffect(this, "hurt");
     this.cameras.main.shake(140, 0.007);
     this.floatText(this.player.x, this.player.y - 20, `-${amount}`, "#ff4d6d");
     if (this.tracker.takeDamage(source, this.player.x, this.player.y, amount)) this.end("lost");
@@ -856,6 +874,7 @@ export class PlayScene extends Phaser.Scene {
     if (now < this.nextAttackAt || this.windup) return;
     const weapon = this.weapon;
     const reach = weapon.style === "melee" ? weapon.range + 40 : weapon.range;
+    if (weapon.id === "bow") playEffect(this, "bow-draw", { volume: 0.6 });
     this.windup = {
       weapon,
       startedAt: now,
@@ -905,6 +924,7 @@ export class PlayScene extends Phaser.Scene {
     }
     this.swingUntil = this.time.now + SWING_MS;
     const { x, y } = this.player;
+    playEffect(this, weapon.id === "spear" ? "thrust" : "swing", { volume: weapon.id === "axe" ? 1 : 0.8, rate: weapon.id === "axe" ? 0.8 : 1 });
     if (weapon.shockwave > 0) this.slam(weapon);
     if (weapon.id === "spear") this.thrustTrail(aim, weapon.range);
     else {
@@ -920,6 +940,7 @@ export class PlayScene extends Phaser.Scene {
       if (!shot.hostile || !shot.shadow.active) continue;
       if (inSwing(shot.shadow.x - x, shot.shadow.y - y, aim, weapon, 10)) {
         this.floatText(shot.shadow.x, shot.shadow.y - 14, "¡Bloqueado!", "#7cc4ff");
+        playEffect(this, "block");
         this.endShot(shot, true);
       }
     }
@@ -950,6 +971,7 @@ export class PlayScene extends Phaser.Scene {
   private slam(weapon: Weapon): void {
     const { x, y } = this.player;
     this.cameras.main.shake(180, 0.01);
+    playEffect(this, "slam");
     const ring = this.add.circle(x, y + 8, 10).setStrokeStyle(4, 0xffc547, 0.9).setDepth(38);
     this.tweens.add({ targets: ring, radius: weapon.shockwave, alpha: 0, duration: 320, ease: "Cubic.easeOut", onComplete: () => ring.destroy() });
     for (let i = 0; i < 10; i++) {
@@ -978,6 +1000,7 @@ export class PlayScene extends Phaser.Scene {
     body.velocity.y -= Math.sin(aim) * 70 * power;
     this.tweens.add({ targets: this.player, scaleX: 0.92, scaleY: 1.06, duration: 70, yoyo: true });
     if (weapon.id === "bow") this.twang(aim);
+    playEffect(this, weapon.id === "bow" ? "bow-release" : weapon.id === "dagger" ? "throw" : "cast", { volume: 0.8 });
     if (spec.splash > 0) this.cameras.main.flash(60, 45, 140, 255, false);
   }
 
@@ -1088,11 +1111,13 @@ export class PlayScene extends Phaser.Scene {
     if (shot.bouncesLeft > 0) {
       // Arcade already bounced it; it loses a little each time.
       shot.bouncesLeft--;
+      playEffect(this, "bounce", { volume: 0.5 });
       shot.travelled = Math.max(0, shot.travelled - 120);
       this.sparkle(shadow.x, shadow.y - shot.flight.z, shot.spec.color, 4);
       return;
     }
     if (shot.spec.splash > 0 || shot.spec.texture === "spark") return this.endShot(shot, true);
+    playEffect(this, "arrow-hit", { volume: 0.5 });
     this.stick(shot, shot.flight.vx, shot.flight.vy, 0);
   }
 
@@ -1104,6 +1129,7 @@ export class PlayScene extends Phaser.Scene {
     shadow.disableBody(true, true);
     this.removeShot(shot);
     sprite.destroy();
+    playEffect(this, "splash", { volume: 0.5 });
     for (let i = 0; i < 2; i++) {
       const ring = this.add.ellipse(x, y, 6, 3).setStrokeStyle(1, 0xe6f6ff, 0.9).setDepth(-3);
       this.tweens.add({ targets: ring, scaleX: 4, scaleY: 4, alpha: 0, delay: i * 120, duration: 420, onComplete: () => ring.destroy() });
@@ -1151,6 +1177,7 @@ export class PlayScene extends Phaser.Scene {
     if (!burst) return;
     this.sparkle(x, y - shot.flight.z, spec.color, 10);
     if (spec.splash <= 0 || shot.hostile) return;
+    playEffect(this, "explode", { volume: 0.8 });
     const ring = this.add.circle(x, y, 6, spec.color, 0.35).setStrokeStyle(2, 0xffffff, 0.9).setBlendMode(Phaser.BlendModes.ADD).setDepth(40);
     this.tweens.add({ targets: ring, radius: spec.splash, alpha: 0, duration: 260, ease: "Cubic.easeOut", onComplete: () => ring.destroy() });
     for (const child of [...this.enemies.getChildren()]) {
@@ -1181,6 +1208,7 @@ export class PlayScene extends Phaser.Scene {
     enemy.setData("knockedUntil", this.time.now + 140);
     this.flash(enemy, 0xffffff, 80);
     this.floatText(enemy.x, enemy.y - 16, `-${damage}`, "#ffffff");
+    playEffect(this, hp <= 0 ? "defeat" : "hit", { volume: 0.8 });
     this.sparkle(enemy.x, enemy.y, 0xd6ecff, 5);
     if (hp <= 0) {
       this.tracker.defeatEnemy(enemy.x, enemy.y, enemy.getData("kind") as string, stats.points);
@@ -1244,6 +1272,8 @@ export class PlayScene extends Phaser.Scene {
     if (this.finished) return;
     this.finished = true;
     this.tracker.finish(outcome);
+    if (outcome === "won") playJingle(this, "win");
+    else if (outcome === "lost") playJingle(this, "lose");
     this.player.setVelocity(0, 0);
     this.physics.pause();
     this.reportHud(this.time.now, true);

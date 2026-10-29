@@ -49,7 +49,12 @@ wrong login shows how many attempts are left before the 15-minute lockout (the b
 | Báculo | — | a spark that bounces off walls up to three times and goes through one enemy |
 | Dagas | — | three spinning daggers thrown in a fan |
 | Arco | arrows are dynamic bodies | the hero draws the bow (hold `Espacio` to draw further); the arrow flies in an arc with a shadow, tilts as it rises and falls, and sticks in walls and the ground |
-| Slime, Murciélago, Araña, Fantasma, Ogro | dynamic | each has its own health bar, speed, damage, points and way of moving; bats and ghosts pass over walls |
+| Slime, Murciélago, Araña, Fantasma, Ogro, Rata | dynamic | each has its own health bar, speed, damage, points and way of moving; bats and ghosts pass over walls |
+| Arquero oscuro, Nigromante | dynamic | keep their distance and strafe; a red aiming line or gathering magic warns before they shoot arrows or cursed orbs. Dash through shots (Shift) or knock them out of the air with a melee swing |
+| Demonio (jefe) | dynamic, heavy | 30 health; chases, alternates aimed volleys and rings of fireballs, and gets faster at half health |
+| Mímico | dynamic | sleeps disguised as a chest until the player comes close |
+| Agua | static | blocks walking (not bats, ghosts or projectiles); arrows that fall in it splash |
+| Camino, Arena, Puente | none | ground drawn under everything |
 | Cofre | static | touching it opens it: a weapon or a potion jumps out |
 | Poción, armas | overlap | picked up: heals 2, or changes the weapon |
 | Caja, Barril | dynamic and **pushable** (the barrel is heavier) | |
@@ -62,7 +67,11 @@ Hits flash the target, push it back and show the damage; enemies get faster as t
 Projectiles have a ground position and a height with gravity (`src/game/projectiles.ts`): the shadow carries the physics body and the sprite is drawn above it. The rules live without Phaser in `src/game/combat.ts`, `projectiles.ts`, `RunTracker.ts` and `ScoreCounter.ts` and are
 unit tested.
 
-### Textures and brand
+### Sound
+
+Effects for every attack, hit, pickup, enemy shot and footstep, and a jingle when a run is won or lost, from Kenney's RPG Audio, Impact Sounds, Interface Sounds, Digital Audio and Music Jingles packs (CC0; licences in `assets-src/kenney/audio/`). Each sound is in `public/audio/` as OGG and MP3 (for browsers without OGG). The effects and music sliders in the settings drawer set their volume (`src/game/audio.ts`).
+
+## Textures and brand
 
 The textures are the **Kenney "Tiny Dungeon" and "Tiny Town"** packs (CC0, by kenney.nl; the original
 sheets and licences are in `assets-src/kenney/`). `tools/import_kenney.py` cuts the 16 px tiles, scales
