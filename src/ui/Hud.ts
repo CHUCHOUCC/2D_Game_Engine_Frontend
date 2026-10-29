@@ -3,6 +3,7 @@ import { healthColor } from "../game/combat";
 import type { HudState } from "../game/PlayScene";
 import { PLAYER_MAX_HEALTH } from "../model/ScoreCounter";
 import { byId } from "./dom";
+import { updateTouchControls } from "./TouchControls";
 
 /** 75000 ms -> "1:15". */
 export function formatTime(ms: number): string {
@@ -18,8 +19,6 @@ export function hearts(health: number, max = PLAYER_MAX_HEALTH): string {
   return "♥".repeat(full) + "♡".repeat(max - full);
 }
 
-const HERO_TEXTURES: Record<string, string> = { Caballero: "hero-knight", Mago: "hero-wizard", Arquero: "hero-archer", "Bárbaro": "hero-barbarian" };
-
 export function showHud(state: HudState): void {
   const ratio = state.maxHealth > 0 ? state.health / state.maxHealth : 0;
   const life = byId("hud-life");
@@ -28,7 +27,7 @@ export function showHud(state: HudState): void {
   byId("hud-life-text").textContent = `${state.health}/${state.maxHealth}`;
   byId("hud-hero").textContent = state.hero;
   const heroIcon = byId<HTMLImageElement>("hud-hero-icon");
-  const heroSrc = `${TEXTURE_BASE}${HERO_TEXTURES[state.hero] ?? "hero-knight"}.png`;
+  const heroSrc = `${TEXTURE_BASE}${state.heroTexture || "hero-knight"}.png`;
   if (!heroIcon.src.endsWith(heroSrc)) heroIcon.src = heroSrc;
   const weapon = byId<HTMLImageElement>("hud-weapon");
   const weaponSrc = `${TEXTURE_BASE}${state.weapon}.png`;
@@ -40,6 +39,7 @@ export function showHud(state: HudState): void {
   byId("hud-enemies").textContent = `${state.enemies}/${state.enemiesTotal}`;
   byId("hud-time").textContent = formatTime(state.elapsedMs);
   byId("hud-difficulty").style.width = `${Math.round(state.difficulty * 100)}%`;
+  updateTouchControls(state);
 }
 
 export function setHudVisible(visible: boolean): void {

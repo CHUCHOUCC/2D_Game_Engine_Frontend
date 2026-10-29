@@ -24,6 +24,7 @@ import { byId, errorText } from "./ui/dom";
 import { chooseHero } from "./ui/HeroDialog";
 import { HomeScreen, type Destination } from "./ui/HomeScreen";
 import { setHudVisible, showHud } from "./ui/Hud";
+import { initTouchControls, setTouchControlsActive, wantsTouchControls } from "./ui/TouchControls";
 import { IdleTimer } from "./ui/IdleTimer";
 import { Intro } from "./ui/Intro";
 import { Inspector } from "./ui/Inspector";
@@ -90,7 +91,36 @@ const toolbar = new ToolBar((tool) => applyTool(tool));
 const library = new Library((kind) => {
   if (kind !== null) applyTool("brush");
   else if (toolbar.value === "brush") applyTool("select");
+  // On a phone the library is a drawer over the map: close it so the map can be painted.
+  if (kind !== null) closeDocks();
 });
+
+// --- Docks as drawers on narrow screens (phones, small tablets) -------------------------------
+
+const narrow = window.matchMedia("(max-width: 960px)");
+
+function openDock(side: "left" | "right"): void {
+  const app = byId("app");
+  const open = !app.classList.contains(`show-${side}`);
+  closeDocks();
+  if (!open) return;
+  app.classList.add(`show-${side}`);
+  byId(`btn-dock-${side}`).setAttribute("aria-expanded", "true");
+  byId("dock-backdrop").hidden = false;
+}
+
+function closeDocks(): void {
+  const app = byId("app");
+  app.classList.remove("show-left", "show-right");
+  byId("btn-dock-left").setAttribute("aria-expanded", "false");
+  byId("btn-dock-right").setAttribute("aria-expanded", "false");
+  byId("dock-backdrop").hidden = true;
+}
+
+byId("btn-dock-left").addEventListener("click", () => openDock("left"));
+byId("btn-dock-right").addEventListener("click", () => openDock("right"));
+byId("dock-backdrop").addEventListener("click", closeDocks);
+narrow.addEventListener("change", () => closeDocks());
 
 /** Switch tool everywhere: editor, buttons, library highlight and hint. */
 function applyTool(tool: Tool): void {
@@ -136,6 +166,7 @@ const host = new GameHost(
     onNotice: (text) => toast(text, "success", 2200),
   },
 );
+initTouchControls(byId("game").parentElement!, () => host.quitPlay());
 
 function placeObject(kind: Kind, x: number, y: number): void {
   if (projectId === null) {
@@ -342,12 +373,18 @@ async function play(): Promise<void> {
 
 function setPlaying(value: boolean): void {
   playing = value;
+  if (value) closeDocks();
   byId("app").classList.toggle("is-playing", value);
   byId("btn-play").hidden = value;
   byId("btn-stop").hidden = !value;
   setHudVisible(value);
+  setTouchControlsActive(value);
   refreshEmptyState();
-  setStatus(value ? "Jugando: WASD para moverte, Espacio para atacar, Shift para esquivar." : "Editando.");
+  setStatus(value
+    ? wantsTouchControls()
+      ? "Jugando: joystick para moverte, Atacar y Saltar a la derecha."
+      : "Jugando: WASD para moverte, Espacio para atacar, Shift para saltar y esquivar."
+    : "Editando.");
 }
 
 async function runFinished(result: RunResultDto): Promise<void> {

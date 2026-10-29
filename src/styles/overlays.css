@@ -86,3 +86,9 @@
 .activity { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
 .activity li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: var(--radius-sm); background: var(--panel-2); }
 .activity small { color: var(--text-muted); white-space: nowrap; }
+
+/* While playing on a phone the toasts go to the top, away from the buttons. */
+html.is-touch-play .toasts { top: calc(max(10px, env(safe-area-inset-top)) + 110px); bottom: auto; left: 50%; right: auto; transform: translateX(-50%); align-items: center; }
+@media (max-width: 640px) {
+  .toasts { left: 12px; right: 12px; bottom: calc(40px + env(safe-area-inset-bottom)); align-items: center; }
+}

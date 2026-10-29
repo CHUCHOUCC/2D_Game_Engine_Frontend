@@ -8,13 +8,15 @@ import {
   type EnemyStats, type Hero, type ProjectileSpec, type Weapon, type WeaponId,
 } from "./combat";
 import { loadSounds, playEffect, playJingle } from "./audio";
+import { touch } from "./touchInput";
 import { approach, fanAngles, launch, screenAngle, step, type Flight } from "./projectiles";
 import { RunTracker } from "./RunTracker";
 import { bob, KIND_TEXTURE, loadTextures } from "./textures";
 
 export const INVULNERABLE_MS = 1000;
-export const DASH_SPEED = 520;
-export const DASH_MS = 160;
+export const DASH_SPEED = 470;
+/** The jump (dash): a quick hop forward, untouchable while in the air. */
+export const DASH_MS = 210;
 export const DASH_COOLDOWN_MS = 900;
 const DEFAULT_SPAWN = { x: 64, y: WORLD_HEIGHT / 2 };
 const SWING_MS = 170;
@@ -85,10 +87,14 @@ export interface HudState {
   elapsedMs: number;
   difficulty: number;
   hero: string;
+  /** Texture of the hero (its portrait in the HUD). */
+  heroTexture: string;
   weapon: WeaponId;
   /** 0..1: how ready the weapon and the dash are. */
   attackReady: number;
   dashReady: number;
+  /** 0..1 while an attack is being prepared (how far the bow is drawn); 0 otherwise. */
+  charge: number;
 }
 
 export interface PlayHooks {
@@ -165,6 +171,9 @@ export class PlayScene extends Phaser.Scene {
   private swingUntil = 0;
   private lastHud = 0;
   private nextStepAt = 0;
+  private dashStartedAt = 0;
+  private touchAttackWasHeld = false;
+  private playerShadow!: Phaser.GameObjects.Image;
   private stepIndex = 0;
   private finished = false;
 
@@ -189,6 +198,8 @@ export class PlayScene extends Phaser.Scene {
     this.windup = null;
     this.shots = [];
     this.waterTiles = new Set();
+    this.touchAttackWasHeld = false;
+    this.dashStartedAt = 0;
     this.bossSeen = false;
     this.lungeUntil = 0;
   }
@@ -321,6 +332,7 @@ export class PlayScene extends Phaser.Scene {
 
   private createPlayer(spawn: { x: number; y: number }): void {
     this.player = this.physics.add.sprite(spawn.x, spawn.y, this.hero.texture);
+    this.playerShadow = this.add.image(spawn.x, spawn.y + 13, "shadow").setDepth(-1).setScale(2.4, 2).setAlpha(0.55);
     this.player.setCollideWorldBounds(true).setDepth(spawn.y / WORLD_HEIGHT);
     (this.player.body as Body).setSize(18, 20).setOffset(7, 11);
     this.held = this.add.image(spawn.x, spawn.y, this.weapon.id).setOrigin(0.5, 0.85).setScale(0.7);
@@ -399,7 +411,9 @@ export class PlayScene extends Phaser.Scene {
     camera.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     const zoomFor = () => {
       const fit = Math.min(this.scale.width / WORLD_WIDTH, this.scale.height / WORLD_HEIGHT);
-      return Math.max(fit, Math.min(2, this.scale.height / 420));
+      // On a phone the short side decides, so portrait and landscape both show a fair piece of the map.
+      const near = touch.enabled ? Math.min(this.scale.width, this.scale.height) / 330 : this.scale.height / 420;
+      return Math.max(fit, Math.min(2, near));
     };
     camera.setZoom(zoomFor());
     camera.startFollow(this.player, true, 0.12, 0.12);
@@ -417,11 +431,21 @@ export class PlayScene extends Phaser.Scene {
       return;
     }
     const k = this.keys;
-    const x = (k.right.isDown || k.d.isDown ? 1 : 0) - (k.left.isDown || k.a.isDown ? 1 : 0);
-    const y = (k.down.isDown || k.s.isDown ? 1 : 0) - (k.up.isDown || k.w.isDown ? 1 : 0);
-    const length = Math.hypot(x, y) || 1;
+    let x = (k.right.isDown || k.d.isDown ? 1 : 0) - (k.left.isDown || k.a.isDown ? 1 : 0);
+    let y = (k.down.isDown || k.s.isDown ? 1 : 0) - (k.up.isDown || k.w.isDown ? 1 : 0);
+    let length = Math.hypot(x, y) || 1;
+    // The on-screen joystick is analog: a light push walks slowly.
+    let throttle = 1;
+    if (touch.enabled && x === 0 && y === 0 && (touch.x !== 0 || touch.y !== 0)) {
+      x = touch.x;
+      y = touch.y;
+      length = Math.hypot(x, y) || 1;
+      throttle = Math.max(0.35, Math.min(1, length));
+    }
     if (x !== 0 || y !== 0) this.facing = Math.atan2(y, x);
-    if (Phaser.Input.Keyboard.JustDown(k.shift)) this.dash(time);
+    const jumpTapped = touch.enabled && touch.jumpQueued;
+    if (jumpTapped) touch.jumpQueued = false;
+    if (Phaser.Input.Keyboard.JustDown(k.shift) || jumpTapped) this.dash(time);
     const body = this.player.body as Body;
     if (time < this.dashUntil) {
       this.player.setVelocity(Math.cos(this.facing) * DASH_SPEED, Math.sin(this.facing) * DASH_SPEED);
@@ -433,14 +457,14 @@ export class PlayScene extends Phaser.Scene {
       // Walking has some weight: the hero speeds up and slows down over a few frames.
       // While knocked back the player cannot steer, so the push is visible.
       const slow = this.windup && !this.windup.released ? AIMING_SPEED : 1;
-      const speed = this.hero.speed * slow;
+      const speed = this.hero.speed * slow * throttle;
       body.setVelocity(
         approach(body.velocity.x, (x / length) * speed, this.hero.agility, dt),
         approach(body.velocity.y, (y / length) * speed, this.hero.agility, dt),
       );
     }
     if (this.windup) this.player.setFlipX(Math.cos(this.windup.aim) < 0);
-    else if (x !== 0) this.player.setFlipX(x < 0);
+    else if (Math.abs(x) > 0.15) this.player.setFlipX(x < 0);
     // Walking: a small hop on every step; standing: a slow breath.
     const moving = x !== 0 || y !== 0;
     if (moving && time >= this.nextStepAt && time >= this.dashUntil) {
@@ -455,10 +479,17 @@ export class PlayScene extends Phaser.Scene {
     } else {
       this.player.setScale(1, moving ? 1 - 0.06 * Math.abs(Math.sin(time / 70)) : 1 - 0.03 * Math.sin(time / 300));
     }
+    // The jump: the hero grows as it rises towards the camera and its shadow shrinks on the ground.
+    const air = time < this.dashUntil ? Math.sin(Math.PI * Phaser.Math.Clamp((time - this.dashStartedAt) / DASH_MS, 0, 1)) : 0;
+    if (air > 0) this.player.setScale(1 + 0.32 * air);
+    this.playerShadow.setPosition(this.player.x, this.player.y + 13).setScale(2.4 * (1 - 0.4 * air), 2 * (1 - 0.4 * air)).setAlpha(0.55 - 0.25 * air);
     this.player.setDepth(this.player.y / WORLD_HEIGHT);
     this.player.setAlpha(time < this.invulnerableUntil ? 0.45 + 0.4 * Math.sin(time / 40) : 1);
-    if (Phaser.Input.Keyboard.JustDown(k.space)) this.startAttack(time);
-    this.updateWindup(time, k.space.isDown);
+    // The attack button on screen works like the space bar: press to attack, hold to draw the bow.
+    const touchAttack = touch.enabled && touch.attackHeld;
+    if (Phaser.Input.Keyboard.JustDown(k.space) || (touchAttack && !this.touchAttackWasHeld)) this.startAttack(time);
+    this.touchAttackWasHeld = touchAttack;
+    this.updateWindup(time, k.space.isDown || touchAttack);
     this.placeWeapon(time);
     this.updateShots(time, dt);
     this.drawBar(this.playerBar, this.player, this.tracker.health(), this.tracker.maxHealth(), 30);
@@ -471,8 +502,20 @@ export class PlayScene extends Phaser.Scene {
     if (time < this.nextDashAt) return;
     this.nextDashAt = time + DASH_COOLDOWN_MS;
     this.dashUntil = time + DASH_MS;
+    this.dashStartedAt = time;
+    this.buzz(12);
     this.invulnerableUntil = Math.max(this.invulnerableUntil, time + DASH_MS + 60);
     playEffect(this, "dash", { volume: 0.7 });
+  }
+
+  /** A short vibration on phones (when the browser allows it). */
+  private buzz(ms: number): void {
+    if (!touch.enabled) return;
+    try {
+      navigator.vibrate?.(ms);
+    } catch {
+      // not supported: no matter
+    }
   }
 
   /** A fading blue copy of the hero: the trail of the dash. */
@@ -864,6 +907,7 @@ export class PlayScene extends Phaser.Scene {
     this.player.setVelocity(Math.cos(angle) * 420, Math.sin(angle) * 420);
     this.flash(this.player, 0xff4d6d, 90);
     playEffect(this, "hurt");
+    this.buzz(40);
     this.cameras.main.shake(140, 0.007);
     this.floatText(this.player.x, this.player.y - 20, `-${amount}`, "#ff4d6d");
     if (this.tracker.takeDamage(source, this.player.x, this.player.y, amount)) this.end("lost");
@@ -1257,9 +1301,15 @@ export class PlayScene extends Phaser.Scene {
       elapsedMs: this.tracker.elapsedMs(),
       difficulty: this.difficulty,
       hero: this.hero.name,
+      heroTexture: this.hero.texture,
       weapon: this.weapon.id,
       attackReady: Phaser.Math.Clamp(1 - (this.nextAttackAt - time) / this.weapon.cooldownMs, 0, 1),
       dashReady: Phaser.Math.Clamp(1 - (this.nextDashAt - time) / DASH_COOLDOWN_MS, 0, 1),
+      charge: this.windup && !this.windup.released
+        ? (this.windup.weapon.chargeMs > 0
+          ? Phaser.Math.Clamp((time - this.windup.startedAt) / (this.windup.weapon.windupMs + this.windup.weapon.chargeMs), 0, 1)
+          : Phaser.Math.Clamp((time - this.windup.startedAt) / Math.max(1, this.windup.weapon.windupMs), 0, 1))
+        : 0,
     });
   }
 

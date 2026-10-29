@@ -102,3 +102,32 @@
   .stat-row { grid-template-columns: 52px 1fr 14px; gap: 6px; font-size: 11px; }
   .lifebar { width: 100px; }
 }
+
+/* ---------- HUD and dialogs on phones ---------- */
+@media (max-width: 640px), (max-height: 500px) {
+  .hud { gap: 6px; }
+  .hud-card { gap: 8px; padding: 6px 9px; border-radius: 10px; }
+  .hud-hero > img { width: 28px; }
+  .hud-hero b { font-size: 11px; }
+  .lifebar { width: clamp(84px, 26vw, 150px); height: 10px; }
+  .counter { gap: 4px; font-size: 11px; }
+  .counter img { width: 16px; }
+  .ai-meter { width: 40px; }
+}
+@media (max-width: 360px) {
+  .counter[title="Dificultad de la IA"] { display: none; }
+}
+/* Hero picker on a phone: the buttons stay at hand at the bottom */
+@media (max-width: 640px) {
+  .dialog-heroes .dialog-actions {
+    position: sticky;
+    bottom: -22px;
+    z-index: 2;
+    margin: 0 -22px -22px;
+    padding: 12px 22px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    background: var(--bg-elevated);
+  }
+  .dialog-heroes .dialog-actions .btn { flex: 1 1 0; }
+  .dialog-heroes .hint { font-size: 12px; }
+}
