@@ -67,7 +67,11 @@ Hits flash the target, push it back and show the damage; enemies get faster as t
 Projectiles have a ground position and a height with gravity (`src/game/projectiles.ts`): the shadow carries the physics body and the sprite is drawn above it. The rules live without Phaser in `src/game/combat.ts`, `projectiles.ts`, `RunTracker.ts` and `ScoreCounter.ts` and are
 unit tested.
 
-### Sound
+### Phones and tablets
+
+On a touch screen the game shows on-screen controls instead of keys (`src/ui/TouchControls.ts`, rules in `src/game/touchInput.ts`): a floating joystick that appears under the left thumb (analog: a light push walks slowly), a big **Atacar** button with the current weapon (hold it to draw the bow, a golden ring shows the charge) and a **Saltar** button (the hero hops and is untouchable for a moment), both with their cooldown rings, plus exit and full-screen buttons. The HUD is centred and compact in portrait and landscape, the top and status bars hide while playing, the camera zoom follows the short side of the screen, and the phone vibrates on jumps and hits where the browser allows it. In the editor, the side panels open as drawers (Biblioteca, Panel). Add `?touch=1` to the address to try the touch controls with a mouse.
+
+## Sound
 
 Effects for every attack, hit, pickup, enemy shot and footstep, and a jingle when a run is won or lost, from Kenney's RPG Audio, Impact Sounds, Interface Sounds, Digital Audio and Music Jingles packs (CC0; licences in `assets-src/kenney/audio/`). Each sound is in `public/audio/` as OGG and MP3 (for browsers without OGG). The effects and music sliders in the settings drawer set their volume (`src/game/audio.ts`).
 

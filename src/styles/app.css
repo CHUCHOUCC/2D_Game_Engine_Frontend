@@ -263,3 +263,76 @@
 @keyframes dock-right { from { transform: translateX(18px); opacity: 0; } }
 @keyframes drop { from { transform: translateY(-10px); opacity: 0; } }
 .app.is-playing .stage { animation: enter 0.45s var(--ease) both; }
+
+/* ---------- phones and small tablets ---------- */
+.dock-toggles { display: none; }
+.dock-backdrop { display: none; }
+
+@media (max-width: 960px) {
+  /* The docks become drawers that slide over the map. */
+  .dock-toggles {
+    position: absolute;
+    left: 50%;
+    top: 12px;
+    z-index: 4;
+    display: flex;
+    gap: 6px;
+    padding: 4px;
+    transform: translateX(-50%);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
+    backdrop-filter: blur(8px);
+    box-shadow: var(--shadow);
+  }
+  .dock-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .dock-toggle[aria-expanded="true"] { background: linear-gradient(180deg, var(--accent), var(--accent-strong)); color: #fff; }
+  .app.is-playing .dock-toggles { display: none; }
+  .app .dock {
+    position: fixed;
+    top: var(--topbar-h);
+    bottom: var(--statusbar-h);
+    z-index: 30;
+    width: min(86vw, 340px);
+    visibility: hidden;
+    transition: transform 0.28s var(--ease), visibility 0s linear 0.28s;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+  }
+  .app .dock-left { left: 0; transform: translateX(-104%); }
+  .app .dock-right { right: 0; transform: translateX(104%); }
+  .app.show-left .dock-left, .app.show-right .dock-right { visibility: visible; transform: none; transition: transform 0.28s var(--ease); }
+  .dock-backdrop { position: fixed; inset: var(--topbar-h) 0 var(--statusbar-h); z-index: 29; display: block; background: rgba(3, 6, 13, 0.55); }
+  .dock-backdrop[hidden] { display: none; }
+}
+
+@media (max-width: 640px) {
+  .topbar { gap: 6px; padding: 0 8px; overflow-x: auto; scrollbar-width: none; }
+  .topbar::-webkit-scrollbar { display: none; }
+  .brand-small strong { display: none; }
+  .topbar .spacer { flex: 1 1 0; min-width: 0; }
+  .toolgroup { flex: none; }
+  .tool { min-width: 34px; height: 34px; padding: 0 4px; }
+  .btn-play, .btn-stop { min-width: 0; padding: 0 14px; }
+  .btn-save > span:not(.btn-spinner) { display: none; }
+  .btn-save { padding: 0 10px; }
+  .user .btn-ghost, .user-name { display: none; }
+  .user { padding-left: 6px; }
+  .statusbar { gap: 8px; padding: 0 10px; overflow: hidden; white-space: nowrap; }
+  .statusbar > :not(#status):not(.status-tool) { display: none; }
+  .status { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .viewport-controls { right: 10px; bottom: 10px; }
+}

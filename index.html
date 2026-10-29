@@ -2,7 +2,11 @@
 <html lang="es" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#03060d" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="color-scheme" content="dark light" />
     <title>PixelForge · 2D Game Engine</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
@@ -227,7 +231,8 @@
         </div>
       </header>
 
-      <aside class="dock dock-left" data-tabs>
+      <div id="dock-backdrop" class="dock-backdrop" hidden></div>
+      <aside id="dock-left" class="dock dock-left" data-tabs>
         <nav class="dock-tabs" role="tablist" aria-label="Panel izquierdo">
           <button class="dock-tab is-active" role="tab" aria-selected="true" data-tab="library"><svg class="icon"><use href="#i-library" /></svg>Biblioteca</button>
           <button class="dock-tab" role="tab" aria-selected="false" data-tab="scene"><svg class="icon"><use href="#i-layers" /></svg>Escena</button>
@@ -279,6 +284,11 @@
           </div>
         </div>
 
+        <div class="dock-toggles" role="toolbar" aria-label="Paneles">
+          <button id="btn-dock-left" class="dock-toggle" type="button" aria-controls="dock-left" aria-expanded="false"><svg class="icon"><use href="#i-library" /></svg><span>Biblioteca</span></button>
+          <button id="btn-dock-right" class="dock-toggle" type="button" aria-controls="dock-right" aria-expanded="false"><svg class="icon"><use href="#i-sliders" /></svg><span>Panel</span></button>
+        </div>
+
         <div class="viewport-controls" role="toolbar" aria-label="Vista">
           <button id="zoom-out" class="tool" title="Alejar" aria-label="Alejar">−</button>
           <button id="zoom-fit" class="tool zoom-value" title="Ajustar a la pantalla"><span id="zoom-value">100%</span></button>
@@ -295,7 +305,7 @@
               <div class="lifebar" title="Vida"><b id="hud-life"></b><span id="hud-life-text">6/6</span></div>
             </div>
             <div class="slot" title="Arma (Espacio)"><img id="hud-weapon" src="/textures/sword.png" alt="" /><i id="hud-cooldown" class="cooldown"></i><span>ESPACIO</span></div>
-            <div class="slot slot-dash" title="Esquivar (Shift)"><span class="dash-icon" aria-hidden="true">»</span><i id="hud-dash" class="cooldown"></i><span>SHIFT</span></div>
+            <div class="slot slot-dash" title="Saltar y esquivar (Shift)"><span class="dash-icon" aria-hidden="true">»</span><i id="hud-dash" class="cooldown"></i><span>SHIFT</span></div>
           </div>
           <div class="hud-card">
             <span class="counter" title="Puntos">⭐ <strong id="hud-score">0</strong></span>
@@ -305,10 +315,10 @@
             <span class="counter" title="Dificultad de la IA">IA <span class="ai-meter"><span id="hud-difficulty"></span></span></span>
           </div>
         </div>
-        <div id="hud-help" class="hud-help" hidden><kbd>WASD</kbd> mover · <kbd>Espacio</kbd> atacar · <kbd>Shift</kbd> esquivar · toca los cofres · <kbd>Esc</kbd> salir</div>
+        <div id="hud-help" class="hud-help" hidden><kbd>WASD</kbd> mover · <kbd>Espacio</kbd> atacar · <kbd>Shift</kbd> saltar · toca los cofres · <kbd>Esc</kbd> salir</div>
       </main>
 
-      <aside class="dock dock-right" data-tabs>
+      <aside id="dock-right" class="dock dock-right" data-tabs>
         <nav class="dock-tabs" role="tablist" aria-label="Panel derecho">
           <button class="dock-tab is-active" role="tab" aria-selected="true" data-tab="inspector"><svg class="icon"><use href="#i-sliders" /></svg>Inspector</button>
           <button class="dock-tab" role="tab" aria-selected="false" data-tab="ai"><svg class="icon"><use href="#i-spark" /></svg>IA</button>
@@ -468,7 +478,7 @@
           <p class="hint">Cada héroe empieza con su arma. Durante la partida puedes cambiarla recogiendo otra del suelo o de un cofre.</p>
         </div>
         <div id="hero-list" class="heroes" role="radiogroup" aria-label="Héroes"></div>
-        <p class="hint">Todos: <kbd>WASD</kbd> o flechas para moverse, <kbd>Shift</kbd> para esquivar, <kbd>Espacio</kbd> para atacar (mantenlo pulsado para tensar más el arco).</p>
+        <p class="hint">Todos: <kbd>WASD</kbd> o flechas para moverse, <kbd>Shift</kbd> para saltar y esquivar, <kbd>Espacio</kbd> para atacar (mantenlo pulsado para tensar más el arco). En el teléfono: joystick y botones en pantalla.</p>
         <div class="dialog-actions">
           <button class="btn" value="cancel" formnovalidate>Cancelar</button>
           <button id="hero-go" class="btn btn-forge" value="play">Jugar con este héroe ›</button>
