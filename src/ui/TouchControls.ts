@@ -129,7 +129,11 @@ function bindStick(zone: HTMLElement, stick: HTMLElement, knob: HTMLElement): vo
     if (pointer !== null) return;
     event.preventDefault();
     pointer = event.pointerId;
-    zone.setPointerCapture(event.pointerId);
+    try {
+      zone.setPointerCapture(event.pointerId);
+    } catch {
+      // the stick still follows the finger inside the zone
+    }
     const box = zone.getBoundingClientRect();
     originX = event.clientX;
     originY = event.clientY;
@@ -152,7 +156,11 @@ function bindButton(button: HTMLElement, down: () => void, up?: () => void): voi
   button.addEventListener("pointerdown", (event) => {
     event.preventDefault();
     pointer = event.pointerId;
-    button.setPointerCapture(event.pointerId);
+    try {
+      button.setPointerCapture(event.pointerId);
+    } catch {
+      // not capturable: the button still works
+    }
     button.classList.add("is-down");
     down();
   });

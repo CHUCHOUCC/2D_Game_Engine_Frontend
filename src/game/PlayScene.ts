@@ -668,7 +668,7 @@ export class PlayScene extends Phaser.Scene {
           this.cameras.main.shake(300, 0.012);
           this.floatText(enemy.x, enemy.y - 50, "¡JEFE!", "#ff6b6b");
           playEffect(this, "boss", { vary: false });
-          this.hooks.onNotice?.(`¡Cuidado! ${stats.name}: esquiva sus bolas de fuego con Shift`);
+          this.hooks.onNotice?.(`¡Cuidado! ${stats.name}: salta para esquivar sus bolas de fuego (${touch.enabled ? "botón Saltar" : "Shift"})`);
         }
         if (stats.attack && time >= (enemy.getData("nextShotAt") as number) && distance < stats.attack.range) {
           enemy.setData("aimUntil", time + stats.attack.windupMs);

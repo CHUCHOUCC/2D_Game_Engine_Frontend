@@ -85,6 +85,7 @@ export class EditorScene extends Phaser.Scene {
     const camera = this.cameras.main;
     camera.setZoom(Phaser.Math.Clamp(fitZoom(this.scale.width, this.scale.height), MIN_ZOOM, MAX_ZOOM));
     camera.centerOn(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
+    this.drawGrid();
     this.events_.onZoom(camera.zoom);
   }
 
@@ -96,6 +97,7 @@ export class EditorScene extends Phaser.Scene {
     const after = camera.getWorldPoint(screenX, screenY);
     camera.scrollX += before.x - after.x;
     camera.scrollY += before.y - after.y;
+    this.drawGrid();
     this.events_.onZoom(camera.zoom);
   }
 
@@ -229,10 +231,15 @@ export class EditorScene extends Phaser.Scene {
   }
 
   private drawGrid(): void {
+    if (this.grid === undefined) return;
     this.grid.clear();
     if (!this.options.showGrid) return;
-    const size = this.options.gridSize;
-    this.grid.lineStyle(1, 0x000000, 0.18);
+    // Zoomed far out (a phone showing the whole world) the lines would blur into stripes:
+    // keep them about one screen pixel wide and skip some until they are at least 6 px apart.
+    const zoom = this.cameras.main.zoom || 1;
+    let size = this.options.gridSize;
+    while (size * zoom < 6) size *= 2;
+    this.grid.lineStyle(Math.max(1, 1 / zoom), 0x000000, zoom < 0.5 ? 0.1 : 0.18);
     for (let x = size; x < WORLD_WIDTH; x += size) this.grid.lineBetween(x, 0, x, WORLD_HEIGHT);
     for (let y = size; y < WORLD_HEIGHT; y += size) this.grid.lineBetween(0, y, WORLD_WIDTH, y);
   }

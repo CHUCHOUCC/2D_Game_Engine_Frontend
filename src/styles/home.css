@@ -140,8 +140,20 @@
 @media (max-width: 680px) {
   .menu { grid-template-columns: 1fr; }
   .kpis { margin-left: 0; }
-  .topnav-tabs { width: 100%; margin-left: 0; }
-  .nav-tab { padding: 6px 9px; letter-spacing: 0.1em; }
-  .userchip { border-left: 0; padding-left: 0; }
+  /* Brand and user on the first row, the sections on one centred row below (scrolls if it must). */
+  .topnav { gap: 8px 12px; }
+  .userchip { order: 1; margin-left: auto; border-left: 0; padding-left: 0; }
+  .topnav-tabs {
+    order: 2;
+    flex-wrap: nowrap;
+    justify-content: safe center;
+    width: 100%;
+    margin: 0 -4px;
+    padding: 2px 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .topnav-tabs::-webkit-scrollbar { display: none; }
+  .nav-tab { flex: none; padding: 7px 10px; letter-spacing: 0.1em; }
   .recent-row { grid-template-columns: auto minmax(0, 1fr); }
 }

@@ -325,12 +325,13 @@
   .brand-small strong { display: none; }
   .topbar .spacer { flex: 1 1 0; min-width: 0; }
   .toolgroup { flex: none; }
-  .tool { min-width: 34px; height: 34px; padding: 0 4px; }
-  .btn-play, .btn-stop { min-width: 0; padding: 0 14px; }
+  .tool { min-width: 32px; height: 34px; padding: 0 4px; }
+  .btn-play, .btn-stop { min-width: 0; padding: 0 12px; }
   .btn-save > span:not(.btn-spinner) { display: none; }
   .btn-save { padding: 0 10px; }
-  .user .btn-ghost, .user-name { display: none; }
-  .user { padding-left: 6px; }
+  /* On a phone the account lives on the home screen; the editor bar keeps the work tools. */
+  .topbar .user { display: none; }
+  .gear { flex: none; }
   .statusbar { gap: 8px; padding: 0 10px; overflow: hidden; white-space: nowrap; }
   .statusbar > :not(#status):not(.status-tool) { display: none; }
   .status { min-width: 0; overflow: hidden; text-overflow: ellipsis; }

@@ -257,3 +257,9 @@ html.is-touch-play #hud-hero { display: none; }
   html.is-touch-play .lifebar { width: 96px; }
   html.is-touch-play .hud-card { gap: 7px; padding: 6px 8px; }
 }
+
+/* Notices go just under the HUD, never over it or over the buttons. */
+html.is-touch-play .toasts { top: calc(max(10px, env(safe-area-inset-top)) + 62px); width: min(92vw, 420px); }
+@media (orientation: portrait) and (max-width: 640px) {
+  html.is-touch-play .toasts { top: calc(max(10px, env(safe-area-inset-top)) + 158px); }
+}
