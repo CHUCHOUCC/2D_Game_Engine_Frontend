@@ -10,7 +10,7 @@ export type HeroId = "knight" | "wizard" | "archer" | "barbarian" | "rogue" | "v
 /** How a thrown or shot thing flies (see projectiles.ts for the physics). */
 export interface ProjectileSpec {
   /** Texture key of the projectile. */
-  texture: "arrow" | "orb" | "dagger-flying" | "spark";
+  texture: "arrow" | "orb" | "dagger-flying" | "spark" | "fireball";
   /** Launch speed along the ground, in px/s (at full charge for the bow). */
   speed: number;
   /** Pull towards the ground, px/s²: arrows and daggers fly in a low arc; magic floats. */
@@ -121,10 +121,32 @@ export interface EnemyStats {
   points: number;
   /** Flies over walls (bats) or floats through them (ghosts). */
   passesWalls: boolean;
-  /** How it moves towards the player. */
-  behavior: "chase" | "zigzag" | "flutter" | "drift";
+  /**
+   * How it moves: chase, zigzag, flutter and drift go for the player; ranged
+   * keeps its distance and shoots; ambush waits disguised as a chest; boss
+   * mixes chasing with volleys and rings of fire.
+   */
+  behavior: "chase" | "zigzag" | "flutter" | "drift" | "ranged" | "ambush" | "boss";
   scale: number;
+  /** What it shoots, for ranged enemies and bosses. */
+  attack?: EnemyAttack;
 }
+
+/** A ranged enemy's attack: it stops, telegraphs it for `windupMs`, then shoots. */
+export interface EnemyAttack {
+  projectile: ProjectileSpec;
+  /** How far it shoots and the distance it tries to keep from the player. */
+  range: number;
+  keepAway: number;
+  cooldownMs: number;
+  windupMs: number;
+  /** Tint of the projectile, so enemy shots never look like the player's. */
+  tint: number;
+}
+
+const DARK_ARROW: ProjectileSpec = { ...ARROW, speed: 430, gravity: 200, color: 0xff6b6b };
+const CURSED_ORB: ProjectileSpec = { texture: "orb", speed: 170, gravity: 0, height: 16, count: 3, fanDeg: 18, spin: 0, pierce: 0, bounces: 0, splash: 0, accel: 120, color: 0x9dff7a };
+const FIREBALL: ProjectileSpec = { texture: "fireball", speed: 210, gravity: 0, height: 20, count: 3, fanDeg: 14, spin: 0, pierce: 0, bounces: 0, splash: 0, accel: 60, color: 0xff9a3c };
 
 export const ENEMIES: Partial<Record<Kind, EnemyStats>> = {
   enemy: { name: "Slime", texture: "enemy-slime", health: 3, speed: 70, damage: 1, points: 5, passesWalls: false, behavior: "chase", scale: 1 },
@@ -132,7 +154,44 @@ export const ENEMIES: Partial<Record<Kind, EnemyStats>> = {
   spider: { name: "Araña", texture: "spider", health: 2, speed: 115, damage: 1, points: 4, passesWalls: false, behavior: "zigzag", scale: 1 },
   ghost: { name: "Fantasma", texture: "ghost", health: 3, speed: 55, damage: 1, points: 6, passesWalls: true, behavior: "drift", scale: 1 },
   brute: { name: "Ogro", texture: "brute", health: 8, speed: 45, damage: 2, points: 15, passesWalls: false, behavior: "chase", scale: 1.3 },
+  rat: { name: "Rata", texture: "rat", health: 1, speed: 150, damage: 1, points: 2, passesWalls: false, behavior: "zigzag", scale: 0.85 },
+  mimic: { name: "Mímico", texture: "mimic", health: 5, speed: 140, damage: 2, points: 8, passesWalls: false, behavior: "ambush", scale: 1 },
+  marksman: {
+    name: "Arquero oscuro", texture: "marksman", health: 3, speed: 75, damage: 1, points: 7, passesWalls: false, behavior: "ranged", scale: 1,
+    attack: { projectile: DARK_ARROW, range: 360, keepAway: 210, cooldownMs: 1800, windupMs: 480, tint: 0xff6b6b },
+  },
+  necromancer: {
+    name: "Nigromante", texture: "necromancer", health: 4, speed: 55, damage: 1, points: 9, passesWalls: false, behavior: "ranged", scale: 1,
+    attack: { projectile: CURSED_ORB, range: 320, keepAway: 180, cooldownMs: 2400, windupMs: 700, tint: 0x9dff7a },
+  },
+  demon: {
+    name: "Demonio", texture: "demon", health: 30, speed: 55, damage: 2, points: 40, passesWalls: false, behavior: "boss", scale: 2,
+    attack: { projectile: FIREBALL, range: 420, keepAway: 0, cooldownMs: 2600, windupMs: 650, tint: 0xffffff },
+  },
 };
+
+/** Ring of `count` angles all around, for the boss's ring of fire. */
+export function ringAngles(count: number, offset = 0): number[] {
+  return Array.from({ length: count }, (_, i) => offset + (i / count) * Math.PI * 2);
+}
+
+/**
+ * Where a ranged enemy wants to move: away when the player is too close, closer
+ * when too far, and sideways (strafing) in between. Returns -1, 0 or 1 for
+ * "away", "sideways" and "closer".
+ */
+export function rangedIntent(distance: number, keepAway: number): -1 | 0 | 1 {
+  if (distance < keepAway - 50) return -1;
+  if (distance > keepAway + 70) return 1;
+  return 0;
+}
+
+/** Aim a shot at where a target moving at (vx, vy) will be when the shot arrives. */
+export function leadAngle(fromX: number, fromY: number, x: number, y: number, vx: number, vy: number, speed: number): number {
+  const time = Math.hypot(x - fromX, y - fromY) / Math.max(1, speed);
+  const lead = Math.min(time, 0.6) * 0.7; // only partly: the player can still dodge
+  return Math.atan2(y + vy * lead - fromY, x + vx * lead - fromX);
+}
 
 export function enemyStats(kind: Kind): EnemyStats {
   return ENEMIES[kind] ?? ENEMIES.enemy!;

@@ -1,4 +1,5 @@
 import { getSettings, saveSettings, type SettingsDto } from "../api/client";
+import { setVolumes } from "../game/audio";
 import { byId } from "./dom";
 import { applyTheme, storedTheme } from "./theme";
 import { toast } from "./toast";
@@ -72,6 +73,7 @@ export class SettingsPanel {
   private update(change: Partial<SettingsDto>): void {
     this.settings = { ...this.settings, ...change };
     applyTheme(this.settings.theme);
+    setVolumes(this.settings.sfx_volume, this.settings.music_volume);
     this.render();
     this.onChange(this.settings);
     window.clearTimeout(this.saveTimer);
@@ -87,6 +89,7 @@ export class SettingsPanel {
       // keep the local defaults if the backend is unreachable
     }
     applyTheme(this.settings.theme);
+    setVolumes(this.settings.sfx_volume, this.settings.music_volume);
     this.onChange(this.settings);
     return this.settings;
   }

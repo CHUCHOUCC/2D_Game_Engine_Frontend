@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { ENEMY_KINDS } from "../model/GameObject";
-import { aimAngle, chargePower, distanceToSegment, enemyStats, healthColor, heroById, HEROES, inSwing, LOOT, rollLoot, speedFor, WEAPONS } from "./combat";
+import {
+  aimAngle, chargePower, distanceToSegment, ENEMIES, enemyStats, healthColor, heroById, HEROES, inSwing, leadAngle, LOOT, rangedIntent,
+  ringAngles, rollLoot, speedFor, WEAPONS,
+} from "./combat";
 
 describe("heroes and weapons", () => {
   it("each hero carries a weapon that exists", () => {
@@ -92,5 +95,41 @@ describe("hit tests", () => {
     expect(healthColor(1)).toBe(0x33e0a1);
     expect(healthColor(0.5)).toBe(0xffc547);
     expect(healthColor(0.1)).toBe(0xff4d6d);
+  });
+});
+
+describe("enemies that shoot", () => {
+  it("every enemy kind has its own stats, and shooters have an attack", () => {
+    for (const kind of ENEMY_KINDS) {
+      const stats = ENEMIES[kind];
+      expect(stats).toBeDefined();
+      if (stats!.behavior === "ranged" || stats!.behavior === "boss") expect(stats!.attack).toBeDefined();
+    }
+  });
+
+  it("the demon is the boss: by far the most health and points", () => {
+    const demon = enemyStats("demon");
+    expect(demon.behavior).toBe("boss");
+    for (const kind of ENEMY_KINDS) if (kind !== "demon") expect(enemyStats(kind).health).toBeLessThan(demon.health);
+  });
+
+  it("a ranged enemy backs off, strafes or closes in to keep its distance", () => {
+    expect(rangedIntent(100, 210)).toBe(-1);
+    expect(rangedIntent(210, 210)).toBe(0);
+    expect(rangedIntent(400, 210)).toBe(1);
+  });
+
+  it("enemy shots lead a moving player, but only partly", () => {
+    const still = leadAngle(0, 0, 100, 0, 0, 0, 400);
+    expect(still).toBeCloseTo(0);
+    const moving = leadAngle(0, 0, 100, 0, 0, 200, 400);
+    expect(moving).toBeGreaterThan(0);
+    expect(moving).toBeLessThan(Math.atan2(200 * 0.25, 100) + 0.001);
+  });
+
+  it("a ring of fire covers every direction evenly", () => {
+    const ring = ringAngles(4);
+    expect(ring).toHaveLength(4);
+    expect(ring[1] - ring[0]).toBeCloseTo(Math.PI / 2);
   });
 });

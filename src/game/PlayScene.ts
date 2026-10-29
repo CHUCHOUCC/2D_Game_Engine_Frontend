@@ -3,9 +3,11 @@ import type { RunResultDto } from "../api/client";
 import { isCharacter, isEnemy, isGround, isWeapon, WORLD_HEIGHT, WORLD_WIDTH, type GameObject, type Kind } from "../model/GameObject";
 import type { SceneModel } from "../model/SceneModel";
 import {
-  aimAngle, chargePower, enemyStats, healthColor, heroById, inSwing, POTION_HEAL, rollLoot, speedFor, WEAPONS,
+  aimAngle, chargePower, enemyStats, healthColor, heroById, inSwing, leadAngle, POTION_HEAL, rangedIntent, ringAngles,
+  rollLoot, speedFor, WEAPONS,
   type EnemyStats, type Hero, type ProjectileSpec, type Weapon, type WeaponId,
 } from "./combat";
+import { loadSounds, playEffect, playJingle } from "./audio";
 import { approach, fanAngles, launch, screenAngle, step, type Flight } from "./projectiles";
 import { RunTracker } from "./RunTracker";
 import { bob, KIND_TEXTURE, loadTextures } from "./textures";
@@ -47,7 +49,29 @@ interface Shot {
   bouncesLeft: number;
   hit: Set<Sprite>;
   trailAt: number;
+  /** Shot by an enemy: it hurts the player instead of the enemies. */
+  hostile: boolean;
+  /** Who shot it (the damage source the run records). */
+  source: string;
 }
+
+/** Everything spawnProjectile needs to know. */
+interface Launch {
+  spec: ProjectileSpec;
+  x: number;
+  y: number;
+  angle: number;
+  range: number;
+  power: number;
+  damage: number;
+  knockback: number;
+  hostile: boolean;
+  source: string;
+  tint?: number;
+}
+
+const TILE = 32;
+const tileKey = (x: number, y: number) => `${Math.floor(x / TILE)},${Math.floor(y / TILE)}`;
 
 /** What the HUD shows; sent to the page a few times per second. */
 export interface HudState {
@@ -85,7 +109,10 @@ const BUBBLE_MS = 2800;
 type Body = Phaser.Physics.Arcade.Body;
 type Sprite = Phaser.Physics.Arcade.Sprite;
 
-const ITEM_NAMES: Partial<Record<Kind, string>> = { sword: "una espada", axe: "un hacha", wand: "una varita", bow: "un arco", potion: "una poción" };
+const ITEM_NAMES: Partial<Record<Kind, string>> = {
+  sword: "una espada", axe: "un hacha", wand: "una varita", bow: "un arco", potion: "una poción",
+  dagger: "unas dagas", hammer: "un martillo", spear: "una lanza", staff: "un báculo",
+};
 
 /**
  * Plays the edited scene with Arcade Physics.
@@ -109,6 +136,10 @@ export class PlayScene extends Phaser.Scene {
   private held!: Phaser.GameObjects.Image;
   private playerBar!: Phaser.GameObjects.Graphics;
   private solids!: Phaser.Physics.Arcade.StaticGroup;
+  /** Water blocks walking (not flying, not projectiles). */
+  private water!: Phaser.Physics.Arcade.StaticGroup;
+  private waterTiles = new Set<string>();
+  private bossSeen = false;
   private spikes!: Phaser.Physics.Arcade.StaticGroup;
   private coins!: Phaser.Physics.Arcade.StaticGroup;
   private chests!: Phaser.Physics.Arcade.StaticGroup;
@@ -133,6 +164,8 @@ export class PlayScene extends Phaser.Scene {
   private nextDashAt = 0;
   private swingUntil = 0;
   private lastHud = 0;
+  private nextStepAt = 0;
+  private stepIndex = 0;
   private finished = false;
 
   constructor(model: SceneModel, hooks: PlayHooks) {
@@ -155,16 +188,20 @@ export class PlayScene extends Phaser.Scene {
     this.swingUntil = 0;
     this.windup = null;
     this.shots = [];
+    this.waterTiles = new Set();
+    this.bossSeen = false;
     this.lungeUntil = 0;
   }
 
   preload(): void {
     loadTextures(this);
+    loadSounds(this);
   }
 
   create(): void {
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     this.add.tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, "grass").setDepth(-10);
+    this.water = this.physics.add.staticGroup();
     this.solids = this.physics.add.staticGroup();
     this.spikes = this.physics.add.staticGroup();
     this.coins = this.physics.add.staticGroup();
@@ -179,6 +216,10 @@ export class PlayScene extends Phaser.Scene {
     for (const object of this.model) scene.push({ ...object });
     this.tracker = new RunTracker(scene, undefined, this.hero.maxHealth);
     for (const object of scene) this.spawn(object);
+    // The water glitters: every tile breathes a little, out of step with its neighbours.
+    for (const child of this.water.getChildren()) {
+      this.tweens.add({ targets: child, alpha: 0.82, duration: 1300, yoyo: true, repeat: -1, ease: "Sine.easeInOut", delay: Math.random() * 1300 });
+    }
     this.createPlayer(scene.find((o) => o.kind === "player") ?? DEFAULT_SPAWN);
     this.addColliders();
     this.setupKeys();
@@ -190,7 +231,13 @@ export class PlayScene extends Phaser.Scene {
     const depth = object.y / WORLD_HEIGHT;
     const key = KIND_TEXTURE[object.kind].key;
     if (isGround(object.kind)) {
-      this.add.image(object.x, object.y, key).setDepth(-5); // roads: under everything, no body
+      // Roads, sand and bridges: under everything, no body. Bridges go over the water.
+      this.add.image(object.x, object.y, key).setDepth(object.kind === "bridge" ? -4 : -5);
+      return;
+    }
+    if (object.kind === "water") {
+      this.water.create(object.x, object.y, key).setDepth(-6);
+      this.waterTiles.add(tileKey(object.x, object.y));
       return;
     }
     if (isEnemy(object.kind)) {
@@ -246,13 +293,22 @@ export class PlayScene extends Phaser.Scene {
   private spawnEnemy(kind: Kind, x: number, y: number): void {
     const stats = enemyStats(kind);
     const enemy = this.enemies.create(x, y, stats.texture) as Sprite;
-    enemy.setDepth(y / WORLD_HEIGHT).setBounce(0.2).setCollideWorldBounds(true).setMass(kind === "brute" ? 4 : 1.5).setScale(stats.scale);
+    const mass = { brute: 4, demon: 12 }[kind as string] ?? 1.5;
+    enemy.setDepth(y / WORLD_HEIGHT).setBounce(0.2).setCollideWorldBounds(true).setMass(mass).setScale(stats.scale);
     (enemy.body as Body).setSize(22, 20).setOffset(5, 10);
     enemy.setData("kind", kind);
     enemy.setData("stats", stats);
     enemy.setData("hp", stats.health);
     enemy.setData("phase", Math.random() * Math.PI * 2);
     enemy.setData("bar", this.add.graphics().setDepth(35));
+    enemy.setData("aim", this.add.graphics().setDepth(34));
+    enemy.setData("nextShotAt", this.time.now + 900 + Math.random() * 900);
+    enemy.setData("volleys", 0);
+    if (stats.behavior === "ambush") {
+      // A mimic sleeps disguised as a chest until the player comes close.
+      enemy.setTexture("chest").setData("awake", false);
+      (enemy.body as Body).setImmovable(true);
+    }
   }
 
   private spawnItem(kind: Kind, x: number, y: number, float = true): Sprite {
@@ -286,6 +342,10 @@ export class PlayScene extends Phaser.Scene {
     physics.collider(this.enemies, this.boxes, undefined, blocksEnemy);
     physics.collider(this.enemies, this.chests, undefined, blocksEnemy);
     physics.collider(this.enemies, this.enemies);
+    physics.collider(this.player, this.water);
+    physics.collider(this.boxes, this.water);
+    physics.collider(this.characters, this.water);
+    physics.collider(this.enemies, this.water, undefined, blocksEnemy);
     // 2D characters are solid people: nobody walks through them, they cannot be pushed.
     physics.collider(this.characters, this.solids);
     physics.collider(this.characters, this.boxes);
@@ -303,12 +363,14 @@ export class PlayScene extends Phaser.Scene {
       this.shotHitWall(shadow as Sprite);
     });
     physics.overlap(this.arrows, this.enemies, (shadow, enemy) => this.shotHitEnemy(shadow as Sprite, enemy as Sprite));
+    physics.overlap(this.player, this.arrows, (_player, shadow) => this.shotHitPlayer(shadow as Sprite));
     physics.overlap(this.player, this.coins, (_player, coin) => this.collect(coin as Sprite));
     physics.overlap(this.player, this.items, (_player, item) => this.pickUp(item as Sprite));
     physics.overlap(this.player, this.spikes, (_player, spike) => this.hurt("spike", spike as Sprite, 1));
     physics.overlap(this.player, this.enemies, (_player, enemy) => {
       const e = enemy as Sprite;
       if (!e.body?.enable) return;
+      if (e.getData("awake") === false) return this.wake(e); // a sleeping mimic bites when touched
       this.hurt(e.getData("kind") as string, e, (e.getData("stats") as EnemyStats).damage);
     });
   }
@@ -381,6 +443,11 @@ export class PlayScene extends Phaser.Scene {
     else if (x !== 0) this.player.setFlipX(x < 0);
     // Walking: a small hop on every step; standing: a slow breath.
     const moving = x !== 0 || y !== 0;
+    if (moving && time >= this.nextStepAt && time >= this.dashUntil) {
+      this.nextStepAt = time + 290;
+      this.stepIndex = (this.stepIndex + 1) % 3;
+      playEffect(this, `step-${this.stepIndex}` as "step-0", { volume: 0.25 });
+    }
     if (this.windup && !this.windup.released) {
       // Getting ready: the hero leans back and tenses up.
       const t = Phaser.Math.Clamp((time - this.windup.startedAt) / Math.max(1, this.windup.weapon.windupMs), 0, 1);
@@ -405,6 +472,7 @@ export class PlayScene extends Phaser.Scene {
     this.nextDashAt = time + DASH_COOLDOWN_MS;
     this.dashUntil = time + DASH_MS;
     this.invulnerableUntil = Math.max(this.invulnerableUntil, time + DASH_MS + 60);
+    playEffect(this, "dash", { volume: 0.7 });
   }
 
   /** A fading blue copy of the hero: the trail of the dash. */
@@ -518,33 +586,142 @@ export class PlayScene extends Phaser.Scene {
 
   private moveEnemies(time: number): void {
     const range = 220 + 220 * this.difficulty;
+    const playerBody = this.player.body as Body;
     for (const child of this.enemies.getChildren()) {
       const enemy = child as Sprite;
       if (!enemy.body?.enable) continue;
       const bar = enemy.getData("bar") as Phaser.GameObjects.Graphics;
+      const aim = enemy.getData("aim") as Phaser.GameObjects.Graphics;
       const stats = enemy.getData("stats") as EnemyStats;
       const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.player.x, this.player.y);
       const knocked = time < ((enemy.getData("knockedUntil") as number | undefined) ?? 0);
-      if (!knocked && distance < range) {
-        const speed = speedFor(stats, this.difficulty);
-        const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
-        const phase = enemy.getData("phase") as number;
+      const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
+      const phase = enemy.getData("phase") as number;
+      aim.clear();
+      enemy.setDepth(stats.passesWalls ? 2 : enemy.y / WORLD_HEIGHT);
+      if (enemy.getData("awake") === false) {
+        // Disguised mimic: a still chest with no health bar, until the player is close.
+        bar.clear();
+        enemy.setVelocity(0, 0);
+        if (distance < 70) this.wake(enemy);
+        continue;
+      }
+      const enraged = stats.behavior === "boss" && (enemy.getData("hp") as number) <= stats.health / 2;
+      const speed = speedFor(stats, this.difficulty) * (enraged ? 1.4 : 1);
+      const aimingUntil = (enemy.getData("aimUntil") as number | undefined) ?? 0;
+      if (stats.attack && aimingUntil > 0) {
+        // Telegraphing the shot: it stands still (the boss crawls) and shows where it aims.
+        this.telegraph(enemy, stats, aim, time, aimingUntil);
+        if (!knocked) enemy.setVelocity(stats.behavior === "boss" ? Math.cos(angle) * speed * 0.3 : 0, stats.behavior === "boss" ? Math.sin(angle) * speed * 0.3 : 0);
+        if (time >= aimingUntil) {
+          enemy.setData("aimUntil", 0);
+          this.enemyShoot(enemy, stats, playerBody, distance, enraged);
+          const pace = 0.8 + 0.4 * this.difficulty;
+          enemy.setData("nextShotAt", time + (stats.attack.cooldownMs * (0.85 + Math.random() * 0.3)) / pace / (enraged ? 1.3 : 1));
+        }
+      } else if (!knocked && distance < range + (stats.attack ? 120 : 0)) {
+        if (stats.behavior === "boss" && !this.bossSeen) {
+          this.bossSeen = true;
+          this.cameras.main.shake(300, 0.012);
+          this.floatText(enemy.x, enemy.y - 50, "¡JEFE!", "#ff6b6b");
+          playEffect(this, "boss", { vary: false });
+          this.hooks.onNotice?.(`¡Cuidado! ${stats.name}: esquiva sus bolas de fuego con Shift`);
+        }
+        if (stats.attack && time >= (enemy.getData("nextShotAt") as number) && distance < stats.attack.range) {
+          enemy.setData("aimUntil", time + stats.attack.windupMs);
+        }
+        let heading = angle;
+        let move = speed;
+        if (stats.behavior === "ranged") {
+          // Keep the distance: back off, close in, or strafe around the player.
+          const intent = rangedIntent(distance, stats.attack!.keepAway);
+          if (intent === -1) heading = angle + Math.PI;
+          else if (intent === 0) {
+            heading = angle + (Math.sin(time / 1100 + phase) > 0 ? 1 : -1) * Math.PI / 2;
+            move = speed * 0.6;
+          }
+        }
         let turn = 0;
         if (stats.behavior === "zigzag") turn = 0.9 * Math.sin(time / 160 + phase);
         if (stats.behavior === "flutter") turn = 0.6 * Math.sin(time / 90 + phase);
         if (stats.behavior === "drift") turn = 0.3 * Math.sin(time / 600 + phase);
-        enemy.setVelocity(Math.cos(angle + turn) * speed, Math.sin(angle + turn) * speed);
+        enemy.setVelocity(Math.cos(heading + turn) * move, Math.sin(heading + turn) * move);
       } else if (!knocked) {
         enemy.setVelocity(enemy.body.velocity.x * 0.9, enemy.body.velocity.y * 0.9);
       }
       // Each kind moves in its own way: bats flap, ghosts fade, the rest squash and stretch.
       if (stats.behavior === "flutter") enemy.setScale(stats.scale, stats.scale * (0.8 + 0.2 * Math.abs(Math.sin(time / 60))));
-      else if (stats.behavior === "drift") enemy.setAlpha(0.5 + 0.3 * Math.sin(time / 300 + (enemy.getData("phase") as number)));
-      else enemy.setScale(stats.scale * (1 + 0.06 * Math.sin(time / 120)), stats.scale * (1 - 0.06 * Math.sin(time / 120)));
+      else if (stats.behavior === "drift") enemy.setAlpha(0.5 + 0.3 * Math.sin(time / 300 + phase));
+      else if (aimingUntil === 0 || stats.behavior === "ranged") {
+        enemy.setScale(stats.scale * (1 + 0.06 * Math.sin(time / 120)), stats.scale * (1 - 0.06 * Math.sin(time / 120)));
+      }
+      if (enraged && Math.floor(time / 120) % 2 === 0) enemy.setTint(0xff8a7a);
+      else if (enraged) enemy.clearTint();
       enemy.setFlipX(this.player.x < enemy.x);
-      enemy.setDepth(stats.passesWalls ? 2 : enemy.y / WORLD_HEIGHT);
-      this.drawBar(bar, enemy, enemy.getData("hp") as number, stats.health, 26 * stats.scale);
+      this.drawBar(bar, enemy, enemy.getData("hp") as number, stats.health, 26 * Math.min(stats.scale, 1.6));
     }
+  }
+
+  /** The warning before an enemy shoots: a red aiming line, or magic gathering. */
+  private telegraph(enemy: Sprite, stats: EnemyStats, aim: Phaser.GameObjects.Graphics, time: number, until: number): void {
+    const attack = stats.attack!;
+    const t = Phaser.Math.Clamp(1 - (until - time) / attack.windupMs, 0, 1);
+    if (stats.attack!.projectile.texture === "arrow") {
+      const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
+      const length = Math.min(attack.range, Phaser.Math.Distance.Between(enemy.x, enemy.y, this.player.x, this.player.y));
+      aim.lineStyle(1, 0xff4d6d, 0.25 + 0.6 * t).lineBetween(enemy.x, enemy.y, enemy.x + Math.cos(angle) * length, enemy.y + Math.sin(angle) * length);
+      enemy.setScale(stats.scale * (1 + 0.08 * t), stats.scale * (1 - 0.06 * t)); // leaning back to draw
+    } else {
+      const color = stats.behavior === "boss" ? 0xff7a2a : attack.tint;
+      aim.fillStyle(color, 0.15 + 0.25 * t).fillCircle(enemy.x, enemy.y, (10 + 26 * t) * Math.min(stats.scale, 1.6));
+      aim.lineStyle(2, color, 0.4 + 0.5 * t).strokeCircle(enemy.x, enemy.y, (14 + 30 * (1 - t)) * Math.min(stats.scale, 1.6));
+      enemy.setScale(stats.scale * (1 + 0.1 * t));
+    }
+  }
+
+  /** The enemy lets go: an aimed arrow, a fan of orbs, or the boss's volley or ring of fire. */
+  private enemyShoot(enemy: Sprite, stats: EnemyStats, target: Body, distance: number, enraged: boolean): void {
+    const attack = stats.attack!;
+    const spec = attack.projectile;
+    const kind = enemy.getData("kind") as string;
+    let angles: number[];
+    if (stats.behavior === "boss") {
+      const volleys = (enemy.getData("volleys") as number) + 1;
+      enemy.setData("volleys", volleys);
+      if (volleys % 2 === 0) {
+        angles = ringAngles(enraged ? 14 : 10, Math.random());
+        this.cameras.main.shake(160, 0.008);
+      } else {
+        const aimed = leadAngle(enemy.x, enemy.y, this.player.x, this.player.y, target.velocity.x, target.velocity.y, spec.speed);
+        angles = fanAngles(aimed, enraged ? 5 : spec.count, spec.fanDeg);
+      }
+    } else {
+      const aimed = leadAngle(enemy.x, enemy.y, this.player.x, this.player.y, target.velocity.x, target.velocity.y, spec.speed);
+      angles = fanAngles(aimed, spec.count, spec.fanDeg);
+    }
+    // Arrows are aimed to come down just past the player; magic flies its full range.
+    const reach = spec.gravity > 0 ? Math.min(attack.range, distance + 60) : attack.range;
+    const radius = 12 * Math.min(stats.scale, 1.6);
+    for (const angle of angles) {
+      this.spawnProjectile({
+        spec, x: enemy.x + Math.cos(angle) * radius, y: enemy.y + Math.sin(angle) * radius, angle,
+        range: reach, power: 1, damage: 1, knockback: 0, hostile: true, source: kind, tint: attack.tint,
+      });
+    }
+    this.tweens.add({ targets: enemy, scaleX: stats.scale * 0.9, scaleY: stats.scale * 1.08, duration: 80, yoyo: true });
+    playEffect(this, stats.behavior === "boss" ? "fireball" : spec.texture === "arrow" ? "enemy-shot" : "enemy-cast", { volume: 0.6 });
+  }
+
+  /** A mimic stops pretending: it jumps up, shows its teeth and gives chase. */
+  private wake(enemy: Sprite): void {
+    if (enemy.getData("awake") !== false) return;
+    enemy.setData("awake", true);
+    enemy.setTexture("mimic");
+    (enemy.body as Body).setImmovable(false);
+    this.floatText(enemy.x, enemy.y - 24, "¡Un mímico!", "#ff6b6b");
+    playEffect(this, "mimic");
+    this.tweens.add({ targets: enemy, y: enemy.y - 14, duration: 120, yoyo: true, ease: "Quad.easeOut" });
+    this.cameras.main.shake(120, 0.006);
   }
 
   /** A small health bar above a sprite, coloured by how much is left. */
@@ -620,6 +797,7 @@ export class PlayScene extends Phaser.Scene {
   private collect(coin: Sprite): void {
     if (!coin.active || !coin.body?.enable) return;
     this.tracker.collectCoin(coin.x, coin.y);
+    playEffect(this, "coin", { volume: 0.7 });
     this.sparkle(coin.x, coin.y, 0xffc547);
     this.floatText(coin.x, coin.y - 10, "+1", "#ffc547");
     this.tweens.killTweensOf(coin);
@@ -633,6 +811,7 @@ export class PlayScene extends Phaser.Scene {
     if (chest.getData("open")) return;
     chest.setData("open", true);
     chest.setTexture("chest-open");
+    playEffect(this, "chest", { volume: 0.7 });
     const loot = rollLoot();
     this.tracker.openChest(loot, chest.x, chest.y);
     this.sparkle(chest.x, chest.y - 8, 0xffc547, 12);
@@ -659,12 +838,14 @@ export class PlayScene extends Phaser.Scene {
     const kind = item.getData("kind") as Kind;
     if (kind === "potion") {
       this.tracker.pickUp("potion", POTION_HEAL);
+      playEffect(this, "potion", { volume: 0.7 });
       this.floatText(this.player.x, this.player.y - 20, `+${POTION_HEAL} ♥`, "#33e0a1");
       this.sparkle(item.x, item.y, 0x33e0a1);
     } else if (isWeapon(kind)) {
       this.weapon = WEAPONS[kind as WeaponId];
       this.held.setTexture(this.weapon.id);
       this.tracker.pickUp(kind);
+      playEffect(this, "pickup");
       this.sparkle(item.x, item.y, 0x2d8cff);
       this.floatText(this.player.x, this.player.y - 20, this.weapon.name, "#7cc4ff");
     }
@@ -682,6 +863,7 @@ export class PlayScene extends Phaser.Scene {
     const angle = Phaser.Math.Angle.Between(from.x, from.y, this.player.x, this.player.y);
     this.player.setVelocity(Math.cos(angle) * 420, Math.sin(angle) * 420);
     this.flash(this.player, 0xff4d6d, 90);
+    playEffect(this, "hurt");
     this.cameras.main.shake(140, 0.007);
     this.floatText(this.player.x, this.player.y - 20, `-${amount}`, "#ff4d6d");
     if (this.tracker.takeDamage(source, this.player.x, this.player.y, amount)) this.end("lost");
@@ -692,6 +874,7 @@ export class PlayScene extends Phaser.Scene {
     if (now < this.nextAttackAt || this.windup) return;
     const weapon = this.weapon;
     const reach = weapon.style === "melee" ? weapon.range + 40 : weapon.range;
+    if (weapon.id === "bow") playEffect(this, "bow-draw", { volume: 0.6 });
     this.windup = {
       weapon,
       startedAt: now,
@@ -741,6 +924,7 @@ export class PlayScene extends Phaser.Scene {
     }
     this.swingUntil = this.time.now + SWING_MS;
     const { x, y } = this.player;
+    playEffect(this, weapon.id === "spear" ? "thrust" : "swing", { volume: weapon.id === "axe" ? 1 : 0.8, rate: weapon.id === "axe" ? 0.8 : 1 });
     if (weapon.shockwave > 0) this.slam(weapon);
     if (weapon.id === "spear") this.thrustTrail(aim, weapon.range);
     else {
@@ -750,6 +934,15 @@ export class PlayScene extends Phaser.Scene {
       arc.lineStyle(10, 0x2d8cff, 0.3).beginPath().arc(x, y, radius, aim - half, aim + half).strokePath();
       arc.lineStyle(3, 0xd6ecff, 0.95).beginPath().arc(x, y, radius, aim - half, aim + half).strokePath();
       this.tweens.add({ targets: arc, alpha: 0, duration: 200, onComplete: () => arc.destroy() });
+    }
+    // A swing knocks enemy arrows and orbs out of the air.
+    for (const shot of [...this.shots]) {
+      if (!shot.hostile || !shot.shadow.active) continue;
+      if (inSwing(shot.shadow.x - x, shot.shadow.y - y, aim, weapon, 10)) {
+        this.floatText(shot.shadow.x, shot.shadow.y - 14, "¡Bloqueado!", "#7cc4ff");
+        playEffect(this, "block");
+        this.endShot(shot, true);
+      }
     }
     // The hit lands as the step forward ends, from where the hero then stands.
     this.time.delayedCall(weapon.lunge > 0 ? 70 : 0, () => {
@@ -778,6 +971,7 @@ export class PlayScene extends Phaser.Scene {
   private slam(weapon: Weapon): void {
     const { x, y } = this.player;
     this.cameras.main.shake(180, 0.01);
+    playEffect(this, "slam");
     const ring = this.add.circle(x, y + 8, 10).setStrokeStyle(4, 0xffc547, 0.9).setDepth(38);
     this.tweens.add({ targets: ring, radius: weapon.shockwave, alpha: 0, duration: 320, ease: "Cubic.easeOut", onComplete: () => ring.destroy() });
     for (let i = 0; i < 10; i++) {
@@ -806,6 +1000,7 @@ export class PlayScene extends Phaser.Scene {
     body.velocity.y -= Math.sin(aim) * 70 * power;
     this.tweens.add({ targets: this.player, scaleX: 0.92, scaleY: 1.06, duration: 70, yoyo: true });
     if (weapon.id === "bow") this.twang(aim);
+    playEffect(this, weapon.id === "bow" ? "bow-release" : weapon.id === "dagger" ? "throw" : "cast", { volume: 0.8 });
     if (spec.splash > 0) this.cameras.main.flash(60, 45, 140, 255, false);
   }
 
@@ -832,7 +1027,14 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private spawnShot(weapon: Weapon, spec: ProjectileSpec, x: number, y: number, angle: number, power: number): void {
-    const flight = launch(spec, x, y, angle, weapon.range, power);
+    this.spawnProjectile({
+      spec, x, y, angle, range: weapon.range, power, damage: weapon.damage, knockback: weapon.knockback, hostile: false, source: "player",
+    });
+  }
+
+  private spawnProjectile(launchInfo: Launch): void {
+    const { spec, x, y, angle, power } = launchInfo;
+    const flight = launch(spec, x, y, angle, launchInfo.range, power);
     const shadow = this.arrows.create(x, y, "shadow") as Sprite;
     const body = shadow.body as Body;
     body.setSize(10, 6).setAllowGravity(false);
@@ -842,13 +1044,26 @@ export class PlayScene extends Phaser.Scene {
     shadow.setCollideWorldBounds(spec.bounces > 0);
     const sprite = this.add.image(x, y - flight.z, spec.texture).setRotation(screenAngle(flight));
     if (spec.texture === "orb" || spec.texture === "spark") sprite.setBlendMode(Phaser.BlendModes.ADD);
+    if (launchInfo.tint !== undefined && launchInfo.tint !== 0xffffff) sprite.setTint(launchInfo.tint);
+    if (spec.texture === "fireball") sprite.setScale(1.3);
     const shot: Shot = {
       sprite, shadow, flight, spec,
-      damage: weapon.damage, knockback: weapon.knockback, range: weapon.range * power,
+      damage: launchInfo.damage, knockback: launchInfo.knockback, range: launchInfo.range * power,
       travelled: 0, pierceLeft: spec.pierce, bouncesLeft: spec.bounces, hit: new Set(), trailAt: 0,
+      hostile: launchInfo.hostile, source: launchInfo.source,
     };
     shadow.setData("shot", shot);
     this.shots.push(shot);
+  }
+
+  /** An enemy shot reaches the player: it hurts, unless the player is dashing through it. */
+  private shotHitPlayer(shadow: Sprite): void {
+    const shot = this.shotOf(shadow);
+    if (!shot || !shot.hostile || !shadow.active || this.finished) return;
+    if (shot.flight.z > HIT_HEIGHT) return;
+    if (this.time.now < this.dashUntil) return; // dodged
+    this.hurt(shot.source, shadow, shot.damage);
+    this.endShot(shot, true);
   }
 
   private shotOf(shadow: Sprite): Shot | undefined {
@@ -872,9 +1087,10 @@ export class PlayScene extends Phaser.Scene {
       sprite.setPosition(shadow.x, shadow.y - flight.z).setRotation(screenAngle(flight));
       sprite.setDepth(shadow.y / WORLD_HEIGHT + 0.01);
       shadow.setScale(1 - Math.min(0.5, flight.z / 80));
-      if (time >= shot.trailAt && (spec.texture === "orb" || spec.texture === "spark")) {
+      if (time >= shot.trailAt && (spec.texture === "orb" || spec.texture === "spark" || spec.texture === "fireball")) {
         shot.trailAt = time + 30;
         const dot = this.add.image(sprite.x, sprite.y, spec.texture).setScale(0.5).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD).setDepth(sprite.depth - 0.001);
+        if (shot.hostile && spec.texture === "orb") dot.setTint(spec.color);
         this.tweens.add({ targets: dot, alpha: 0, scale: 0.1, duration: 220, onComplete: () => dot.destroy() });
       }
       if (landed) this.landShot(shot);
@@ -884,6 +1100,7 @@ export class PlayScene extends Phaser.Scene {
 
   /** Touching the ground: arrows and daggers stick in it and fade; magic bursts. */
   private landShot(shot: Shot): void {
+    if (this.waterTiles.has(tileKey(shot.shadow.x, shot.shadow.y))) return this.splash(shot);
     if (shot.spec.splash > 0) return this.endShot(shot, true);
     this.stick(shot, shot.flight.vx, shot.flight.vy, 0.35);
   }
@@ -894,12 +1111,29 @@ export class PlayScene extends Phaser.Scene {
     if (shot.bouncesLeft > 0) {
       // Arcade already bounced it; it loses a little each time.
       shot.bouncesLeft--;
+      playEffect(this, "bounce", { volume: 0.5 });
       shot.travelled = Math.max(0, shot.travelled - 120);
       this.sparkle(shadow.x, shadow.y - shot.flight.z, shot.spec.color, 4);
       return;
     }
     if (shot.spec.splash > 0 || shot.spec.texture === "spark") return this.endShot(shot, true);
+    playEffect(this, "arrow-hit", { volume: 0.5 });
     this.stick(shot, shot.flight.vx, shot.flight.vy, 0);
+  }
+
+  /** Falling into the water: a ring of ripples and it is gone. */
+  private splash(shot: Shot): void {
+    const { shadow, sprite } = shot;
+    const x = shadow.x;
+    const y = shadow.y;
+    shadow.disableBody(true, true);
+    this.removeShot(shot);
+    sprite.destroy();
+    playEffect(this, "splash", { volume: 0.5 });
+    for (let i = 0; i < 2; i++) {
+      const ring = this.add.ellipse(x, y, 6, 3).setStrokeStyle(1, 0xe6f6ff, 0.9).setDepth(-3);
+      this.tweens.add({ targets: ring, scaleX: 4, scaleY: 4, alpha: 0, delay: i * 120, duration: 420, onComplete: () => ring.destroy() });
+    }
   }
 
   /** The projectile stays where it hit, quivers, then fades away. */
@@ -914,7 +1148,7 @@ export class PlayScene extends Phaser.Scene {
 
   private shotHitEnemy(shadow: Sprite, enemy: Sprite): void {
     const shot = this.shotOf(shadow);
-    if (!shot || !shadow.active || !enemy.body?.enable || shot.hit.has(enemy)) return;
+    if (!shot || shot.hostile || !shadow.active || !enemy.body?.enable || shot.hit.has(enemy)) return;
     if (shot.flight.z > HIT_HEIGHT) return; // flew over it
     shot.hit.add(enemy);
     const angle = Math.atan2(shot.flight.vy, shot.flight.vx);
@@ -942,7 +1176,8 @@ export class PlayScene extends Phaser.Scene {
     sprite.destroy();
     if (!burst) return;
     this.sparkle(x, y - shot.flight.z, spec.color, 10);
-    if (spec.splash <= 0) return;
+    if (spec.splash <= 0 || shot.hostile) return;
+    playEffect(this, "explode", { volume: 0.8 });
     const ring = this.add.circle(x, y, 6, spec.color, 0.35).setStrokeStyle(2, 0xffffff, 0.9).setBlendMode(Phaser.BlendModes.ADD).setDepth(40);
     this.tweens.add({ targets: ring, radius: spec.splash, alpha: 0, duration: 260, ease: "Cubic.easeOut", onComplete: () => ring.destroy() });
     for (const child of [...this.enemies.getChildren()]) {
@@ -963,19 +1198,23 @@ export class PlayScene extends Phaser.Scene {
 
   private damageEnemy(enemy: Sprite, damage: number, angle: number, knockback = this.weapon.knockback): void {
     if (!enemy.body?.enable) return;
+    if (enemy.getData("awake") === false) this.wake(enemy);
     const stats = enemy.getData("stats") as EnemyStats;
     const hp = (enemy.getData("hp") as number) - damage;
     enemy.setData("hp", hp);
-    const push = knockback / (enemy.getData("kind") === "brute" ? 2 : 1);
+    const heavy = { brute: 2, demon: 6 }[enemy.getData("kind") as string] ?? 1;
+    const push = knockback / heavy;
     enemy.setVelocity(Math.cos(angle) * push, Math.sin(angle) * push);
     enemy.setData("knockedUntil", this.time.now + 140);
     this.flash(enemy, 0xffffff, 80);
     this.floatText(enemy.x, enemy.y - 16, `-${damage}`, "#ffffff");
+    playEffect(this, hp <= 0 ? "defeat" : "hit", { volume: 0.8 });
     this.sparkle(enemy.x, enemy.y, 0xd6ecff, 5);
     if (hp <= 0) {
       this.tracker.defeatEnemy(enemy.x, enemy.y, enemy.getData("kind") as string, stats.points);
       this.floatText(enemy.x, enemy.y - 30, `+${stats.points}`, "#ffc547");
       (enemy.getData("bar") as Phaser.GameObjects.Graphics).destroy();
+      (enemy.getData("aim") as Phaser.GameObjects.Graphics).destroy();
       enemy.disableBody(false, false);
       this.tweens.add({ targets: enemy, alpha: 0, scale: 0.2, angle: 180, duration: 260, onComplete: () => enemy.destroy() });
     }
@@ -1033,6 +1272,8 @@ export class PlayScene extends Phaser.Scene {
     if (this.finished) return;
     this.finished = true;
     this.tracker.finish(outcome);
+    if (outcome === "won") playJingle(this, "win");
+    else if (outcome === "lost") playJingle(this, "lose");
     this.player.setVelocity(0, 0);
     this.physics.pause();
     this.reportHud(this.time.now, true);
