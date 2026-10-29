@@ -27,6 +27,8 @@ export class GameHost {
       backgroundColor: "#00000000",
       transparent: true,
       pixelArt: true,
+      // No "Phaser vX" banner in the browser console.
+      banner: false,
       scale: { mode: Phaser.Scale.RESIZE, width: "100%", height: "100%" },
       physics: { default: "arcade", arcade: { gravity: { x: 0, y: 0 }, debug: false } },
       scene: [this.editor, this.playScene],

@@ -1,3 +1,4 @@
+import "./quietConsole";
 import "./style.css";
 import {
   createProject,

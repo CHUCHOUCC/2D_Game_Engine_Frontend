@@ -92,6 +92,13 @@ forest and camp (Roguelike/RPG pack). Streets and stone paths use the `path` kin
 under everything, with no body. Where the maps come from and how they were converted is in the
 backend repo, `maps/README.md`.
 
+## Security of the page
+
+- Production builds carry a strict Content-Security-Policy (scripts only from this site, network calls only to the backend), no source maps, and minified code.
+- `vercel.json` adds the headers a meta tag cannot: no framing (clickjacking), no MIME sniffing, no referrer, no camera, microphone or location, an isolated window.
+- The browser console stays empty in production (`src/quietConsole.ts`, imported first): no Phaser banner, no warnings, no debug output. Nothing secret lives in the frontend: the only setting is the public API address; the data is protected by the API, which only answers its owner.
+- User text is always shown with `textContent`, never as HTML.
+
 ## Tokens
 
 `src/api/tokens.ts` keeps the access token (15 min) and the refresh token in `sessionStorage`.
