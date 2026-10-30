@@ -101,10 +101,23 @@ backend repo, `maps/README.md`.
 
 ## Tokens
 
-`src/api/tokens.ts` keeps the access token (15 min) and the refresh token in `sessionStorage`.
-`src/api/http.ts` adds `Authorization: Bearer …` to every request, refreshes the pair shortly before
-it expires or after a 401 (one refresh shared by parallel requests), and returns to the login screen
-when the session cannot be renewed.
+`src/api/tokens.ts` keeps the access token (15 min) and the refresh token in `localStorage`, so the
+session survives closing the tab or the app on a phone; *Cerrar sesión* clears it. Tokens saved by
+older versions in `sessionStorage` are moved once. `src/api/http.ts` adds `Authorization: Bearer …`
+to every request and refreshes the pair shortly before it expires or after a 401 (one refresh shared
+by parallel requests, and by every open tab through the Web Locks API, because the backend treats a
+reused refresh token as theft). Only a rejected refresh token (400/401/403) ends the session: when
+the server is asleep (Render's free plan) or there is no network, opening the app waits and retries
+instead of asking to log in again. A session stays open as long as the app is used at least once
+every 7 days (each refresh gives a new 7-day token).
+
+## Cache
+
+`src/structures/LRUCache.ts` (written by hand: Map index + doubly linked list, O(1)) backs
+`src/api/cache.ts`, which keeps the starter templates, the characters' lines (10 min) and the
+settings (5 min, updated when saved) in memory. Simultaneous requests for the same data share one
+call, and everything is cleared on logout. The backend also answers those routes with an `ETag`, so
+the browser revalidates with a 304. `vercel.json` caches textures, audio and brand images for a week.
 
 ## Data structures (written by hand)
 
