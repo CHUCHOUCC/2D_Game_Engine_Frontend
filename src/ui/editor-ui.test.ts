@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { CATEGORIES, categoryOf, CHARACTER_KINDS, isCharacter, KINDS, SIZES } from "../model/GameObject";
 import { matchesSearch, normalise } from "./Library";
-import { groupByKind } from "./SceneTree";
+import { buildSceneTree, groupByKind } from "./SceneTree";
 import { shortcutFor } from "./shortcuts";
 
 test("every kind is in exactly one library category", () => {
@@ -54,4 +54,16 @@ test("a button title is split into its tip and its shortcut", async () => {
   expect(splitShortcut("Borrar objetos (E)")).toEqual({ tip: "Borrar objetos", key: "E" });
   expect(splitShortcut("Deshacer (Ctrl+Z)")).toEqual({ tip: "Deshacer", key: "Ctrl+Z" });
   expect(splitShortcut("Ajustes")).toEqual({ tip: "Ajustes", key: "" });
+});
+
+test("the scene tree has the scene as root, kinds below it and objects as leaves", () => {
+  const tree = buildSceneTree([
+    { id: "c1", kind: "coin", x: 0, y: 0 },
+    { id: "h1", kind: "house", x: 0, y: 0 },
+    { id: "c2", kind: "coin", x: 0, y: 0 },
+  ]);
+  expect(tree.height()).toBe(2);
+  expect(tree.size()).toBe(1 + 2 + 3);
+  expect(tree.root.value.type).toBe("scene");
+  expect(tree.find((node) => node.type === "object" && node.object.id === "c2")?.parent?.value).toEqual({ type: "kind", kind: "coin" });
 });
