@@ -65,3 +65,35 @@ test("TokenStore works in memory when storage is unavailable", () => {
   tokens.save(PAIR);
   expect(tokens.access).toBe("a1");
 });
+
+test("TokenStore keeps the session in localStorage by default, so closing the app does not log out", () => {
+  const backup = globalThis.localStorage;
+  const persistent = new MemoryStorage();
+  Object.defineProperty(globalThis, "localStorage", { value: persistent, configurable: true });
+  try {
+    new TokenStore().save(PAIR);
+    // A new page load (the app was closed and opened again) still has the session.
+    expect(new TokenStore().refresh).toBe("r1");
+  } finally {
+    Object.defineProperty(globalThis, "localStorage", { value: backup, configurable: true });
+  }
+});
+
+test("TokenStore picks up the pair another tab refreshed", () => {
+  const storage = new MemoryStorage();
+  const tabA = new TokenStore(storage as unknown as Storage, () => 1_000);
+  const tabB = new TokenStore(storage as unknown as Storage, () => 1_000);
+  tabA.save(PAIR);
+  tabB.reload();
+  expect(tabB.refresh).toBe("r1");
+  tabA.save({ ...PAIR, access_token: "a2", refresh_token: "r2" });
+  tabB.reload();
+  expect(tabB.refresh).toBe("r2");
+});
+
+test("TokenStore without storage keeps the tokens in memory on reload", () => {
+  const tokens = new TokenStore(null);
+  tokens.save(PAIR);
+  tokens.reload();
+  expect(tokens.access).toBe("a1");
+});

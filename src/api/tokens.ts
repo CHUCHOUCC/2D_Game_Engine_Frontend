@@ -17,18 +17,43 @@ interface Stored {
 /**
  * Keeps the tokens of the logged-in user.
  *
- * They live in sessionStorage (forgotten when the tab closes) and in memory.
- * The access token is short (15 min); the refresh token gets a new one.
+ * They live in localStorage and in memory, so the session survives closing the tab or the app
+ * (on phones the browser drops sessionStorage when the app is closed). Logging out clears them.
+ * The access token is short (15 min); the refresh token (rotating, 7 days) gets a new pair.
+ * Every tab shares the same storage: reload() picks up a pair another tab just refreshed.
  */
 export class TokenStore {
   private current: Stored | null;
   private readonly storage: Storage | null;
   private readonly now: () => number;
 
-  constructor(storage: Storage | null = safeSessionStorage(), now: () => number = () => Date.now()) {
+  constructor(storage: Storage | null = safeLocalStorage(), now: () => number = () => Date.now()) {
     this.storage = storage;
     this.now = now;
-    this.current = this.read();
+    this.current = this.read() ?? this.migrateFromSession();
+  }
+
+  /** Reads the storage again (another tab may have refreshed or logged out). */
+  reload(): void {
+    // Without storage the tokens live only in memory: there is nothing newer to read.
+    if (this.storage !== null) this.current = this.read();
+  }
+
+  /** Tokens saved by an older version in sessionStorage move to the persistent storage once. */
+  private migrateFromSession(): Stored | null {
+    if (this.storage === null || this.storage === safeSessionStorage()) return null;
+    try {
+      const raw = safeSessionStorage()?.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      safeSessionStorage()?.removeItem(STORAGE_KEY);
+      const data = JSON.parse(raw) as Stored;
+      if (typeof data.access !== "string" || typeof data.refresh !== "string") return null;
+      this.current = data;
+      this.write();
+      return data;
+    } catch {
+      return null;
+    }
   }
 
   save(pair: TokenPair): void {
@@ -81,6 +106,14 @@ export class TokenStore {
     } catch {
       // storage may be blocked; the tokens then live only in memory
     }
+  }
+}
+
+function safeLocalStorage(): Storage | null {
+  try {
+    return typeof localStorage === "undefined" ? null : localStorage;
+  } catch {
+    return null;
   }
 }
 
