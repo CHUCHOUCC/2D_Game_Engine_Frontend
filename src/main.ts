@@ -1,6 +1,7 @@
 import "./quietConsole";
 import "./style.css";
 import {
+  ApiError,
   createProject,
   finishRun,
   getCharacterLines,
@@ -16,6 +17,7 @@ import {
   type RunResultDto,
   type UserDto,
 } from "./api/client";
+import { forgetAll } from "./api/cache";
 import type { Tool } from "./game/EditorScene";
 import { GameHost } from "./game/GameHost";
 import { CHARACTER_KINDS, ENEMY_KINDS, isKind, KIND_INFO, type Kind } from "./model/GameObject";
@@ -584,21 +586,45 @@ async function leaveApp(callBackend: boolean, note = ""): Promise<void> {
   login.show(note);
 }
 
-http.whenSessionLost(() => void leaveApp(false, "Tu sesión terminó. Vuelve a iniciar sesión."));
+http.whenSessionLost(() => {
+  forgetAll();
+  void leaveApp(false, "Tu sesión terminó. Vuelve a iniciar sesión.");
+});
 
 window.setInterval(() => {
   if (http.tokens.refresh !== null && http.tokens.expiresSoon(120_000)) void http.refreshTokens();
 }, 30_000);
 
+/**
+ * The saved session ends only when the server rejects it (401/403). If the server is asleep
+ * (Render's free plan takes a while to wake up) or the phone has no network, it keeps trying
+ * instead of sending the player back to the login screen.
+ */
+async function resumeSession(): Promise<UserDto | null> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await getMe();
+    } catch (error) {
+      if (!hasSession()) return null; // the refresh token was rejected and cleared
+      if (error instanceof ApiError && [400, 401, 403].includes(error.status)) {
+        http.tokens.clear();
+        forgetAll();
+        return null;
+      }
+      showLoader(attempt < 2 ? "Conectando con el servidor…" : "Despertando el servidor… puede tardar unos segundos");
+      await new Promise((resolve) => window.setTimeout(resolve, Math.min(15_000, 2_000 * 2 ** Math.min(attempt, 3))));
+    }
+  }
+}
+
 async function boot(): Promise<void> {
   showLoader("Cargando motor…");
   requestAnimationFrame(watchModel);
   if (hasSession()) {
-    try {
-      await enterApp(await getMe(), false);
+    const me = await resumeSession();
+    if (me !== null) {
+      await enterApp(me, false);
       return;
-    } catch {
-      http.tokens.clear();
     }
   }
   setStage("auth");

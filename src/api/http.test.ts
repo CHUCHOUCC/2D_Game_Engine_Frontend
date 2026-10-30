@@ -112,3 +112,15 @@ test("HttpClient reads the login attempts left from the response", async () => {
   expect((error as ApiError).attemptsLeft).toBe(2);
   expect((error as ApiError).message).toBe("Correo o contraseña incorrectos.");
 });
+
+test("HttpClient keeps the session when the server is waking up during a refresh", async () => {
+  const { client, tokens } = setup((url) => (url.endsWith("/auth/refresh") ? json(503, { detail: "starting" }) : json(401, {})));
+  await client.request("/auth/me").catch(() => undefined);
+  expect(tokens.refresh).toBe("old-refresh");
+});
+
+test("HttpClient forgets the session when the refresh token is rejected", async () => {
+  const { client, tokens } = setup(() => json(401, { detail: "revoked" }));
+  await client.request("/auth/me").catch(() => undefined);
+  expect(tokens.refresh).toBeNull();
+});

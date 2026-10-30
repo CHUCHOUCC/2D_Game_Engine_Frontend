@@ -106,13 +106,33 @@ export class HttpClient {
     return this.refreshing;
   }
 
+  /**
+   * Refresh tokens rotate and the backend treats reusing an old one as theft (it revokes them all).
+   * With several tabs open, only one may refresh at a time: the Web Locks API serialises them, and
+   * inside the lock the storage is read again in case another tab already got a new pair.
+   */
   private async doRefresh(): Promise<boolean> {
+    const used = this.tokens.refresh;
+    const locks = typeof navigator !== "undefined" ? (navigator as Navigator & { locks?: LockManager }).locks : undefined;
+    if (locks === undefined) return this.refreshNow();
+    return locks.request("engine-token-refresh", async () => {
+      this.tokens.reload();
+      if (this.tokens.refresh !== null && this.tokens.refresh !== used && !this.tokens.expiresSoon(15_000)) {
+        return true; // another tab refreshed while we waited
+      }
+      return this.refreshNow();
+    });
+  }
+
+  private async refreshNow(): Promise<boolean> {
     const refresh = this.tokens.refresh;
     if (refresh === null) return false;
     const response = await this.send("/auth/refresh", { method: "POST", body: JSON.stringify({ refresh_token: refresh }) }, null)
       .catch(() => null);
     if (response === null || !response.ok) {
-      if (response !== null) this.tokens.clear();
+      // Only a rejected refresh token ends the session. A sleeping server (502/503), a rate limit
+      // or no network keeps the tokens, so the next attempt can still succeed.
+      if (response !== null && [400, 401, 403].includes(response.status)) this.tokens.clear();
       return false;
     }
     this.tokens.save((await response.json()) as TokenPair);
@@ -125,8 +145,13 @@ export class HttpClient {
     }
     let response = await this.send(path, init, this.tokens.access);
     if (response.status === 401 && this.tokens.refresh !== null) {
-      if (await this.refreshTokens()) {
+      const refreshed = await this.refreshTokens();
+      if (refreshed) {
         response = await this.send(path, init, this.tokens.access);
+      } else if (this.tokens.refresh !== null) {
+        // The refresh could not reach a working server (asleep, no network): the session is
+        // still valid, so it is kept and the caller sees a temporary error to retry.
+        throw new ApiError(503, friendlyMessage(503, ""));
       }
       if (response.status === 401) {
         this.tokens.clear();
