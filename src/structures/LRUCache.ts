@@ -1,13 +1,16 @@
 /** Doubly linked node of the cache: key, value, expiry time and both neighbours. */
 class Entry<K, V> {
+  key: K;
+  value: V;
+  expiresAt: number | null;
   prev: Entry<K, V> | null = null;
   next: Entry<K, V> | null = null;
 
-  constructor(
-    public key: K,
-    public value: V,
-    public expiresAt: number | null,
-  ) {}
+  constructor(key: K, value: V, expiresAt: number | null) {
+    this.key = key;
+    this.value = value;
+    this.expiresAt = expiresAt;
+  }
 }
 
 /**
@@ -24,13 +27,15 @@ export class LRUCache<K, V> {
   private readonly index = new Map<K, Entry<K, V>>();
   private readonly head: Entry<K, V>;
   private readonly tail: Entry<K, V>;
+  private readonly capacity: number;
+  private readonly ttlMs: number | null;
+  private readonly now: () => number;
 
-  constructor(
-    private readonly capacity = 64,
-    private readonly ttlMs: number | null = null,
-    private readonly now: () => number = () => Date.now(),
-  ) {
+  constructor(capacity = 64, ttlMs: number | null = null, now: () => number = () => Date.now()) {
     if (capacity < 1) throw new RangeError("capacity must be at least 1");
+    this.capacity = capacity;
+    this.ttlMs = ttlMs;
+    this.now = now;
     // Sentinels: the list is never empty, so linking needs no special cases.
     this.head = new Entry<K, V>(undefined as K, undefined as V, null);
     this.tail = new Entry<K, V>(undefined as K, undefined as V, null);
