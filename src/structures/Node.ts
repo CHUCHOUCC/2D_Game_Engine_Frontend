@@ -8,3 +8,16 @@ export class Node<T> {
     this.next = next;
   }
 }
+
+/** Doubly linked node: data plus references to both neighbours. */
+export class DoublyNode<T> {
+  data: T;
+  previous: DoublyNode<T> | null;
+  next: DoublyNode<T> | null;
+
+  constructor(data: T, previous: DoublyNode<T> | null = null, next: DoublyNode<T> | null = null) {
+    this.data = data;
+    this.previous = previous;
+    this.next = next;
+  }
+}
