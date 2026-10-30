@@ -8,6 +8,8 @@ import { LRUCache } from "../structures/LRUCache";
  */
 const answers = new LRUCache<string, unknown>(32);
 const inFlight = new Map<string, Promise<unknown>>();
+// Bumped on every forgetAll(): an answer that was requested before a logout must not be stored after it.
+let generation = 0;
 
 export const TTL = {
   reference: 10 * 60_000,
@@ -19,12 +21,15 @@ export async function cached<T>(key: string, ttlMs: number, load: () => Promise<
   if (hit !== undefined) return hit as T;
   const pending = inFlight.get(key);
   if (pending !== undefined) return pending as Promise<T>;
-  const request = load()
+  const startedIn = generation;
+  const request: Promise<T> = load()
     .then((value) => {
-      answers.set(key, value, ttlMs);
+      if (startedIn === generation) answers.set(key, value, ttlMs);
       return value;
     })
-    .finally(() => inFlight.delete(key));
+    .finally(() => {
+      if (inFlight.get(key) === request) inFlight.delete(key);
+    });
   inFlight.set(key, request);
   return request;
 }
@@ -39,6 +44,7 @@ export function forget(key: string): void {
 }
 
 export function forgetAll(): void {
+  generation += 1;
   answers.clear();
   inFlight.clear();
 }
