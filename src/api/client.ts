@@ -1,6 +1,7 @@
 import type { GameObject } from "../model/GameObject";
 import { HttpClient } from "./http";
 import { TokenStore, type TokenPair } from "./tokens";
+import { TTL, cached, forgetAll, remember } from "./cache";
 
 export { ApiError } from "./http";
 
@@ -45,6 +46,7 @@ export function registerAccount(username: string, email: string, password: strin
 
 /** Log in and keep the access and refresh tokens. */
 export async function logIn(email: string, password: string): Promise<void> {
+  forgetAll();
   const pair = await http.request<TokenPair>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
   http.tokens.save(pair);
 }
@@ -64,6 +66,7 @@ export async function logOut(): Promise<void> {
     // even if the backend is unreachable we still forget the tokens locally
   }
   http.tokens.clear();
+  forgetAll(); // cached answers belong to this account
 }
 
 export function hasSession(): boolean {
@@ -75,7 +78,7 @@ export function listProjects(): Promise<ProjectDto[]> {
 }
 
 export function listTemplates(): Promise<TemplateDto[]> {
-  return http.request<TemplateDto[]>("/projects/templates");
+  return cached("templates", TTL.reference, () => http.request<TemplateDto[]>("/projects/templates"));
 }
 
 export function createProject(name: string, template?: string): Promise<ProjectDto> {
@@ -202,15 +205,17 @@ export interface SettingsDto {
 
 /** What each 2D character says, by kind (from the database). */
 export function getCharacterLines(): Promise<Record<string, string[]>> {
-  return http.request<Record<string, string[]>>("/catalog/characters");
+  return cached("characters", TTL.reference, () => http.request<Record<string, string[]>>("/catalog/characters"));
 }
 
 export function getSettings(): Promise<SettingsDto> {
-  return http.request<SettingsDto>("/me/settings");
+  return cached("settings", TTL.settings, () => http.request<SettingsDto>("/me/settings"));
 }
 
-export function saveSettings(settings: SettingsDto): Promise<SettingsDto> {
-  return http.request<SettingsDto>("/me/settings", { method: "PUT", body: JSON.stringify(settings) });
+export async function saveSettings(settings: SettingsDto): Promise<SettingsDto> {
+  const saved = await http.request<SettingsDto>("/me/settings", { method: "PUT", body: JSON.stringify(settings) });
+  remember("settings", saved, TTL.settings);
+  return saved;
 }
 
 export interface ActivityDto {
@@ -230,6 +235,7 @@ export function changePassword(currentPassword: string, newPassword: string): Pr
 export async function logOutEverywhere(): Promise<void> {
   await http.request<void>("/auth/logout-all", { method: "POST" });
   http.tokens.clear();
+  forgetAll(); // cached answers belong to this account
 }
 
 export function myActivity(): Promise<ActivityDto[]> {

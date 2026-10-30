@@ -16,6 +16,7 @@ import {
   type RunResultDto,
   type UserDto,
 } from "./api/client";
+import { forgetAll } from "./api/cache";
 import type { Tool } from "./game/EditorScene";
 import { GameHost } from "./game/GameHost";
 import { CHARACTER_KINDS, ENEMY_KINDS, isKind, KIND_INFO, type Kind } from "./model/GameObject";
@@ -584,7 +585,10 @@ async function leaveApp(callBackend: boolean, note = ""): Promise<void> {
   login.show(note);
 }
 
-http.whenSessionLost(() => void leaveApp(false, "Tu sesión terminó. Vuelve a iniciar sesión."));
+http.whenSessionLost(() => {
+  forgetAll();
+  void leaveApp(false, "Tu sesión terminó. Vuelve a iniciar sesión.");
+});
 
 window.setInterval(() => {
   if (http.tokens.refresh !== null && http.tokens.expiresSoon(120_000)) void http.refreshTokens();
