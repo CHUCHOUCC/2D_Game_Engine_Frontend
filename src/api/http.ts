@@ -145,8 +145,13 @@ export class HttpClient {
     }
     let response = await this.send(path, init, this.tokens.access);
     if (response.status === 401 && this.tokens.refresh !== null) {
-      if (await this.refreshTokens()) {
+      const refreshed = await this.refreshTokens();
+      if (refreshed) {
         response = await this.send(path, init, this.tokens.access);
+      } else if (this.tokens.refresh !== null) {
+        // The refresh could not reach a working server (asleep, no network): the session is
+        // still valid, so it is kept and the caller sees a temporary error to retry.
+        throw new ApiError(503, friendlyMessage(503, ""));
       }
       if (response.status === 401) {
         this.tokens.clear();
