@@ -126,7 +126,11 @@ the browser revalidates with a 304. `vercel.json` caches textures, audio and bra
 | `Node` | `src/structures/Node.ts` | Building block: data + next |
 | `LinkedList` | `src/structures/LinkedList.ts` | Objects of the scene (`SceneModel`) and events of a run (`RunTracker`) |
 | `Stack` | `src/structures/Stack.ts` | Undo and redo |
-| `Queue` | `src/structures/Queue.ts` | Game events in `ScoreCounter` |
+| `Queue` | `src/structures/Queue.ts` | Game events in `ScoreCounter`; breadth-first walk of the `Tree` |
+| `DoublyLinkedList` | `src/structures/DoublyLinkedList.ts` | Reusable structure with tests (nodes know both neighbours); the LRU cache has its own linked entries |
+| `CircularLinkedList` | `src/structures/CircularLinkedList.ts` | The hero selector (`src/ui/heroRing.ts`): arrow keys go around, the last hero leads to the first |
+| `DynamicArray` | `src/structures/DynamicArray.ts` | Reusable array that doubles its memory block; covered by tests, not used by the screens yet |
+| `Tree` | `src/structures/Tree.ts` | The "Escena" panel: scene -> kind -> objects (`buildSceneTree` in `src/ui/SceneTree.ts`) |
 
 `SceneModel` is the single source of truth; Phaser only draws it. It is copied into a plain array
 only to send it to the backend as JSON.
