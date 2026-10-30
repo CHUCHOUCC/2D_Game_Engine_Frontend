@@ -130,7 +130,9 @@ export class HttpClient {
     const response = await this.send("/auth/refresh", { method: "POST", body: JSON.stringify({ refresh_token: refresh }) }, null)
       .catch(() => null);
     if (response === null || !response.ok) {
-      if (response !== null) this.tokens.clear();
+      // Only a rejected refresh token ends the session. A sleeping server (502/503), a rate limit
+      // or no network keeps the tokens, so the next attempt can still succeed.
+      if (response !== null && [400, 401, 403].includes(response.status)) this.tokens.clear();
       return false;
     }
     this.tokens.save((await response.json()) as TokenPair);
