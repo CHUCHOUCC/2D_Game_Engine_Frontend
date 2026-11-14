@@ -4,13 +4,15 @@
  */
 import type { Kind } from "../model/GameObject";
 
-export type WeaponId = "sword" | "axe" | "wand" | "bow" | "dagger" | "hammer" | "spear" | "staff";
-export type HeroId = "knight" | "wizard" | "archer" | "barbarian" | "rogue" | "viking" | "lancer" | "druid";
+export type WeaponId =
+  | "sword" | "axe" | "wand" | "bow" | "dagger" | "hammer" | "spear" | "staff"
+  | "pistol" | "rifle" | "shotgun" | "smg" | "sniper" | "launcher" | "grenade";
+export type HeroId = "knight" | "wizard" | "archer" | "barbarian" | "rogue" | "viking" | "lancer" | "druid" | "soldier" | "commando" | "warrior";
 
 /** How a thrown or shot thing flies (see projectiles.ts for the physics). */
 export interface ProjectileSpec {
   /** Texture key of the projectile. */
-  texture: "arrow" | "orb" | "dagger-flying" | "spark" | "fireball";
+  texture: "arrow" | "orb" | "dagger-flying" | "spark" | "fireball" | "bullet" | "shell" | "rocket" | "grenade";
   /** Launch speed along the ground, in px/s (at full charge for the bow). */
   speed: number;
   /** Pull towards the ground, px/s²: arrows and daggers fly in a low arc; magic floats. */
@@ -59,6 +61,13 @@ export interface Weapon {
 }
 
 const ARROW: ProjectileSpec = { texture: "arrow", speed: 640, gravity: 240, height: 12, count: 1, fanDeg: 0, spin: 0, pierce: 0, bounces: 0, splash: 0, accel: 0, color: 0xd6ecff };
+/** A bullet of the hero's firearms: straight and fast. Each gun changes speed, count and pierce. */
+const SHOT: ProjectileSpec = { texture: "bullet", speed: 760, gravity: 0, height: 14, count: 1, fanDeg: 0, spin: 0, pierce: 0, bounces: 0, splash: 0, accel: 0, color: 0xffe7a3 };
+
+/** True for the guns, which fire bullets, rockets or grenades instead of swinging or casting. */
+export function isFirearm(id: WeaponId): boolean {
+  return ["pistol", "rifle", "shotgun", "smg", "sniper", "launcher", "grenade"].includes(id);
+}
 
 export const WEAPONS: Record<WeaponId, Weapon> = {
   sword: { id: "sword", name: "Espada", style: "melee", damage: 1, cooldownMs: 340, range: 52, spread: 120, knockback: 320, windupMs: 70, chargeMs: 0, lunge: 220, shockwave: 0, summary: "Golpe en arco · 1 de daño" },
@@ -81,6 +90,36 @@ export const WEAPONS: Record<WeaponId, Weapon> = {
     projectile: { texture: "spark", speed: 420, gravity: 0, height: 14, count: 1, fanDeg: 0, spin: 0, pierce: 1, bounces: 3, splash: 0, accel: 0, color: 0x6ee7b7 },
     summary: "Chispa que rebota en paredes · 1 de daño",
   },
+  pistol: {
+    id: "pistol", name: "Pistola", style: "projectile", damage: 1, cooldownMs: 250, range: 440, spread: 0, knockback: 160, windupMs: 30, chargeMs: 0, lunge: 0, shockwave: 0,
+    projectile: SHOT, summary: "Disparo rápido · 1 de daño",
+  },
+  rifle: {
+    id: "rifle", name: "Fusil", style: "projectile", damage: 2, cooldownMs: 480, range: 640, spread: 0, knockback: 240, windupMs: 70, chargeMs: 0, lunge: 0, shockwave: 0,
+    projectile: { ...SHOT, speed: 920, pierce: 1 }, summary: "Bala perforante · 2 de daño",
+  },
+  shotgun: {
+    id: "shotgun", name: "Escopeta", style: "projectile", damage: 1, cooldownMs: 720, range: 250, spread: 0, knockback: 380, windupMs: 60, chargeMs: 0, lunge: 0, shockwave: 0,
+    projectile: { ...SHOT, speed: 640, count: 5, fanDeg: 9 }, summary: "5 perdigones en abanico · 1 de daño cada uno",
+  },
+  smg: {
+    id: "smg", name: "Subfusil", style: "projectile", damage: 1, cooldownMs: 110, range: 360, spread: 0, knockback: 90, windupMs: 0, chargeMs: 0, lunge: 0, shockwave: 0,
+    projectile: { ...SHOT, speed: 700 }, summary: "Ráfaga continua · 1 de daño",
+  },
+  sniper: {
+    id: "sniper", name: "Francotirador", style: "projectile", damage: 4, cooldownMs: 1150, range: 900, spread: 0, knockback: 420, windupMs: 220, chargeMs: 0, lunge: 0, shockwave: 0,
+    projectile: { ...SHOT, speed: 1300, pierce: 2 }, summary: "Disparo perforante de largo alcance · 4 de daño",
+  },
+  launcher: {
+    id: "launcher", name: "Lanzacohetes", style: "projectile", damage: 3, cooldownMs: 1250, range: 620, spread: 0, knockback: 520, windupMs: 180, chargeMs: 0, lunge: 0, shockwave: 0,
+    projectile: { texture: "rocket", speed: 260, gravity: 0, height: 16, count: 1, fanDeg: 0, spin: 0, pierce: 0, bounces: 0, splash: 66, accel: 620, color: 0xff7a2a },
+    summary: "Cohete explosivo · 3 de daño en área",
+  },
+  grenade: {
+    id: "grenade", name: "Granadas", style: "projectile", damage: 3, cooldownMs: 850, range: 320, spread: 0, knockback: 480, windupMs: 120, chargeMs: 0, lunge: 0, shockwave: 0,
+    projectile: { texture: "grenade", speed: 300, gravity: 420, height: 18, count: 1, fanDeg: 0, spin: 2, pierce: 0, bounces: 0, splash: 60, accel: 0, color: 0xff9a3c },
+    summary: "Granada en parábola · 3 de daño en área",
+  },
 };
 
 export interface Hero {
@@ -98,14 +137,18 @@ export interface Hero {
 }
 
 export const HEROES: readonly Hero[] = [
-  { id: "knight", name: "Caballero", texture: "hero-knight", maxHealth: 6, speed: 175, agility: 12, weapon: "sword", description: "Resistente y equilibrado. Da un paso al frente y corta en arco.", bars: { health: 6, speed: 5, power: 4 } },
-  { id: "wizard", name: "Mago", texture: "hero-wizard", maxHealth: 4, speed: 180, agility: 10, weapon: "wand", description: "Frágil pero letal. Concentra un orbe que acelera y explota al chocar.", bars: { health: 4, speed: 5, power: 8 } },
-  { id: "archer", name: "Arquero", texture: "hero-archer", maxHealth: 5, speed: 200, agility: 14, weapon: "bow", description: "El más rápido. Tensa el arco: mantén Espacio y la flecha llega más lejos.", bars: { health: 5, speed: 8, power: 4 } },
-  { id: "barbarian", name: "Bárbaro", texture: "hero-barbarian", maxHealth: 7, speed: 160, agility: 8, weapon: "axe", description: "Lento y muy duro. Levanta el hacha y derriba a lo que tenga delante.", bars: { health: 7, speed: 4, power: 9 } },
-  { id: "rogue", name: "Pícaro", texture: "hero-rogue", maxHealth: 4, speed: 215, agility: 18, weapon: "dagger", description: "Ágil y escurridizo. Lanza tres dagas que giran en el aire.", bars: { health: 4, speed: 9, power: 5 } },
-  { id: "viking", name: "Vikingo", texture: "hero-viking", maxHealth: 8, speed: 150, agility: 7, weapon: "hammer", description: "Una muralla. Golpea el suelo con el martillo y empuja a todos a su alrededor.", bars: { health: 8, speed: 3, power: 9 } },
-  { id: "lancer", name: "Lancero", texture: "hero-lancer", maxHealth: 6, speed: 185, agility: 12, weapon: "spear", description: "Alcance largo. Se lanza hacia delante con una estocada que atraviesa.", bars: { health: 6, speed: 6, power: 6 } },
-  { id: "druid", name: "Druida", texture: "hero-druid", maxHealth: 5, speed: 180, agility: 11, weapon: "staff", description: "Juega con los rebotes: su chispa salta en las paredes y atraviesa enemigos.", bars: { health: 5, speed: 5, power: 6 } },
+  { id: "knight", name: "Caballero", texture: "hero-knight-idle", maxHealth: 6, speed: 175, agility: 12, weapon: "sword", description: "Resistente y equilibrado. Da un paso al frente y corta en arco.", bars: { health: 6, speed: 5, power: 4 } },
+  { id: "wizard", name: "Mago", texture: "hero-wizard-idle", maxHealth: 4, speed: 180, agility: 10, weapon: "wand", description: "Frágil pero letal. Concentra un orbe que acelera y explota al chocar.", bars: { health: 4, speed: 5, power: 8 } },
+  { id: "archer", name: "Arquero", texture: "hero-archer-idle", maxHealth: 5, speed: 200, agility: 14, weapon: "bow", description: "El más rápido. Tensa el arco: mantén Espacio y la flecha llega más lejos.", bars: { health: 5, speed: 8, power: 4 } },
+  { id: "barbarian", name: "Bárbaro", texture: "hero-barbarian-idle", maxHealth: 7, speed: 160, agility: 8, weapon: "axe", description: "Lento y muy duro. Levanta el hacha y derriba a lo que tenga delante.", bars: { health: 7, speed: 4, power: 9 } },
+  { id: "rogue", name: "Pícaro", texture: "hero-rogue-idle", maxHealth: 4, speed: 215, agility: 18, weapon: "dagger", description: "Ágil y escurridizo. Lanza tres dagas que giran en el aire.", bars: { health: 4, speed: 9, power: 5 } },
+  { id: "viking", name: "Vikingo", texture: "hero-viking-idle", maxHealth: 8, speed: 150, agility: 7, weapon: "hammer", description: "Una muralla. Golpea el suelo con el martillo y empuja a todos a su alrededor.", bars: { health: 8, speed: 3, power: 9 } },
+  { id: "lancer", name: "Lancero", texture: "hero-lancer-idle", maxHealth: 6, speed: 185, agility: 12, weapon: "spear", description: "Alcance largo. Se lanza hacia delante con una estocada que atraviesa.", bars: { health: 6, speed: 6, power: 6 } },
+  { id: "druid", name: "Druida", texture: "hero-druid-idle", maxHealth: 5, speed: 180, agility: 11, weapon: "staff", description: "Juega con los rebotes: su chispa salta en las paredes y atraviesa enemigos.", bars: { health: 5, speed: 5, power: 6 } },
+  // Soldiers of the blue army: the heroes of the firearms.
+  { id: "soldier", name: "Soldado", texture: "hero-soldier-idle", maxHealth: 6, speed: 180, agility: 11, weapon: "rifle", description: "Soldado del ejército azul. Su fusil dispara lejos y con fuerza.", bars: { health: 6, speed: 5, power: 7 } },
+  { id: "commando", name: "Comando", texture: "hero-commando-idle", maxHealth: 5, speed: 200, agility: 15, weapon: "shotgun", description: "Asalto a corta distancia: la escopeta lanza una ráfaga en abanico.", bars: { health: 5, speed: 7, power: 7 } },
+  { id: "warrior", name: "Guerrero", texture: "hero-warrior-idle", maxHealth: 7, speed: 165, agility: 9, weapon: "grenade", description: "Guerrero de batalla. Lanza granadas que explotan y dañan en área.", bars: { health: 7, speed: 4, power: 9 } },
 ];
 
 export function heroById(id: string | null | undefined): Hero {
@@ -147,6 +190,14 @@ export interface EnemyAttack {
 const DARK_ARROW: ProjectileSpec = { ...ARROW, speed: 430, gravity: 200, color: 0xff6b6b };
 const CURSED_ORB: ProjectileSpec = { texture: "orb", speed: 170, gravity: 0, height: 16, count: 3, fanDeg: 18, spin: 0, pierce: 0, bounces: 0, splash: 0, accel: 120, color: 0x9dff7a };
 const FIREBALL: ProjectileSpec = { texture: "fireball", speed: 210, gravity: 0, height: 20, count: 3, fanDeg: 14, spin: 0, pierce: 0, bounces: 0, splash: 0, accel: 60, color: 0xff9a3c };
+/** A short burst of two rifle bullets: fast and straight, easy to read, hard to outrun. */
+const BULLETS: ProjectileSpec = { texture: "bullet", speed: 470, gravity: 0, height: 14, count: 2, fanDeg: 5, spin: 0, pierce: 0, bounces: 0, splash: 0, accel: 0, color: 0xffe7a3 };
+/** A hand grenade: thrown high, it lands and explodes. */
+const GRENADE: ProjectileSpec = { texture: "shell", speed: 250, gravity: 430, height: 18, count: 1, fanDeg: 0, spin: 2, pierce: 0, bounces: 0, splash: 46, accel: 0, color: 0xff9a3c };
+/** An artillery shell: a long, slow arc that explodes where it lands. */
+const SHELL: ProjectileSpec = { texture: "shell", speed: 300, gravity: 210, height: 22, count: 1, fanDeg: 0, spin: 0, pierce: 0, bounces: 0, splash: 58, accel: 0, color: 0xff7a2a };
+/** The tank's cannon: three shells in a fan that burst on impact. */
+const TANK_SHELLS: ProjectileSpec = { texture: "shell", speed: 260, gravity: 0, height: 20, count: 3, fanDeg: 16, spin: 0, pierce: 0, bounces: 0, splash: 36, accel: 40, color: 0xff7a2a };
 
 export const ENEMIES: Partial<Record<Kind, EnemyStats>> = {
   enemy: { name: "Slime", texture: "enemy-slime", health: 3, speed: 70, damage: 1, points: 5, passesWalls: false, behavior: "chase", scale: 1 },
@@ -163,6 +214,33 @@ export const ENEMIES: Partial<Record<Kind, EnemyStats>> = {
   necromancer: {
     name: "Nigromante", texture: "necromancer", health: 4, speed: 55, damage: 1, points: 9, passesWalls: false, behavior: "ranged", scale: 1,
     attack: { projectile: CURSED_ORB, range: 320, keepAway: 180, cooldownMs: 2400, windupMs: 700, tint: 0x9dff7a },
+  },
+  legionary: { name: "Legionario", texture: "legionary", health: 4, speed: 88, damage: 1, points: 6, passesWalls: false, behavior: "chase", scale: 1 },
+  captain: { name: "Capitán", texture: "captain", health: 9, speed: 52, damage: 2, points: 16, passesWalls: false, behavior: "chase", scale: 1.2 },
+  turret: {
+    name: "Torreta", texture: "turret", health: 6, speed: 0, damage: 1, points: 10, passesWalls: false, behavior: "ranged", scale: 1,
+    attack: { projectile: BULLETS, range: 460, keepAway: 0, cooldownMs: 900, windupMs: 300, tint: 0x5ee3ff },
+  },
+  drone: { name: "Dron", texture: "drone", health: 2, speed: 125, damage: 1, points: 5, passesWalls: true, behavior: "flutter", scale: 1 },
+  bandit: {
+    name: "Bandido", texture: "bandit", health: 3, speed: 82, damage: 1, points: 7, passesWalls: false, behavior: "ranged", scale: 1,
+    attack: { projectile: BULLETS, range: 340, keepAway: 200, cooldownMs: 1300, windupMs: 380, tint: 0xffd36a },
+  },
+  soldier: {
+    name: "Fusilero", texture: "soldier", health: 3, speed: 70, damage: 1, points: 7, passesWalls: false, behavior: "ranged", scale: 1,
+    attack: { projectile: BULLETS, range: 380, keepAway: 230, cooldownMs: 1500, windupMs: 420, tint: 0xffe7a3 },
+  },
+  grenadier: {
+    name: "Granadero", texture: "grenadier", health: 3, speed: 62, damage: 1, points: 8, passesWalls: false, behavior: "ranged", scale: 1,
+    attack: { projectile: GRENADE, range: 300, keepAway: 200, cooldownMs: 2600, windupMs: 600, tint: 0xff9a3c },
+  },
+  artillery: {
+    name: "Artillería", texture: "artillery", health: 6, speed: 0, damage: 1, points: 10, passesWalls: false, behavior: "ranged", scale: 1.1,
+    attack: { projectile: SHELL, range: 560, keepAway: 0, cooldownMs: 2900, windupMs: 850, tint: 0xff7a2a },
+  },
+  tank: {
+    name: "Tanque", texture: "tank", health: 25, speed: 40, damage: 2, points: 35, passesWalls: false, behavior: "boss", scale: 1.7,
+    attack: { projectile: TANK_SHELLS, range: 440, keepAway: 0, cooldownMs: 2500, windupMs: 700, tint: 0xffffff },
   },
   demon: {
     name: "Demonio", texture: "demon", health: 30, speed: 55, damage: 2, points: 40, passesWalls: false, behavior: "boss", scale: 2,
@@ -204,14 +282,20 @@ export function speedFor(stats: EnemyStats, difficulty: number): number {
 
 /** What a chest drops. `random` returns 0..1 (Math.random in the game, fixed in tests). */
 export const LOOT: readonly Kind[] = [
-  "sword", "axe", "wand", "bow", "dagger", "hammer", "spear", "staff", "potion", "potion", "potion", "potion",
+  "sword", "axe", "wand", "bow", "dagger", "hammer", "spear", "staff",
+  "pistol", "pistol", "rifle", "shotgun", "smg", "sniper", "launcher", "grenade", "grenade",
+  "potion", "potion", "potion", "potion", "potion", "medkit", "medkit", "medkit",
 ];
+
+/** Damage and reach of an exploding powder keg. */
+export const BARREL_BLAST = { damage: 3, radius: 78 };
 
 export function rollLoot(random: () => number = Math.random): Kind {
   return LOOT[Math.min(LOOT.length - 1, Math.floor(random() * LOOT.length))];
 }
 
 export const POTION_HEAL = 2;
+export const MEDKIT_HEAL = 3;
 
 /** True when a target is inside a melee swing: close enough and within the arc in front. */
 export function inSwing(dx: number, dy: number, facing: number, weapon: Weapon, targetRadius = 14): boolean {

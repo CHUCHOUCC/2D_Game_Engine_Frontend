@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { difficultyLabel } from "./AiPanel";
+import { aiSummary, difficultyLabel, levelOf } from "./AiPanel";
 import { formatTime, hearts } from "./Hud";
 import { passwordStrength } from "./passwordStrength";
 import { achievementName } from "./ProgressPanel";
@@ -62,9 +62,19 @@ test("relativeTime describes how long ago a project changed", () => {
 
 test("difficulty labels and achievement names are in Spanish", () => {
   expect(difficultyLabel(0.1)).toBe("Fácil");
-  expect(difficultyLabel(0.5)).toBe("Normal");
+  expect(difficultyLabel(0.5)).toBe("Medio");
   expect(difficultyLabel(0.7)).toBe("Difícil");
-  expect(difficultyLabel(0.95)).toBe("Muy difícil");
+  expect(difficultyLabel(0.95)).toBe("Extremo");
+  expect(levelOf(0.45)).toBe("medium");
+  expect(levelOf(0.85)).toBe("extreme");
+  expect(levelOf(0.05)).toBe("easy");
   expect(achievementName("untouchable")).toBe("Intocable");
   expect(achievementName("unknown")).toBe("unknown");
+});
+
+test("aiSummary says what the AI removed and added", () => {
+  expect(aiSummary({ added: 3, removed: 12 })).toBe("La IA quitó 12 objetos y añadió 3 objetos.");
+  expect(aiSummary({ added: 1, removed: 0 })).toBe("La IA añadió 1 objeto.");
+  expect(aiSummary({ added: 0, removed: 0 })).toBe("La IA no encontró nada que cambiar con esa petición.");
+  expect(aiSummary(undefined)).toBe("La IA actualizó la escena.");
 });

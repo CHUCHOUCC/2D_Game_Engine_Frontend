@@ -1,10 +1,12 @@
 import { TEXTURE_BASE } from "../game/assets";
-import { heroById, HEROES, WEAPONS, type Hero } from "../game/combat";
+import { playableHero, playableHeroes, type PlayableHero } from "../game/balance";
+import { WEAPONS } from "../game/combat";
+import { spriteUrl } from "../game/sprites";
 import { byId, make } from "./dom";
 
 const STORAGE_KEY = "pixelforge-hero";
 
-function remembered(): string | null {
+export function remembered(): string | null {
   try {
     return localStorage.getItem(STORAGE_KEY);
   } catch {
@@ -12,7 +14,7 @@ function remembered(): string | null {
   }
 }
 
-function remember(id: string): void {
+export function remember(id: string): void {
   try {
     localStorage.setItem(STORAGE_KEY, id);
   } catch {
@@ -30,7 +32,7 @@ function bar(label: string, value: number): HTMLElement {
   return row;
 }
 
-function card(hero: Hero): HTMLButtonElement {
+function card(hero: PlayableHero): HTMLButtonElement {
   const weapon = WEAPONS[hero.weapon];
   const button = make("button", "hero");
   button.type = "button";
@@ -38,8 +40,14 @@ function card(hero: Hero): HTMLButtonElement {
   button.setAttribute("role", "radio");
   const portrait = make("div", "portrait");
   const body = make("img");
-  body.src = `${TEXTURE_BASE}${hero.texture}.png`;
+  body.src = spriteUrl(hero.spriteId) ?? `${TEXTURE_BASE}${hero.texture}.png`;
   body.alt = "";
+  if (hero.tint !== null) {
+    // The hero's own colour over the sprite, masked by it.
+    portrait.classList.add("is-tinted");
+    portrait.style.setProperty("--icon", `url("${body.src}")`);
+    portrait.style.setProperty("--tint", `#${hero.tint.toString(16).padStart(6, "0")}`);
+  }
   const tool = make("img", "portrait-weapon");
   tool.src = `${TEXTURE_BASE}${weapon.id}.png`;
   tool.alt = "";
@@ -49,7 +57,12 @@ function card(hero: Hero): HTMLButtonElement {
   icon.src = tool.src;
   icon.alt = "";
   skill.append(icon, make("span", "", `${weapon.name} · ${weapon.summary.split(" · ")[0].toLowerCase()}`), make("kbd", "", "Espacio"));
-  button.append(portrait, make("h4", "", hero.name), make("p", "", hero.description), bar("Vida", hero.bars.health), bar("Velocidad", hero.bars.speed), bar("Poder", hero.bars.power), skill);
+  const title = make("h4", "", hero.name);
+  if (hero.custom) title.append(make("span", "hero-mine", "Tuyo"));
+  // Health and attack as this account set them in the admin panel.
+  const power = hero.custom ? hero.bars.power : Math.max(1, Math.min(10, hero.bars.power + hero.damageBonus * 2));
+  button.append(portrait, title, make("p", "", hero.custom ? `Tu héroe basado en ${WEAPONS[hero.weapon].name.toLowerCase()}. Vida ${hero.maxHealth} · daño ${hero.damage}.` : hero.description),
+    bar("Vida", Math.min(10, hero.maxHealth)), bar("Velocidad", Math.max(1, Math.min(10, hero.bars.speed))), bar("Poder", power), skill);
   return button;
 }
 
@@ -57,8 +70,11 @@ function card(hero: Hero): HTMLButtonElement {
 export function chooseHero(): Promise<string | null> {
   const dialog = byId<HTMLDialogElement>("hero-dialog");
   const list = byId("hero-list");
-  let chosen: string = heroById(remembered()).id;
-  if (list.childElementCount === 0) for (const hero of HEROES) list.append(card(hero));
+  const heroes = playableHeroes();
+  const saved = remembered();
+  let chosen: string = heroes.some((hero) => hero.id === saved) ? saved! : playableHero(null).id;
+  // Rebuilt every time: the account may have changed its heroes in the admin panel.
+  list.replaceChildren(...heroes.map(card));
   const paint = () => {
     for (const button of list.querySelectorAll<HTMLButtonElement>(".hero")) {
       const on = button.dataset.hero === chosen;

@@ -1,3 +1,4 @@
+import { seal, sealingAvailable, type Challenge } from "./seal";
 import { TokenStore, type TokenPair } from "./tokens";
 
 export class ApiError extends Error {
@@ -33,11 +34,21 @@ const MESSAGES: Record<string, string> = {
   "Unknown template": "Esa plantilla no existe.",
   "Run not found or already finished": "La partida ya había terminado.",
   "Internal server error": "Error interno del servidor. Inténtalo de nuevo.",
+  "Sealed request invalid or expired": "La conexión segura caducó. Inténtalo de nuevo.",
 };
 
+const SEAL_EXPIRED = "Sealed request invalid or expired";
+
 /** Spanish text for an error. The backend speaks English; the user never sees it. */
+/** A server message written in Spanish for the player (not a technical one in English). */
+export function isForThePlayer(detail: string): boolean {
+  return detail.length > 0 && detail.length <= 200 && (/[áéíóúñ¿¡]/i.test(detail) || /^(El|La|Los|Las|Esa|Ese|Esta|Este|Puedes|Una|Un|No|Tu|Hay|Pide|Escribe) /.test(detail));
+}
+
 export function friendlyMessage(status: number, detail: string): string {
   if (MESSAGES[detail]) return MESSAGES[detail];
+  // Messages the server already wrote for the player, in Spanish (e.g. why a picture was refused).
+  if ([400, 409, 413, 422, 503].includes(status) && isForThePlayer(detail)) return detail;
   if (status === 0) return "No se pudo conectar con el servidor.";
   if (status === 401) return "Tu sesión terminó. Vuelve a iniciar sesión.";
   if (status === 403) return "No tienes permiso para hacer esto.";
@@ -56,17 +67,33 @@ type Fetch = typeof fetch;
  * when the backend answers 401, refreshes the tokens once and retries.
  * Concurrent requests share a single refresh.
  */
+/** Something that answers the app's requests without the network (the demo, see src/demo). */
+export interface DemoHandler {
+  handle(path: string, method: string, body: unknown): Promise<unknown>;
+}
+
 export class HttpClient {
   readonly tokens: TokenStore;
   private readonly baseUrl: string;
   private readonly fetcher: Fetch;
   private refreshing: Promise<boolean> | null = null;
   private onSessionLost: () => void = () => {};
+  /** The demo's server in the browser: while set, no request reaches the network. */
+  private demo: DemoHandler | null = null;
 
   constructor(baseUrl: string, tokens: TokenStore, fetcher: Fetch = (...args) => fetch(...args)) {
     this.baseUrl = baseUrl;
     this.tokens = tokens;
     this.fetcher = fetcher;
+  }
+
+  /** Answer every request with the demo's own server (null: back to the real one). */
+  useDemo(handler: DemoHandler | null): void {
+    this.demo = handler;
+  }
+
+  get inDemo(): boolean {
+    return this.demo !== null;
   }
 
   /** Called when the session cannot be refreshed any more (user must log in again). */
@@ -98,6 +125,7 @@ export class HttpClient {
 
   /** Exchange the refresh token for a new pair. Only one refresh runs at a time. */
   refreshTokens(): Promise<boolean> {
+    if (this.demo !== null) return Promise.resolve(false);
     if (this.refreshing === null) {
       this.refreshing = this.doRefresh().finally(() => {
         this.refreshing = null;
@@ -127,19 +155,54 @@ export class HttpClient {
   private async refreshNow(): Promise<boolean> {
     const refresh = this.tokens.refresh;
     if (refresh === null) return false;
-    const response = await this.send("/auth/refresh", { method: "POST", body: JSON.stringify({ refresh_token: refresh }) }, null)
-      .catch(() => null);
+    // The refresh token goes sealed and the new pair comes back sealed (see seal.ts).
+    const sealed = await this.sealBody({ refresh_token: refresh }).catch(() => null);
+    const body = sealed?.body ?? JSON.stringify({ refresh_token: refresh });
+    const response = await this.send("/auth/refresh", { method: "POST", body }, null).catch(() => null);
     if (response === null || !response.ok) {
-      // Only a rejected refresh token ends the session. A sleeping server (502/503), a rate limit
-      // or no network keeps the tokens, so the next attempt can still succeed.
-      if (response !== null && [400, 401, 403].includes(response.status)) this.tokens.clear();
+      // Only a rejected refresh token ends the session. A sleeping server (502/503), a rate limit,
+      // an expired seal (400 with its own message) or no network keeps the tokens.
+      if (response !== null && [401, 403].includes(response.status)) this.tokens.clear();
       return false;
     }
-    this.tokens.save((await response.json()) as TokenPair);
+    const answer: unknown = await response.json();
+    this.tokens.save(sealed ? await sealed.open<TokenPair>(answer) : (answer as TokenPair));
     return true;
   }
 
+  /** Seal a body for one request, or null when the browser cannot (then it goes plain, over HTTPS). */
+  private async sealBody(payload: unknown) {
+    if (!sealingAvailable()) return null;
+    const response = await this.send("/auth/challenge", { method: "GET" }, null);
+    if (!response.ok) throw await HttpClient.errorOf(response);
+    return seal(payload, (await response.json()) as Challenge);
+  }
+
+  /**
+   * POST an account request (login, register, password) as one encrypted block and open the
+   * encrypted answer. If the one-time challenge expired on the way (a slow phone, a restarted
+   * server), it asks for a new one once.
+   */
+  async sealedRequest<T>(path: string, payload: unknown): Promise<T> {
+    if (this.demo !== null) return this.request<T>(path, { method: "POST", body: JSON.stringify(payload) });
+    for (let attempt = 0; ; attempt++) {
+      const sealed = await this.sealBody(payload);
+      if (sealed === null) return this.request<T>(path, { method: "POST", body: JSON.stringify(payload) });
+      try {
+        const answer = await this.request<unknown>(path, { method: "POST", body: sealed.body });
+        return await sealed.open<T>(answer);
+      } catch (error) {
+        const expired = error instanceof ApiError && error.status === 400 && error.message === friendlyMessage(400, SEAL_EXPIRED);
+        if (!expired || attempt >= 1) throw error;
+      }
+    }
+  }
+
   async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    if (this.demo !== null) {
+      const body = typeof init.body === "string" && init.body !== "" ? JSON.parse(init.body) : undefined;
+      return (await this.demo.handle(path, init.method ?? "GET", body)) as T;
+    }
     if (this.tokens.access !== null && this.tokens.expiresSoon(15_000)) {
       await this.refreshTokens();
     }

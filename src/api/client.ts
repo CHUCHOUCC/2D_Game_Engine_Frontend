@@ -1,7 +1,10 @@
+import type { BalanceDto, CreationDto } from "../game/balance";
+import type { SpriteDto } from "../game/sprites";
 import type { GameObject } from "../model/GameObject";
 import { HttpClient } from "./http";
 import { TokenStore, type TokenPair } from "./tokens";
 import { TTL, cached, forgetAll, remember } from "./cache";
+import { DEMO_USER, DemoServer } from "../demo/DemoServer";
 
 export { ApiError } from "./http";
 
@@ -22,6 +25,8 @@ export interface ProjectDto {
   name: string;
   scene: GameObject[];
   updated_at: string;
+  /** Only in the answer of askAi: how many objects the AI removed and added. */
+  ai?: { added: number; removed: number };
 }
 
 export interface TemplateDto {
@@ -41,14 +46,50 @@ export interface VersionDto {
 }
 
 export function registerAccount(username: string, email: string, password: string): Promise<UserDto> {
-  return http.request<UserDto>("/auth/register", { method: "POST", body: JSON.stringify({ username, email, password }) });
+  return http.sealedRequest<UserDto>("/auth/register", { username, email, password });
 }
 
 /** Log in and keep the access and refresh tokens. */
 export async function logIn(email: string, password: string): Promise<void> {
   forgetAll();
-  const pair = await http.request<TokenPair>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+  const pair = await http.sealedRequest<TokenPair>("/auth/login", { email, password });
   http.tokens.save(pair);
+}
+
+// --- Demo: try the engine without an account --------------------------------------------------
+
+let demo: DemoServer | null = null;
+
+/**
+ * Start the demo: from now on every request is answered inside the browser
+ * (DemoServer), so nothing reaches the real server and no account is touched.
+ * Any session tokens are forgotten first, so the demo can never act as a real user.
+ */
+export function startDemo(): UserDto {
+  http.tokens.clear();
+  forgetAll();
+  demo = new DemoServer();
+  http.useDemo(demo);
+  return DEMO_USER;
+}
+
+/** A demo left running in this tab (the page was reloaded): pick it up again. */
+export function resumeDemo(): boolean {
+  if (demo !== null || !DemoServer.saved()) return demo !== null;
+  startDemo();
+  return true;
+}
+
+export function isDemo(): boolean {
+  return demo !== null;
+}
+
+/** Leave the demo and erase everything it created. */
+function stopDemo(): void {
+  demo?.wipe();
+  demo = null;
+  http.useDemo(null);
+  forgetAll();
 }
 
 export function getMe(): Promise<UserDto> {
@@ -57,6 +98,10 @@ export function getMe(): Promise<UserDto> {
 
 /** Revoke both tokens on the backend, then forget them here too. */
 export async function logOut(): Promise<void> {
+  if (demo !== null) {
+    stopDemo();
+    return;
+  }
   const refresh = http.tokens.refresh;
   try {
     if (http.tokens.access !== null) {
@@ -70,7 +115,7 @@ export async function logOut(): Promise<void> {
 }
 
 export function hasSession(): boolean {
-  return http.tokens.refresh !== null;
+  return http.tokens.refresh !== null || demo !== null;
 }
 
 export function listProjects(): Promise<ProjectDto[]> {
@@ -113,11 +158,19 @@ export function restoreVersion(id: number, version: number): Promise<ProjectDto>
   return http.request<ProjectDto>(`/projects/${id}/versions/${version}/restore`, { method: "POST" });
 }
 
+export type DifficultyLevel = "easy" | "medium" | "hard" | "extreme";
+
 export interface AiModelDto {
   samples_seen: number;
   version: number;
   difficulty: number;
+  level?: DifficultyLevel;
   parameters: Record<string, unknown>;
+}
+
+/** Choose the difficulty of a level by hand; the AI keeps learning from there. */
+export function setAiDifficulty(id: number, level: DifficultyLevel): Promise<AiModelDto> {
+  return http.request<AiModelDto>(`/projects/${id}/ai/difficulty`, { method: "PUT", body: JSON.stringify({ level }) });
 }
 
 export function askAi(id: number, prompt: string): Promise<ProjectDto> {
@@ -225,10 +278,7 @@ export interface ActivityDto {
 
 /** Change the password; the backend ends every other session of the account. */
 export function changePassword(currentPassword: string, newPassword: string): Promise<void> {
-  return http.request<void>("/auth/password", {
-    method: "POST",
-    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
-  });
+  return http.sealedRequest<void>("/auth/password", { current_password: currentPassword, new_password: newPassword });
 }
 
 /** Revoke every refresh token of the account (all devices), then forget ours. */
@@ -240,4 +290,48 @@ export async function logOutEverywhere(): Promise<void> {
 
 export function myActivity(): Promise<ActivityDto[]> {
   return http.request<ActivityDto[]>("/me/activity");
+}
+
+// --- Admin panel of the account (balance and own creations) ---------------------------------
+
+export type { BalanceDto, CreationDto, SpriteDto };
+
+/** Fields of a creation the panel sends (the id and dates come from the backend). */
+export type CreationInput = Omit<CreationDto, "id">;
+
+export function getBalance(): Promise<BalanceDto> {
+  return http.request<BalanceDto>("/me/balance");
+}
+
+export function saveBalance(balance: BalanceDto): Promise<BalanceDto> {
+  return http.request<BalanceDto>("/me/balance", { method: "PUT", body: JSON.stringify(balance) });
+}
+
+export function listCreations(): Promise<CreationDto[]> {
+  return http.request<CreationDto[]>("/me/creations");
+}
+
+export function createCreation(creation: CreationInput): Promise<CreationDto> {
+  return http.request<CreationDto>("/me/creations", { method: "POST", body: JSON.stringify(creation) });
+}
+
+export function updateCreation(id: number, creation: CreationInput): Promise<CreationDto> {
+  return http.request<CreationDto>(`/me/creations/${id}`, { method: "PUT", body: JSON.stringify(creation) });
+}
+
+export function listSprites(): Promise<SpriteDto[]> {
+  return http.request<SpriteDto[]>("/me/sprites");
+}
+
+/** Upload a picture (PNG as base64); the server checks it and keeps only a clean copy. */
+export function uploadSprite(name: string, data: string): Promise<SpriteDto> {
+  return http.request<SpriteDto>("/me/sprites", { method: "POST", body: JSON.stringify({ name, data }) });
+}
+
+export function deleteSprite(id: number): Promise<void> {
+  return http.request<void>(`/me/sprites/${id}`, { method: "DELETE" });
+}
+
+export function deleteCreation(id: number): Promise<void> {
+  return http.request<void>(`/me/creations/${id}`, { method: "DELETE" });
 }

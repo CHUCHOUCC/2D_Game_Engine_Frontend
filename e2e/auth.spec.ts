@@ -66,7 +66,7 @@ test("registering plays the intro, then opens the home menu", async ({ page }) =
   // Without skipping, the intro ends by itself after about five seconds.
   await expect(page.locator("#home")).toBeVisible({ timeout: 10_000 });
   await expect(page.locator("#welcome-title")).toHaveText(`Bienvenido, ${user.username}`);
-  await expect(page.locator(".option")).toHaveCount(4);
+  await expect(page.locator(".option")).toHaveCount(5);
 });
 
 test("the menu bar never cuts its options off", async ({ page }) => {
@@ -77,7 +77,7 @@ test("the menu bar never cuts its options off", async ({ page }) => {
     const box = (await tab.boundingBox())!;
     expect(box.x + box.width).toBeLessThanOrEqual(width);
   }
-  await page.locator('.nav-tab[data-go="editor"]').click();
+  await page.locator('.option[data-go="editor"]').click();
   await expect(page.locator("#app")).toBeVisible();
   await page.locator("#btn-home").click();
   await expect(page.locator("#home")).toBeVisible();

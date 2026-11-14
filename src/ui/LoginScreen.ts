@@ -13,6 +13,28 @@ type FieldName = "username" | "email" | "password" | "confirm";
 
 const STRENGTH_COLORS = ["#ff4d6d", "#ff8a3d", "#ffc547", "#33e0a1"];
 
+/** The guide box under each field: what to write there, for each mode. */
+const HINTS: Record<Mode, Record<FieldName, string>> = {
+  login: {
+    username: "",
+    email: "El correo con el que creaste tu cuenta, por ejemplo nombre@gmail.com.",
+    password: "La contraseña de tu cuenta. Distingue mayúsculas de minúsculas; usa el ojo para verla.",
+    confirm: "",
+  },
+  register: {
+    username: "Entre 3 y 20 caracteres: letras, números o guion bajo (_). Es el nombre que verán los demás.",
+    email: "Un correo que uses de verdad, por ejemplo nombre@gmail.com. Con él iniciarás sesión.",
+    password: "Mínimo 8 caracteres, con letras y números o símbolos. Una frase que recuerdes es lo más seguro.",
+    confirm: "Escribe otra vez la misma contraseña para confirmar que no hay errores.",
+  },
+};
+
+/** The card title is two parts: the second one is painted in the accent blue. */
+const COPY: Record<Mode, { title: string; accent: string; subtitle: string; needs: string }> = {
+  login: { title: "Tu próximo mundo comienza", accent: "aquí.", subtitle: "Inicia sesión y continúa creando experiencias extraordinarias.", needs: "Para entrar necesitas" },
+  register: { title: "Tu aventura empieza", accent: "hoy.", subtitle: "Crea tu cuenta y empieza a forjar tus propios mundos 2D.", needs: "Para crear tu cuenta necesitas" },
+};
+
 /**
  * The full-screen access page, the only thing shown before logging in.
  *
@@ -41,9 +63,11 @@ export class LoginScreen {
   private readonly touched = new Set<FieldName>();
   private readonly onLoggedIn: (user: UserDto) => Promise<void>;
 
-  constructor(onLoggedIn: (user: UserDto) => Promise<void>) {
+  constructor(onLoggedIn: (user: UserDto) => Promise<void>, onDemo: () => void) {
     this.onLoggedIn = onLoggedIn;
-    this.living = new LivingLogo(byId("login-art"), byId("login-actors"), byId<HTMLCanvasElement>("login-fx"), byId("login-emblem"));
+    byId("demo-start").addEventListener("click", onDemo);
+    byId("demo-start-link").addEventListener("click", onDemo);
+    this.living = new LivingLogo(byId("login-art"), byId<HTMLCanvasElement>("login-scene"), byId<HTMLCanvasElement>("login-fx"), byId("login-emblem"), byId("wizard-spot"));
     byId("tab-login").addEventListener("click", () => this.setMode("login"));
     byId("tab-register").addEventListener("click", () => this.setMode("register"));
     byId("auth-switch").addEventListener("click", () => this.setMode(this.mode === "login" ? "register" : "login"));
@@ -59,7 +83,10 @@ export class LoginScreen {
       input.addEventListener("keyup", (event) => this.showCapsLock(event));
       input.addEventListener("keydown", (event) => this.showCapsLock(event));
     }
-    this.terms.addEventListener("change", () => byId("terms-row").classList.remove("is-bad"));
+    this.terms.addEventListener("change", () => {
+      byId("terms-row").classList.remove("is-bad");
+      this.showNeeds();
+    });
     this.form.addEventListener("submit", (event) => {
       event.preventDefault();
       void this.send();
@@ -77,11 +104,39 @@ export class LoginScreen {
     this.submit.querySelector(".btn-label")!.textContent = register ? "Crear cuenta" : "Entrar a la forja";
     byId("auth-switch-text").textContent = register ? "¿Ya tienes cuenta?" : "¿No tienes cuenta?";
     byId("auth-switch").textContent = register ? "Inicia sesión" : "Crea una";
+    byId("auth-title-text").textContent = COPY[mode].title;
+    byId("auth-title-accent").textContent = COPY[mode].accent;
+    byId("auth-subtitle").textContent = COPY[mode].subtitle;
+    byId("needs-title").textContent = COPY[mode].needs;
+    for (const hint of this.form.querySelectorAll<HTMLElement>("[data-hint]")) {
+      hint.textContent = HINTS[mode][hint.dataset.hint as FieldName];
+    }
     this.touched.clear();
     this.banner.hidden = true;
     this.setMessage("");
     for (const name of Object.keys(this.inputs) as FieldName[]) this.paint(name, { state: "", message: "" });
     this.showPasswordHelp();
+    this.showNeeds();
+  }
+
+  /** The "what you need" box: which required data is already filled in correctly. */
+  private showNeeds(): void {
+    const names: FieldName[] = this.mode === "register" ? ["username", "email", "password", "confirm"] : ["email", "password"];
+    let done = 0;
+    for (const name of names) {
+      const ok = this.mode === "login" && name === "password" ? this.inputs.password.value !== "" : this.checkOf(name).state === "ok";
+      this.form.querySelector(`[data-need="${name}"]`)!.classList.toggle("is-ok", ok);
+      if (ok) done += 1;
+    }
+    let total = names.length;
+    if (this.mode === "register") {
+      total += 1;
+      this.form.querySelector('[data-need="terms"]')!.classList.toggle("is-ok", this.terms.checked);
+      if (this.terms.checked) done += 1;
+    }
+    byId("needs-count").textContent = `${done} / ${total}`;
+    byId("needs-bar").style.transform = `scaleX(${done / total})`;
+    byId("auth-needs").classList.toggle("is-complete", done === total);
   }
 
   /** The check of one field for the current mode. */
@@ -109,6 +164,7 @@ export class LoginScreen {
   private refresh(name: FieldName): void {
     this.setMessage("");
     this.live(name);
+    this.showNeeds();
     if (this.mode !== "register") return;
     this.showPasswordHelp();
     if (name !== "confirm" && this.inputs.confirm.value !== "") this.live("confirm");
@@ -203,7 +259,7 @@ export class LoginScreen {
     byId("auth-success-title").textContent = this.mode === "login" ? "¡Bienvenido de nuevo!" : "¡Cuenta creada!";
     this.form.classList.add("is-done");
     byId("auth-success").hidden = false;
-    this.living.fx.strikeNow();
+    this.living.celebrate();
     await new Promise((resolve) => window.setTimeout(resolve, 900));
   }
 
@@ -230,7 +286,14 @@ export class LoginScreen {
     this.screen.hidden = false;
     this.setMessage(note, note !== "");
     this.living.start();
-    this.inputs.email.focus();
+    // On a phone the page starts at the top (brand, features, demo), not scrolled down to the field.
+    if (!window.matchMedia("(max-width: 900px)").matches) this.inputs.email.focus({ preventScroll: true });
+  }
+
+  /** Open on "Crear cuenta" (coming from the demo's "Crear cuenta gratis"). */
+  openRegister(): void {
+    this.setMode("register");
+    this.inputs.username.focus();
   }
 
   hide(): void {

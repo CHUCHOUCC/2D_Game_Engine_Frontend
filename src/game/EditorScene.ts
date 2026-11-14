@@ -1,7 +1,9 @@
 import Phaser from "phaser";
 import { isCharacter, isEnemy, isGround, SIZES, WORLD_HEIGHT, WORLD_WIDTH, type GameObject, type Kind } from "../model/GameObject";
-import { clampToWorld, fitZoom, snap } from "../model/geometry";
+import { clampToWorld, containZoom, fitZoom, snap, viewMargins } from "../model/geometry";
 import type { SceneModel } from "../model/SceneModel";
+import { variantSprite, variantTint } from "./balance";
+import { spriteTexture } from "./sprites";
 import { bob, KIND_TEXTURE, loadTextures } from "./textures";
 
 export interface EditorOptions {
@@ -19,6 +21,8 @@ export interface EditorEvents {
   onErase: (id: string) => void;
   onPointer: (x: number, y: number) => void;
   onZoom: (zoom: number) => void;
+  /** Where the world is drawn on the canvas, in screen pixels (for the frame around it). */
+  onView?: (left: number, top: number, width: number, height: number) => void;
 }
 
 const MIN_ZOOM = 0.25;
@@ -58,6 +62,10 @@ export class EditorScene extends Phaser.Scene {
   create(): void {
     this.drawnVersion = -1; // the scene starts again when we come back from Play
     this.ghost = null;
+    // Outside the map the terrain goes on, dim and dark, so the empty room around
+    // the frame reads as the world continuing instead of black bands.
+    this.add.tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH * 5, WORLD_HEIGHT * 5, "grass")
+      .setDepth(-12).setTint(0x3a50a0).setAlpha(0.28); // faint and night-blue, like the rest of the app
     this.add.tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, "grass").setDepth(-10);
     this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT).setStrokeStyle(4, 0x0b0f14, 0.9).setDepth(-5);
     this.grid = this.add.graphics().setDepth(-4);
@@ -80,8 +88,19 @@ export class EditorScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off(Phaser.Scale.Events.RESIZE, onResize));
   }
 
-  /** Zoom so the whole world is visible and centre it. */
+  /** Zoom so the whole world fills the free room as much as it can, nothing cut, and centre it there. */
   fitView(): void {
+    const camera = this.cameras.main;
+    const margins = viewMargins(this.scale.width);
+    camera.setZoom(Phaser.Math.Clamp(containZoom(this.scale.width, this.scale.height, margins), 0.1, MAX_ZOOM));
+    // Centre in the free room (the bottom band holds the label and the zoom).
+    camera.centerOn(WORLD_WIDTH / 2, WORLD_HEIGHT / 2 + (margins.bottom - margins.top) / 2 / camera.zoom);
+    this.drawGrid();
+    this.events_.onZoom(camera.zoom);
+  }
+
+  /** Zoom out until the whole world is visible ("Ver todo el mundo"). */
+  showWholeWorld(): void {
     const camera = this.cameras.main;
     camera.setZoom(Phaser.Math.Clamp(fitZoom(this.scale.width, this.scale.height), MIN_ZOOM, MAX_ZOOM));
     camera.centerOn(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
@@ -244,10 +263,23 @@ export class EditorScene extends Phaser.Scene {
     for (let y = size; y < WORLD_HEIGHT; y += size) this.grid.lineBetween(0, y, WORLD_WIDTH, y);
   }
 
+  private lastView = "";
+
   update(): void {
     if (this.drawnVersion !== this.model.version) {
       this.redraw();
       this.drawnVersion = this.model.version;
+    }
+    // Tell the page where the world is on screen, so the frame hugs its edges.
+    const camera = this.cameras.main;
+    const left = Math.round((0 - camera.worldView.x) * camera.zoom);
+    const top = Math.round((0 - camera.worldView.y) * camera.zoom);
+    const width = Math.round(WORLD_WIDTH * camera.zoom);
+    const height = Math.round(WORLD_HEIGHT * camera.zoom);
+    const view = `${left},${top},${width},${height}`;
+    if (view !== this.lastView) {
+      this.lastView = view;
+      this.events_.onView?.(left, top, width, height);
     }
   }
 
@@ -255,6 +287,11 @@ export class EditorScene extends Phaser.Scene {
     return this.children.list.filter(
       (child): child is Phaser.GameObjects.Image => typeof child.getData("objectId") === "string",
     );
+  }
+
+  /** Draw everything again (after the account's creations change colour). */
+  refresh(): void {
+    if (this.sys?.isActive()) this.redraw();
   }
 
   private redraw(): void {
@@ -270,7 +307,9 @@ export class EditorScene extends Phaser.Scene {
 
   private drawObject(object: GameObject): void {
     const texture = KIND_TEXTURE[object.kind];
-    const sprite = this.add.sprite(object.x, object.y, texture.key);
+    const sprite = this.add.sprite(object.x, object.y, spriteTexture(this, variantSprite(object.kind, object.variant), texture.key));
+    const tint = variantTint(object.kind, object.variant);
+    if (tint !== null) sprite.setTint(tint);
     if (object.kind === "coin" || isEnemy(object.kind) || isCharacter(object.kind)) bob(this, sprite);
     // Taller objects further down the screen are drawn on top (fake depth).
     sprite.setDepth(object.kind === "water" ? -6 : isGround(object.kind) ? (object.kind === "bridge" ? -4 : -5) : object.y / WORLD_HEIGHT);
@@ -286,6 +325,9 @@ export class EditorScene extends Phaser.Scene {
   }
 
   private drawSelection(): void {
+    // A project can be opened while the scene is still loading its textures:
+    // create() draws the selection once it is ready.
+    if (this.selection === undefined) return;
     this.selection.clear();
     if (this.selectedId === null) return;
     const image = this.drawnImages().find((i) => i.getData("objectId") === this.selectedId);

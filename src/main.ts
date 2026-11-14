@@ -2,11 +2,21 @@ import "./quietConsole";
 import "./style.css";
 import {
   ApiError,
+  askAi,
+  getBalance,
+  listCreations,
+  listSprites,
+  type BalanceDto,
+  type CreationDto,
+  type SpriteDto,
   createProject,
   finishRun,
   getCharacterLines,
   getMe,
   hasSession,
+  isDemo,
+  resumeDemo,
+  startDemo,
   http,
   logOut,
   renameProject,
@@ -19,11 +29,15 @@ import {
 } from "./api/client";
 import { forgetAll } from "./api/cache";
 import type { Tool } from "./game/EditorScene";
-import { GameHost } from "./game/GameHost";
+import type { GameHost } from "./game/GameHost";
 import { CHARACTER_KINDS, ENEMY_KINDS, isKind, KIND_INFO, type Kind } from "./model/GameObject";
 import { countByKind, hasPlayer, nextObjectId, SceneModel } from "./model/SceneModel";
-import { AiPanel } from "./ui/AiPanel";
-import { byId, errorText } from "./ui/dom";
+import { AdminPanel } from "./ui/AdminPanel";
+import { once } from "./ui/busy";
+import { initTooltips } from "./ui/tooltip";
+import { AiPanel, aiSummary } from "./ui/AiPanel";
+import { bindNameCounter, byId, errorText } from "./ui/dom";
+import { initEditorFx } from "./ui/editorFx";
 import { chooseHero } from "./ui/HeroDialog";
 import { HomeScreen, type Destination } from "./ui/HomeScreen";
 import { setHudVisible, showHud } from "./ui/Hud";
@@ -31,7 +45,9 @@ import { initTouchControls, setTouchControlsActive, wantsTouchControls } from ".
 import { IdleTimer } from "./ui/IdleTimer";
 import { Intro } from "./ui/Intro";
 import { Inspector } from "./ui/Inspector";
-import { DRAG_TYPE, Library } from "./ui/Library";
+import { DRAG_TYPE, Library, VARIANT_TYPE } from "./ui/Library";
+import { setRules, variantName } from "./game/balance";
+import { setSprites, spritesReady } from "./game/sprites";
 import { hideLoader, showLoader } from "./ui/loader";
 import { LoginScreen } from "./ui/LoginScreen";
 import { askNewProject } from "./ui/NewProjectDialog";
@@ -141,14 +157,32 @@ function applyTool(tool: Tool): void {
   const hints: Record<Tool, string> = {
     select: "",
     hand: "Mano: arrastra para mover la vista",
-    brush: kind ? `Pincel: ${KIND_INFO[kind].name} — clic para colocar · Esc para terminar` : "",
+    brush: kind ? `Pincel: ${variantName(kind, library.currentVariant) ?? KIND_INFO[kind].name} — clic para colocar · Esc para terminar` : "",
     erase: "Borrar: haz clic en un objeto para quitarlo · Esc para terminar",
   };
   hint.textContent = hints[tool];
   refreshEmptyState();
 }
 
-const host = new GameHost(
+/**
+ * The game engine (Phaser, the biggest part of the app) is loaded only when it
+ * is needed: the access screen shows without it, and it is fetched in the
+ * background while the user types (see prefetchHost), so it is usually ready
+ * by the time they log in.
+ */
+let host!: GameHost;
+let hostLoading: Promise<GameHost> | null = null;
+function loadHost(): Promise<GameHost> {
+  hostLoading ??= import("./game/GameHost").then(({ GameHost }) => (host = createHost(GameHost)));
+  return hostLoading;
+}
+function prefetchHost(): void {
+  const idle = (window as Window & { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback;
+  if (idle) idle(() => void loadHost());
+  else window.setTimeout(() => void loadHost(), 1200);
+}
+
+const createHost = (Host: typeof GameHost): GameHost => new Host(
   byId("game"),
   model,
   {
@@ -157,10 +191,11 @@ const host = new GameHost(
       if (id !== null) showTab("inspector");
       refreshSceneTree();
     },
-    onPlace: (kind, x, y) => placeObject(kind, x, y),
+    onPlace: (kind, x, y) => placeObject(kind, x, y, library.current === kind ? library.currentVariant : undefined),
     onErase: (id) => removeObject(id),
     onPointer: (x, y) => (byId("status-pointer").textContent = `x ${x} · y ${y}`),
     onZoom: (zoom) => (byId("zoom-value").textContent = `${Math.round(zoom * 100)}%`),
+    onView: (left, top, width, height) => placeFrame(left, top, width, height),
   },
   {
     onHud: showHud,
@@ -169,9 +204,25 @@ const host = new GameHost(
     onNotice: (text) => toast(text, "success", 2200),
   },
 );
-initTouchControls(byId("game").parentElement!, () => host.quitPlay());
+initTouchControls(byId("game").parentElement!, () => host?.quitPlay());
 
-function placeObject(kind: Kind, x: number, y: number): void {
+/** The blue corners follow the map's edges; when the map is larger than the view they stay at the view's edge. */
+function placeFrame(left: number, top: number, width: number, height: number): void {
+  const frame = document.querySelector<HTMLElement>(".stage-frame");
+  const stage = frame?.parentElement;
+  if (!frame || !stage) return;
+  const inset = 6;
+  const x0 = Math.max(inset, left);
+  const y0 = Math.max(inset, top);
+  const x1 = Math.min(stage.clientWidth - inset, left + width);
+  const y1 = Math.min(stage.clientHeight - inset, top + height);
+  frame.style.setProperty("--frame-left", `${x0}px`);
+  frame.style.setProperty("--frame-top", `${y0}px`);
+  frame.style.setProperty("--frame-width", `${Math.max(0, x1 - x0)}px`);
+  frame.style.setProperty("--frame-height", `${Math.max(0, y1 - y0)}px`);
+}
+
+function placeObject(kind: Kind, x: number, y: number, variant?: number): void {
   if (projectId === null) {
     toast("Crea o abre un proyecto antes de colocar objetos.", "error");
     return;
@@ -181,8 +232,8 @@ function placeObject(kind: Kind, x: number, y: number): void {
     return;
   }
   const id = nextObjectId(model, kind);
-  model.add({ id, kind, x, y });
-  setStatus(`${KIND_INFO[kind].name} colocado en ${Math.round(x)}, ${Math.round(y)}.`);
+  model.add(variant === undefined ? { id, kind, x, y } : { id, kind, x, y, variant });
+  setStatus(`${variantName(kind, variant) ?? KIND_INFO[kind].name} colocado en ${Math.round(x)}, ${Math.round(y)}.`);
   if (kind === "player") {
     library.pick(null);
     host.editor.select(id);
@@ -223,7 +274,8 @@ stage.addEventListener("drop", (event) => {
   const point = host.editor.worldPointAt(event.clientX, event.clientY);
   if (point === null) return;
   const [x, y] = host.editor.snapPoint(point.x, point.y, kind);
-  placeObject(kind, x, y);
+  const variant = Number(event.dataTransfer?.getData(VARIANT_TYPE));
+  placeObject(kind, x, y, variant > 0 ? variant : undefined);
 });
 
 // --- Panels that follow the model ----------------------------------------------
@@ -237,7 +289,8 @@ const sceneTree = new SceneTree({
 });
 
 function refreshSceneTree(): void {
-  sceneTree.render(model, host.editor.selectedId);
+  // The game host loads lazily; until then nothing is selected.
+  sceneTree.render(model, host?.editor.selectedId ?? null);
 }
 
 function refreshEmptyState(): void {
@@ -251,6 +304,17 @@ function refreshEmptyState(): void {
 
 let seenVersion = -1;
 function watchModel(): void {
+  try {
+    refreshFromModel();
+  } catch (error) {
+    // One failed refresh must never stop the loop: the status bar, undo/redo
+    // and the save state would freeze for the rest of the session.
+    console.error(error);
+  }
+  requestAnimationFrame(watchModel);
+}
+
+function refreshFromModel(): void {
   if (model.version !== seenVersion) {
     seenVersion = model.version;
     const counts = countByKind(model);
@@ -258,7 +322,7 @@ function watchModel(): void {
     byId("status-objects").textContent =
       `${model.size()} objetos · ${counts.coin ?? 0} monedas · ${total(ENEMY_KINDS)} enemigos · ${total(CHARACTER_KINDS)} personajes`;
     library.setPlayerAvailable(!hasPlayer(model));
-    const selected = host.editor.selectedId;
+    const selected = host?.editor.selectedId ?? null;
     inspector.show(selected === null ? undefined : model.find(selected));
     byId<HTMLButtonElement>("btn-undo").disabled = !model.canUndo();
     byId<HTMLButtonElement>("btn-redo").disabled = !model.canRedo();
@@ -270,7 +334,6 @@ function watchModel(): void {
     refreshSceneTree();
     refreshEmptyState();
   }
-  requestAnimationFrame(watchModel);
 }
 
 // --- Projects ----------------------------------------------------------------------
@@ -282,6 +345,8 @@ const projectList = new ProjectList(
   },
 );
 
+const showProjectNameCount = bindNameCounter(byId<HTMLInputElement>("project-name"), byId("project-name-count"));
+
 function openProject(project: ProjectDto | null): void {
   if (isDirty() && !window.confirm("Hay cambios sin guardar. ¿Abrir otro proyecto igualmente?")) return;
   projectId = project?.id ?? null;
@@ -292,6 +357,7 @@ function openProject(project: ProjectDto | null): void {
   const name = byId<HTMLInputElement>("project-name");
   name.value = project?.name ?? "";
   name.disabled = project === null;
+  showProjectNameCount();
   projectList.setCurrent(projectId);
   void projectList.refresh();
   void aiPanel.refresh();
@@ -299,39 +365,62 @@ function openProject(project: ProjectDto | null): void {
 }
 
 async function newProject(): Promise<void> {
-  const choice = await askNewProject();
-  if (choice === null) return;
-  const project = await createProject(choice.name, choice.template);
+  let aiNote = "";
+  let aiFailed = false;
+  const project = await askNewProject(async (choice, step) => {
+    step(1);
+    // With a description the project starts empty and the AI fills the map.
+    const created = await createProject(choice.name, choice.prompt === null ? choice.template : "empty");
+    if (choice.prompt === null) return created;
+    step(2);
+    try {
+      const filled = await askAi(created.id, choice.prompt);
+      aiNote = ` ${aiSummary(filled.ai)}`;
+      return filled;
+    } catch (error) {
+      // The project exists already: open it empty and say why.
+      aiNote = ` ${errorText(error)} Puedes pedírselo desde la pestaña IA.`;
+      aiFailed = true;
+      return created;
+    }
+  });
+  if (project === null) return;
   openProject(project);
   showTab("library");
-  toast(`Proyecto "${project.name}" creado.`, "success");
+  toast(`Proyecto "${project.name}" creado.${aiNote}`, aiFailed ? "error" : "success");
 }
+
+/** The save in progress: a second save while one runs waits for it instead of sending another. */
+let saving: Promise<void> | null = null;
 
 async function save(): Promise<void> {
   if (projectId === null) {
     toast("Crea o abre un proyecto primero.", "error");
     return;
   }
-  const button = byId<HTMLButtonElement>("btn-save");
-  button.classList.add("is-loading");
-  try {
-    const project = await saveScene(projectId, model.toJson());
+  saving ??= (async () => {
+    const project = await saveScene(projectId!, model.toJson());
     savedVersion = model.version;
     seenVersion = -1;
     setStatus(`Guardado: ${project.scene.length} objetos.`, "success");
     await projectList.refresh();
-  } finally {
-    button.classList.remove("is-loading");
-  }
+  })().finally(() => {
+    saving = null;
+  });
+  return saving;
 }
 
+let renaming = false;
 byId<HTMLInputElement>("project-name").addEventListener("change", (event) => {
   const input = event.target as HTMLInputElement;
-  if (projectId === null || input.value.trim() === "") return;
+  if (projectId === null || input.value.trim() === "" || renaming) return;
+  renaming = true;
   void attempt(async () => {
     await renameProject(projectId!, input.value.trim());
     await projectList.refresh();
     toast("Nombre actualizado.", "success");
+  }).finally(() => {
+    renaming = false;
   });
 });
 
@@ -350,6 +439,7 @@ for (const chip of document.querySelectorAll<HTMLButtonElement>("[data-prompt]")
   chip.addEventListener("click", () => {
     const prompt = byId<HTMLTextAreaElement>("ai-prompt");
     prompt.value = chip.dataset.prompt!;
+    prompt.dispatchEvent(new Event("input")); // the ask button wakes up
     prompt.focus();
   });
 }
@@ -366,12 +456,15 @@ async function play(): Promise<void> {
   const chosen = await chooseHero();
   if (chosen === null) return;
   hero = chosen;
-  if (isDirty()) await save();
-  const run = await startRun(projectId);
-  runId = run.id;
-  difficulty = run.difficulty;
-  setPlaying(true);
-  host.play(difficulty, hero);
+  // Saving and starting the run: once, with the wheel on "Jugar".
+  await once(byId<HTMLButtonElement>("btn-play"), async () => {
+    if (isDirty()) await save();
+    const run = await startRun(projectId!);
+    runId = run.id;
+    difficulty = run.difficulty;
+    setPlaying(true);
+    host.play(difficulty, hero);
+  });
 }
 
 function setPlaying(value: boolean): void {
@@ -414,11 +507,16 @@ async function runFinished(result: RunResultDto): Promise<void> {
 
 // --- Buttons and shortcuts ---------------------------------------------------------------
 
-function bind(id: string, handler: () => void | Promise<void>): void {
-  byId(id).addEventListener("click", () => void attempt(async () => handler()));
+/** request: the button talks to the server, so it runs once at a time and shows its wheel. */
+function bind(id: string, handler: () => void | Promise<void>, request = false): void {
+  const button = byId<HTMLButtonElement>(id);
+  button.addEventListener("click", () => void attempt(async () => {
+    if (request) await once(button, async () => handler());
+    else await handler();
+  }));
 }
 
-bind("btn-save", save);
+bind("btn-save", save, true);
 bind("btn-undo", () => void model.undo());
 bind("btn-redo", () => void model.redo());
 bind("btn-play", play);
@@ -432,9 +530,10 @@ bind("btn-empty-ai", () => {
 bind("zoom-in", () => host.editor.zoomBy(1.2));
 bind("zoom-out", () => host.editor.zoomBy(1 / 1.2));
 bind("zoom-fit", () => host.editor.fitView());
-bind("zoom-center", () => host.editor.fitView());
+bind("zoom-center", () => host.editor.showWholeWorld());
 bind("btn-logout", () => leaveApp(true));
 bind("btn-home", () => goHome());
+bind("btn-back", () => goHome());
 
 bindShortcuts(
   {
@@ -464,11 +563,13 @@ window.addEventListener("beforeunload", (event) => {
   if (isDirty()) event.preventDefault();
 });
 
+initTooltips(); // real tooltips (with shortcuts) instead of the browser's title
 setupTabs();
+initEditorFx();
 byId("status-tool").textContent = TOOL_NAMES.select;
 
 const settings = new SettingsPanel((value) =>
-  host.setEditorOptions({ showGrid: value.show_grid, snapToGrid: value.snap_to_grid, gridSize: value.grid_size }),
+  host?.setEditorOptions({ showGrid: value.show_grid, snapToGrid: value.snap_to_grid, gridSize: value.grid_size }),
 );
 
 const security = new SecurityPanel(
@@ -485,11 +586,23 @@ const idle = new IdleTimer({
 
 // --- Session ------------------------------------------------------------------------------
 
-const login = new LoginScreen((user) => enterApp(user, true));
+const login = new LoginScreen(
+  (user) => enterApp(user, true),
+  () => void attempt(async () => enterApp(startDemo(), true)),
+);
+
+// "Crear cuenta gratis" in the demo: leave it (it is erased) and open the register form.
+document.addEventListener("click", (event) => {
+  if ((event.target as HTMLElement).closest("[data-demo-signup]") === null) return;
+  void leaveApp(true).then(() => {
+    if (currentUser === null) login.openRegister();
+  });
+});
 const intro = new Intro();
 const home = new HomeScreen(
   (to, project) => void attempt(async () => go(to, project)),
   () => void leaveApp(true),
+  settings,
 );
 
 /** Stage of the page: only the access screen before login, the intro, then the engine. */
@@ -497,9 +610,12 @@ function setStage(stage: "auth" | "intro" | "app"): void {
   document.body.dataset.stage = stage;
 }
 
+const admin = new AdminPanel(() => void goHome(), (balance, creations) => applyRules(balance, creations));
+
 async function goHome(): Promise<void> {
   if (playing) return;
   byId("app").hidden = true;
+  admin.hide();
   const projects = await projectList.refresh().catch(() => [] as ProjectDto[]);
   home.show(currentUser!, projects);
 }
@@ -517,6 +633,11 @@ function openEditor(): void {
 /** Where the menu options and the navigation bar lead. */
 async function go(to: Destination, project?: ProjectDto): Promise<void> {
   if (to === "home") return goHome();
+  if (to === "admin") {
+    home.hide();
+    admin.show();
+    return;
+  }
   if (project !== undefined && project.id !== projectId) openProject(project);
   openEditor();
   if (to === "projects") showTab("projects");
@@ -530,15 +651,34 @@ async function go(to: Destination, project?: ProjectDto): Promise<void> {
   }
 }
 
+/** The admin panel's rules of this account: numbers of heroes and enemies, and own creations. */
+async function loadRules(): Promise<void> {
+  const [balance, creations, pictures] = await Promise.all([getBalance(), listCreations(), listSprites().catch(() => [])]).catch(
+    () => [{ heroes: {}, enemies: {} }, [], []] as [BalanceDto, CreationDto[], SpriteDto[]],
+  );
+  setSprites(pictures);
+  await spritesReady();
+  applyRules(balance, creations);
+}
+
+function applyRules(balance: BalanceDto, creations: CreationDto[]): void {
+  setRules(balance, creations);
+  library.setCreations(creations);
+  host?.editor.refresh();
+}
+
 async function enterApp(user: UserDto, withIntro: boolean): Promise<void> {
   currentUser = user;
   login.hide();
+  document.body.classList.toggle("is-demo", isDemo());
   byId("user-name").textContent = user.username;
   byId("user-avatar").textContent = user.username.slice(0, 1).toUpperCase();
   // The workspace loads while the intro plays; the menu opens when both are done.
   const ready = (async () => {
+    await loadHost();
     host.start();
     await settings.load();
+    await loadRules();
     getCharacterLines()
       .then((lines) => {
         if (Object.keys(lines).length > 0) characterLines = lines;
@@ -564,7 +704,8 @@ async function enterApp(user: UserDto, withIntro: boolean): Promise<void> {
 }
 
 async function leaveApp(callBackend: boolean, note = ""): Promise<void> {
-  if (callBackend) {
+  if (callBackend && isDemo() && !window.confirm("Al salir de la demo se borra todo lo que creaste en ella. ¿Salir?")) return;
+  if (callBackend && !isDemo()) {
     // An idle timeout cannot wait for an answer: nobody is there to give it.
     if (note === "" && isDirty() && !window.confirm("Hay cambios sin guardar. ¿Salir igualmente?")) return;
     await logOut();
@@ -582,6 +723,12 @@ async function leaveApp(callBackend: boolean, note = ""): Promise<void> {
   settings.close();
   byId("app").hidden = true;
   home.hide();
+  admin.hide();
+  // Another account may log in next: its rules and pictures are loaded after login.
+  setSprites([]);
+  applyRules({ heroes: {}, enemies: {} }, []);
+  if (callBackend && isDemo()) await logOut();
+  document.body.classList.remove("is-demo");
   setStage("auth");
   login.show(note);
 }
@@ -619,6 +766,7 @@ async function resumeSession(): Promise<UserDto | null> {
 
 async function boot(): Promise<void> {
   showLoader("Cargando motor…");
+  resumeDemo(); // a demo running in this tab survives a reload
   requestAnimationFrame(watchModel);
   if (hasSession()) {
     const me = await resumeSession();
@@ -630,6 +778,7 @@ async function boot(): Promise<void> {
   setStage("auth");
   login.show();
   hideLoader();
+  prefetchHost();
 }
 
 void boot();

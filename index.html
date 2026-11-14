@@ -26,23 +26,47 @@
 
     <!-- Login / register: the only thing shown until the user is in -->
     <section id="login-screen" class="login" hidden>
+      <canvas id="login-scene" class="night" aria-hidden="true"></canvas>
+      <div class="night-shade" aria-hidden="true"></div>
       <div id="login-art" class="login-art">
-        <div class="ground" aria-hidden="true"></div>
-        <div class="logo">
-          <div class="emblem-wrap"><img id="login-emblem" class="emblem" src="/brand/emblem.png" alt="" width="240" /></div>
-          <div class="wordmark-wrap"><img class="wordmark" src="/brand/wordmark.png" alt="PixelForge · 2D Game Engine" width="420" /><i class="sweep" aria-hidden="true"></i></div>
+        <div class="hero-copy">
+          <div class="logo">
+            <div class="emblem-wrap"><img id="login-emblem" class="emblem" src="/brand/emblem.png" alt="" width="240" height="168" /></div>
+            <div class="logo-text">
+              <div class="wordmark-wrap"><img class="wordmark" src="/brand/wordmark.png" alt="PixelForge" width="420" height="76" /><i class="sweep" aria-hidden="true"></i></div>
+              <p class="logo-tag"><span>2D Game Engine</span></p>
+            </div>
+          </div>
+          <h1 class="hero-title">Crea mundos 2D y <em>juégalos</em> al instante.</h1>
+          <p class="hero-sub">Diseña videojuegos 2D desde cero. Crea mapas, configura enemigos y construye batallas con una IA que aprende de ti.</p>
+          <ul class="hero-features" aria-label="Lo que incluye">
+            <li><span class="feature-icon"><img src="/textures/house.png" alt="" /></span><b>Editor visual</b><small>Arrastra casas, muros, enemigos y armas al mapa.</small></li>
+            <li><span class="feature-icon"><img src="/textures/tank.png" alt="" /></span><b>Batallas y física</b><small>15 armas, tanques, explosiones y 11 héroes.</small></li>
+            <li><span class="feature-icon"><img src="/textures/wizard.png" alt="" /></span><b>IA que aprende</b><small>Crea mapas con palabras y ajusta la dificultad.</small></li>
+          </ul>
+          <div class="demo-cta">
+            <button id="demo-start" class="btn-demo" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12a4 4 0 0 1 4 4v3a3 3 0 0 1-5.2 2L15 15H9l-1.8 2A3 3 0 0 1 2 15v-3a4 4 0 0 1 4-4z" /><path d="M7 11v3M5.5 12.5h3" /><circle cx="16" cy="11.5" r=".6" /><circle cx="17.8" cy="13.5" r=".6" /></svg><span>Probar la demo</span><svg class="btn-demo-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg></button>
+            <small>Sin cuenta · nada se guarda en el servidor</small>
+          </div>
         </div>
-        <ul class="features">
-          <li><img src="/textures/hero-wizard.png" alt="" />Héroes con armas y habilidades propias</li>
-          <li><img src="/textures/chest.png" alt="" />Cofres, pociones y armas para recoger</li>
-          <li><img src="/textures/brute.png" alt="" />Una IA que adapta los enemigos a cómo juegas</li>
-        </ul>
-        <div id="login-actors" class="actors" aria-hidden="true"></div>
+        <div id="wizard-spot" class="wizard-spot" aria-hidden="true"></div>
+        <p class="login-motto" aria-hidden="true"><span>//</span> Crea <i>•</i> Juega <i>•</i> Comparte <span>//</span></p>
         <canvas id="login-fx" class="fx" aria-hidden="true"></canvas>
       </div>
 
       <div class="login-panel">
-        <form id="auth-form" class="auth-form" novalidate>
+        <div class="auth-frame">
+        <form id="auth-form" class="auth-form auth-card" novalidate>
+          <header class="auth-head">
+            <span class="auth-hex" aria-hidden="true">
+              <i class="hex-halo"></i>
+              <img class="hex-emblem" src="/brand/emblem.png" alt="" width="48" height="34" />
+              <i class="hex-orbit"><b></b><b></b><b></b></i>
+            </span>
+            <h2 id="auth-title" class="auth-title"><span id="auth-title-text">Tu próximo mundo comienza</span> <em id="auth-title-accent">aquí.</em></h2>
+            <p id="auth-subtitle" class="auth-subtitle">Inicia sesión y continúa creando experiencias extraordinarias.</p>
+            <div class="auth-divider" aria-hidden="true"><i></i></div>
+          </header>
           <div id="auth-tabs" class="seg" data-mode="login" role="tablist" aria-label="Acceso">
             <span class="seg-pill" aria-hidden="true"></span>
             <button id="tab-login" type="button" role="tab" aria-selected="true">Iniciar sesión</button>
@@ -52,25 +76,35 @@
           <div id="auth-banner" class="banner" role="alert" hidden></div>
 
           <div class="field is-register" id="field-username" hidden>
-            <label for="auth-username">Nombre de usuario <span>3–20 caracteres</span></label>
-            <div class="control"><input id="auth-username" type="text" autocomplete="username" maxlength="20" spellcheck="false" /><span class="state" aria-hidden="true"></span></div>
+            <label for="auth-username"><span class="label-main"><svg class="label-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>Nombre de usuario</span> <span>3–20 caracteres</span></label>
+            <div class="control has-icon">
+              <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>
+              <input id="auth-username" type="text" autocomplete="username" maxlength="20" placeholder="Ej: forjador_2d" spellcheck="false" aria-describedby="hint-username" /><span class="state" aria-hidden="true"></span>
+            </div>
             <p class="msg" id="msg-username"></p>
+            <div class="hint" id="hint-username"><b>Qué escribir</b><span data-hint="username"></span></div>
           </div>
           <div class="field" id="field-email">
-            <label for="auth-email">Correo electrónico</label>
-            <div class="control"><input id="auth-email" type="email" autocomplete="email" maxlength="254" placeholder="tu@correo.com" spellcheck="false" /><span class="state" aria-hidden="true"></span></div>
+            <label for="auth-email"><span class="label-main"><svg class="label-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>Correo electrónico</span></label>
+            <div class="control has-icon">
+              <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>
+              <input id="auth-email" type="email" autocomplete="email" maxlength="254" placeholder="tu@correo.com" spellcheck="false" aria-describedby="hint-email" /><span class="state" aria-hidden="true"></span>
+            </div>
             <p class="msg" id="msg-email"></p>
+            <div class="hint" id="hint-email"><b>Qué escribir</b><span data-hint="email"></span></div>
           </div>
           <div class="field" id="field-password">
-            <label for="auth-password">Contraseña <span id="caps-warning" class="caps" hidden>Bloq Mayús activado</span></label>
-            <div class="control">
-              <input id="auth-password" type="password" autocomplete="current-password" maxlength="128" /><span class="state" aria-hidden="true"></span>
+            <label for="auth-password"><span class="label-main"><svg class="label-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>Contraseña</span> <span id="caps-warning" class="caps" hidden>Bloq Mayús activado</span></label>
+            <div class="control has-icon">
+              <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /><path d="M12 15v2" /></svg>
+              <input id="auth-password" type="password" autocomplete="current-password" maxlength="128" placeholder="Tu contraseña" aria-describedby="hint-password" /><span class="state" aria-hidden="true"></span>
               <button class="eye" type="button" data-toggle-password="auth-password" aria-label="Mostrar contraseña" aria-pressed="false">
                   <svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" /><circle cx="12" cy="12" r="3" /></svg>
                   <svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
               </button>
             </div>
             <p class="msg" id="msg-password"></p>
+            <div class="hint" id="hint-password"><b>Qué escribir</b><span data-hint="password"></span></div>
           </div>
           <div id="password-help" class="password-help is-register" hidden>
             <div id="strength" class="meter" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
@@ -83,85 +117,457 @@
             </ul>
           </div>
           <div class="field is-register" id="field-confirm" hidden>
-            <label for="auth-confirm">Confirmar contraseña</label>
-            <div class="control">
-              <input id="auth-confirm" type="password" autocomplete="new-password" maxlength="128" /><span class="state" aria-hidden="true"></span>
+            <label for="auth-confirm"><span class="label-main"><svg class="label-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z" /><path d="m9 12 2 2 4-4" /></svg>Confirmar contraseña</span></label>
+            <div class="control has-icon">
+              <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /><path d="M12 15v2" /></svg>
+              <input id="auth-confirm" type="password" autocomplete="new-password" maxlength="128" placeholder="Repite la contraseña" aria-describedby="hint-confirm" /><span class="state" aria-hidden="true"></span>
               <button class="eye" type="button" data-toggle-password="auth-confirm" aria-label="Mostrar contraseña" aria-pressed="false">
                   <svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" /><circle cx="12" cy="12" r="3" /></svg>
                   <svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
               </button>
             </div>
             <p class="msg" id="msg-confirm"></p>
+            <div class="hint" id="hint-confirm"><b>Qué escribir</b><span data-hint="confirm"></span></div>
           </div>
           <label class="check is-register" id="terms-row" hidden><input id="auth-terms" type="checkbox" /> <span>Acepto las condiciones de uso y la política de privacidad.</span></label>
 
+          <div id="auth-needs" class="needs" aria-live="polite">
+            <div class="needs-head">
+              <span id="needs-title">Para entrar necesitas</span>
+              <span class="needs-score"><span id="needs-count" class="needs-count">0 / 2</span><svg class="needs-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5 9-10" /></svg></span>
+            </div>
+            <div class="needs-bar" aria-hidden="true"><i id="needs-bar"></i></div>
+            <ul class="needs-list">
+              <li class="is-register" data-need="username" hidden>Un nombre de usuario válido</li>
+              <li data-need="email">Tu correo electrónico</li>
+              <li data-need="password">Tu contraseña</li>
+              <li class="is-register" data-need="confirm" hidden>La contraseña repetida</li>
+              <li class="is-register" data-need="terms" hidden>Aceptar las condiciones</li>
+            </ul>
+          </div>
+
           <p id="auth-message" class="form-message" role="alert"></p>
+          <div class="btn-glow">
           <button id="auth-submit" class="btn btn-forge btn-block" type="submit">
             <span class="btn-spinner" aria-hidden="true"></span>
+            <svg class="btn-rocket" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.1 2.1 0 0 0-2.9-.1z" /><path d="M12 15 9 12a22 22 0 0 1 2-4A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22.4 22.4 0 0 1-4 2z" /><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5" /></svg>
             <span class="btn-label">Entrar a la forja</span>
+            <svg class="btn-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
           </button>
+          </div>
           <div id="auth-success" class="success" aria-live="polite" hidden>
             <div class="success-ring" aria-hidden="true">✓</div>
             <h2 id="auth-success-title">¡Bienvenido!</h2>
             <p>Preparando tu forja…</p>
           </div>
-          <p class="form-foot"><span id="auth-switch-text">¿No tienes cuenta?</span> <button id="auth-switch" class="link" type="button">Crea una</button></p>
-          <p class="login-footnote">Tu sesión usa tokens seguros que se renuevan solos.</p>
+          <p class="form-foot"><span id="auth-switch-text">¿No tienes cuenta?</span> <button id="auth-switch" class="link" type="button">Crea una</button> <span class="form-foot-or">o</span> <button id="demo-start-link" class="link" type="button">prueba la demo</button></p>
+          <ul class="trust" aria-label="Seguridad">
+            <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z" /><path d="m9 12 2 2 4-4" /></svg>Conexión cifrada</li>
+            <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7" /><path d="M21 4v5h-5" /></svg>Sesión que se renueva</li>
+            <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>Tus datos son privados</li>
+          </ul>
         </form>
+        </div>
       </div>
     </section>
 
     <!-- Intro: plays once after logging in or registering, before the menu -->
     <section id="intro" class="intro" hidden aria-label="Intro de PixelForge">
-      <div class="intro-floor" aria-hidden="true"></div>
+      <canvas id="intro-scene" class="night" aria-hidden="true"></canvas>
+      <div class="intro-shade" aria-hidden="true"></div>
+      <div id="intro-castle" class="intro-castle" aria-hidden="true"></div>
+      <div id="intro-wizard-spot" class="intro-wizard-spot" aria-hidden="true"></div>
+      <canvas id="intro-pixels" class="intro-pixels" aria-hidden="true"></canvas>
       <canvas id="intro-fx" class="fx" aria-hidden="true"></canvas>
+
       <div class="intro-logo">
-        <div class="emblem-wrap"><img id="intro-emblem" class="emblem" src="/brand/emblem.png" alt="" width="300" /></div>
-        <div class="wordmark-wrap"><img class="wordmark" src="/brand/wordmark.png" alt="PixelForge · 2D Game Engine" width="560" /><i class="glint" aria-hidden="true"></i></div>
+        <div class="emblem-wrap"><img id="intro-emblem" class="emblem" src="/brand/emblem.png" alt="" width="300" height="211" /><i class="intro-ring" aria-hidden="true"></i></div>
+        <div class="wordmark-wrap"><img class="wordmark" src="/brand/wordmark.png" alt="PixelForge" width="560" height="101" /><i class="glint" aria-hidden="true"></i></div>
+        <p class="intro-tag"><span>2D Game Engine</span></p>
+        <p class="intro-tagline"><span>//</span> Crea <b>•</b> Juega <b>•</b> Comparte <span>//</span></p>
       </div>
-      <button id="intro-skip" class="btn btn-ghost intro-skip" type="button">Saltar ›</button>
-      <div class="intro-boot">
-        <div class="intro-bar"><i></i></div>
-        <div class="intro-row"><span id="intro-text">Forjando el mundo…</span><span>Cualquier tecla para saltar</span></div>
+
+      <button id="intro-skip" class="intro-skip" type="button">Saltar <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 6 6-6 6M13 6l6 6-6 6" /></svg></button>
+
+      <div class="intro-hud">
+        <div class="intro-hud-inner">
+          <div class="intro-row">
+            <span class="intro-status"><i class="intro-dot" aria-hidden="true"></i><span id="intro-text">Forjando el mundo…</span></span>
+            <span id="intro-percent" class="intro-percent">0%</span>
+          </div>
+          <div class="intro-bar" aria-hidden="true"><i id="intro-bar"></i></div>
+          <ol id="intro-log" class="intro-log" aria-hidden="true">
+            <li>Físicas</li><li>Texturas</li><li>Ejércitos</li><li>IA</li>
+          </ol>
+        </div>
       </div>
-      <div class="intro-scan" aria-hidden="true"></div>
+      <div class="intro-flash" aria-hidden="true"></div>
     </section>
 
     <!-- Home: the menu of the engine, only after the intro -->
     <section id="home" class="home" hidden>
+      <!-- The night of the access screen behind the menu (NightScene): the castle
+           on the right, the wizard on his cliff in the bottom-left corner. Fixed,
+           so the content scrolls over it; drawn on one canvas, so scrolling stays
+           smooth (no blur, no animated CSS layers). -->
+      <div class="home-backdrop" aria-hidden="true">
+        <canvas id="home-scene" class="night"></canvas>
+        <div class="home-shade"></div>
+        <div id="home-castle" class="home-castle"></div>
+        <div id="home-wizard-spot" class="home-wizard-spot"></div>
+      </div>
       <header class="topnav">
         <div class="mark"><img src="/brand/emblem.png" alt="" width="36" /><b><span class="mark-pixel">PIXEL</span><span class="mark-forge">FORGE</span></b></div>
-        <nav class="topnav-tabs" aria-label="Opciones del motor">
-          <button class="nav-tab" type="button" data-go="home" aria-current="page">Inicio</button>
-          <button class="nav-tab" type="button" data-go="editor">Editor</button>
-          <button class="nav-tab" type="button" data-go="play">Jugar</button>
-          <button class="nav-tab" type="button" data-go="projects">Proyectos</button>
-          <button class="nav-tab" type="button" data-go="settings">Ajustes</button>
+        <nav class="topnav-tabs" aria-label="Navegación">
+          <button class="nav-tab nav-home" type="button" data-go="home" aria-current="page">
+            <span class="nav-home-ring" aria-hidden="true"></span>
+            <svg class="nav-home-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5" /><path d="M5.5 9.5V20h13V9.5" /><path d="M10 20v-5.5h4V20" /></svg>
+            <span class="nav-home-label">Inicio</span>
+            <span class="nav-home-spark" aria-hidden="true"></span>
+          </button>
         </nav>
-        <div class="userchip"><span class="avatar" id="home-avatar" aria-hidden="true">?</span><span id="home-user"></span><button id="home-logout" class="btn btn-ghost btn-small" type="button">Salir</button></div>
+        <div class="userchip"><span class="avatar" id="home-avatar" aria-hidden="true">?</span><span id="home-user" class="userchip-name"></span><button id="home-logout" class="btn btn-ghost btn-small" type="button">Salir</button></div>
       </header>
       <div class="home-body">
+        <div class="demo-banner demo-only" role="status">
+          <span class="demo-chip"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12a4 4 0 0 1 4 4v3a3 3 0 0 1-5.2 2L15 15H9l-1.8 2A3 3 0 0 1 2 15v-3a4 4 0 0 1 4-4z" /><path d="M7 11v3M5.5 12.5h3" /><circle cx="16" cy="11.5" r=".6" /><circle cx="17.8" cy="13.5" r=".6" /></svg>Demo</span>
+          <p><b>Estás probando PixelForge.</b> Todo funciona, pero nada se guarda en el servidor y se borra al salir.</p>
+          <button class="btn-demo-signup" type="button" data-demo-signup>Crear cuenta gratis</button>
+        </div>
+        <!-- Welcome banner: a centred greeting over a living background, then four
+             stat cards that count up when the home opens. -->
         <div class="welcome">
-          <span class="avatar avatar-big" id="welcome-avatar" aria-hidden="true">?</span>
-          <div class="welcome-text"><h1 id="welcome-title">Bienvenido</h1><p id="welcome-sub">Tu forja está lista.</p></div>
+          <div class="welcome-top">
+            <div class="welcome-hero">
+              <span class="avatar-ring">
+                <span class="avatar avatar-big" id="welcome-avatar" aria-hidden="true">?</span>
+                <span class="avatar-status" aria-hidden="true"></span>
+              </span>
+              <div class="welcome-text">
+                <p class="welcome-eyebrow"><span id="welcome-greeting">Hola</span><i aria-hidden="true"></i><span id="welcome-date"></span></p>
+                <h1 id="welcome-title">Bienvenido</h1>
+                <p id="welcome-sub" class="welcome-sub">Tu forja está lista.</p>
+                <div class="welcome-chips">
+                  <span class="chip-live"><i></i>IA aprendiendo de tus partidas</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Your party: the hero you play with and two companions, walking on a ledge. -->
+            <div class="welcome-party" aria-hidden="true">
+              <span class="party-sparks"><i></i><i></i><i></i><i></i><i></i></span>
+              <div id="welcome-party" class="party-heroes"></div>
+              <span class="party-ledge"></span>
+            </div>
+
+            <div class="rank-card">
+              <span class="rank-badge" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z" /></svg><b id="rank-level">1</b></span>
+              <div class="rank-text">
+                <small>Tu rango</small>
+                <b id="welcome-rank">Aprendiz de la forja</b>
+                <span class="rank-bar" role="progressbar" aria-label="Progreso al siguiente rango" id="rank-progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="rank-bar"></i></span>
+                <small id="rank-next">Juega tu primera partida para subir de rango.</small>
+              </div>
+            </div>
+          </div>
+
           <div class="kpis">
-            <div class="kpi"><b id="kpi-projects">0</b><span>Proyectos</span></div>
-            <div class="kpi"><b id="kpi-games">0</b><span>Partidas</span></div>
-            <div class="kpi"><b id="kpi-best">0</b><span>Mejor puntuación</span></div>
-            <div class="kpi"><b id="kpi-achievements">0/5</b><span>Logros</span></div>
+            <div class="kpi tone-blue">
+              <span class="kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg></span>
+              <b id="kpi-projects">0</b><span class="kpi-label">Proyectos</span>
+              <small id="kpi-projects-note" class="kpi-note">Crea el primero</small>
+            </div>
+            <div class="kpi tone-green">
+              <span class="kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" /></svg></span>
+              <b id="kpi-games">0</b><span class="kpi-label">Partidas</span>
+              <small id="kpi-games-note" class="kpi-note">0 ganadas</small>
+            </div>
+            <div class="kpi tone-gold">
+              <span class="kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 21h8M9 17h6" /></svg></span>
+              <b id="kpi-best">0</b><span class="kpi-label">Mejor puntuación</span>
+              <small id="kpi-best-note" class="kpi-note">puntos en una partida</small>
+            </div>
+            <div class="kpi tone-violet">
+              <span class="kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" /></svg></span>
+              <b id="kpi-achievements">0/5</b><span class="kpi-label">Logros</span>
+              <span id="kpi-blocks" class="kpi-blocks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+            </div>
           </div>
         </div>
-        <div class="menu">
-          <button class="option is-primary" type="button" data-go="editor"><span class="option-icons"><img src="/textures/house.png" alt="" class="is-wide" /><img src="/textures/tree.png" alt="" /></span><h3>Abrir el editor</h3><p>Construye niveles con la Biblioteca, la Escena y el Inspector.</p><span class="go" id="option-editor-go">Continuar ›</span></button>
-          <button class="option" type="button" data-go="play"><span class="option-icons"><img src="/textures/hero-wizard.png" alt="" /><img src="/textures/wand.png" alt="" class="is-small" /></span><h3>Jugar</h3><p>Elige héroe y prueba tu nivel. La IA ajusta la dificultad.</p><span class="go">Elegir héroe ›</span></button>
-          <button class="option" type="button" data-go="projects"><span class="option-icons"><img src="/textures/chest.png" alt="" /><img src="/textures/coin.png" alt="" class="is-small" /></span><h3>Mis proyectos</h3><p>Crea uno nuevo desde una plantilla o abre otro.</p><span class="go" id="option-projects-go">Ver proyectos ›</span></button>
-          <button class="option" type="button" data-go="settings"><span class="option-icons"><img src="/textures/knight.png" alt="" /><img src="/textures/potion.png" alt="" class="is-small" /></span><h3>Ajustes</h3><p>Tema claro u oscuro, cuadrícula, sonido y seguridad.</p><span class="go">Abrir ajustes ›</span></button>
+
+        <div class="section-head">
+          <div><h2 class="eyebrow">Accesos rápidos</h2><p class="section-sub">Todo lo que necesitas para crear, jugar y ajustar tu forja.</p></div>
         </div>
+        <!-- Quick access: the level editor (a real view of the last map), then
+             Jugar (the heroes), Mis proyectos (the last project) and Ajustes
+             (theme, sound and grid, which work from here). HomeScreen fills them. -->
+        <div class="qa">
+          <article class="qa-card qa-editor tone-blue">
+            <header class="qa-head">
+              <span class="qa-logo" aria-hidden="true"><img src="/brand/emblem.png" alt="" width="30" height="21" /></span>
+              <b class="qa-head-title">Editor de niveles</b>
+              <span id="qa-status" class="qa-pill is-green"><i aria-hidden="true"></i><span>En línea</span></span>
+              <span class="qa-last"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg><span id="qa-last">Aún sin sesiones</span></span>
+            </header>
+            <div class="qa-stage" data-go="editor" role="button" tabindex="0" aria-label="Abrir el editor">
+              <canvas id="qa-scene" class="qa-scene" width="960" height="420" aria-hidden="true"></canvas>
+              <span id="qa-select" class="qa-select" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+              <div class="qa-tools" aria-hidden="true">
+                <span class="is-active"><svg viewBox="0 0 24 24"><path d="M5 3l14 8-6.2 1.8L11 19z" /></svg></span>
+                <span><svg viewBox="0 0 24 24"><path d="M18.4 2.6a2 2 0 0 1 2.9 2.9L9 17.8 5 19l1.2-4z" /></svg></span>
+                <span><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1" stroke-dasharray="3 3" /></svg></span>
+                <span><svg viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z" /><path d="m3 13 9 5 9-5" /></svg></span>
+                <span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" /></svg></span>
+              </div>
+              <div class="qa-minimap" aria-hidden="true"><canvas id="qa-minimap" width="160" height="96"></canvas><i id="qa-viewport"></i></div>
+            </div>
+            <div class="qa-editor-body">
+              <span class="qa-cube" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 2 9 5v10l-9 5-9-5V7z" /><path d="m3 7 9 5 9-5M12 12v10" /></svg></span>
+              <div>
+                <h3 id="qa-editor-title">Continúa construyendo tu mundo</h3>
+                <p id="qa-editor-sub">Tu creatividad no tiene límites. Sigue donde lo dejaste.</p>
+              </div>
+            </div>
+            <button class="qa-cta" type="button" data-go="editor">
+              <svg class="qa-cta-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" /></svg>
+              <span id="option-editor-go">Continuar creando</span>
+              <svg class="qa-cta-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </button>
+          </article>
+
+          <article class="qa-card qa-play tone-green">
+            <div class="qa-play-text">
+              <div class="qa-row">
+                <span class="qa-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 8h12a4 4 0 0 1 4 4v3a3 3 0 0 1-5.2 2L15 15H9l-1.8 2A3 3 0 0 1 2 15v-3a4 4 0 0 1 4-4z" /><path d="M7 11v3M5.5 12.5h3" /><circle cx="16" cy="11.5" r=".6" /><circle cx="17.8" cy="13.5" r=".6" /></svg></span>
+                <span class="qa-pill is-green"><i aria-hidden="true"></i><span>Disponible</span></span>
+              </div>
+              <h3>Jugar</h3>
+              <p>Pon a prueba tus mundos con la IA y vive la aventura.</p>
+              <button class="qa-link" type="button" data-go="play"><span>Elegir héroe</span><i aria-hidden="true">→</i></button>
+            </div>
+            <div class="qa-heroes">
+              <div class="qa-hero-window"><div id="qa-hero-track" class="qa-hero-track" role="listbox" aria-label="Héroes"></div></div>
+              <div id="qa-hero-dots" class="qa-dots"></div>
+            </div>
+          </article>
+
+          <article class="qa-card qa-projects tone-gold">
+            <div class="qa-row">
+              <span class="qa-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg></span>
+              <h3>Mis proyectos</h3>
+              <span id="qa-project-count" class="qa-pill is-gold"><span>0 proyectos</span></span>
+            </div>
+            <div id="qa-project" class="qa-project"></div>
+            <button class="qa-link" type="button" data-go="projects"><span id="option-projects-go">Ver todos mis proyectos</span><i aria-hidden="true">→</i></button>
+          </article>
+
+          <article class="qa-card qa-settings tone-violet">
+            <div class="qa-row">
+              <span class="qa-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg></span>
+              <div class="qa-title"><h3>Ajustes</h3><p>Personaliza tu experiencia.</p></div>
+            </div>
+            <div class="qa-controls">
+              <label class="qa-control">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.7 0 2-1.4 1.2-2.4-.8-1-.3-2.6 1.1-2.6H17a4 4 0 0 0 4-4c0-5-4-9-9-9z" /><circle cx="7.5" cy="11" r="1" /><circle cx="10" cy="7" r="1" /><circle cx="14.5" cy="7" r="1" /></svg>
+                <span class="qa-control-text"><small>Tema</small><select id="qa-theme" aria-label="Tema"><option value="dark">Oscuro</option><option value="light">Claro</option><option value="system">Sistema</option></select></span>
+              </label>
+              <label class="qa-control">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" /></svg>
+                <span class="qa-control-text"><small>Sonido</small><b id="qa-sound-label">Activado</b></span>
+                <input id="qa-sound" class="qa-switch" type="checkbox" role="switch" aria-label="Sonido" />
+              </label>
+              <label class="qa-control">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM4 10h16M4 15h16M10 4v16M15 4v16" /></svg>
+                <span class="qa-control-text"><small>Cuadrícula</small><b id="qa-grid-label">Activada</b></span>
+                <input id="qa-grid" class="qa-switch" type="checkbox" role="switch" aria-label="Cuadrícula" />
+              </label>
+              <button class="qa-more" type="button" data-go="settings"><span>Más ajustes</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></button>
+            </div>
+          </article>
+        </div>
+        <!-- The admin panel as a console: what is adjusted, a duel with the
+             account's own numbers, and the way in. HomeScreen fills it. -->
+        <div class="menu menu-admin">
+          <article class="qa-card admin-card tone-red">
+            <div class="admin-card-info">
+              <span class="qa-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z" /><path d="m9 12 2 2 4-4" /></svg></span>
+              <div class="admin-card-text">
+                <h3>Panel de administración</h3>
+                <p>Ajusta la vida y el daño de héroes y enemigos, y crea los tuyos propios con tus imágenes.</p>
+              </div>
+            </div>
+            <ul class="admin-stats" aria-label="Lo que has ajustado">
+              <li><b id="home-adm-heroes">0</b><small>Héroes ajustados</small></li>
+              <li><b id="home-adm-enemies">0</b><small>Enemigos ajustados</small></li>
+              <li><b id="home-adm-creations">0</b><small>Creaciones propias</small></li>
+            </ul>
+            <!-- A duel with the account's own numbers: the hero strikes, the enemy's life drops and comes back. -->
+            <div class="admin-duel" aria-hidden="true">
+              <div class="duel-side is-hero">
+                <span class="duel-bar"><i></i></span>
+                <img id="duel-hero" class="duel-sprite" src="/textures/hero-knight-idle.png" alt="" />
+                <small id="duel-hero-stats">♥ 6 · ⚔ 2</small>
+              </div>
+              <span class="duel-vs">VS</span>
+              <span class="duel-spark"><i></i><i></i><i></i><i></i></span>
+              <div class="duel-side is-enemy">
+                <span class="duel-bar"><i></i></span>
+                <img id="duel-enemy" class="duel-sprite" src="/textures/brute.png" alt="" />
+                <small id="duel-enemy-stats">♥ 8 · ⚔ 2</small>
+              </div>
+            </div>
+            <button class="qa-cta admin-cta" type="button" data-go="admin">
+              <svg class="qa-cta-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z" /></svg>
+              <span>Abrir el panel</span>
+              <svg class="qa-cta-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </button>
+          </article>
+        </div>
+
         <div class="recent">
-          <h2 class="eyebrow">Recientes</h2>
+          <div class="section-head">
+            <div><h2 class="eyebrow">Recientes <span id="recent-count" class="count-badge">0</span></h2><p class="section-sub">Retoma donde lo dejaste.</p></div>
+            <button class="btn-outline" type="button" data-go="projects">Ver todos <i aria-hidden="true">→</i></button>
+          </div>
           <ul id="recent-projects" class="recent-list"></ul>
         </div>
       </div>
+    </section>
+
+    <!-- Admin panel of the account: numbers of heroes and enemies, and own creations -->
+    <section id="admin" class="admin" hidden aria-label="Panel de administración">
+      <div class="adm-night" aria-hidden="true">
+        <canvas id="admin-scene" class="night"></canvas>
+        <div class="adm-shade"></div>
+        <div id="admin-castle" class="adm-castle"></div>
+        <div id="admin-wizard-spot" class="adm-wizard-spot"></div>
+      </div>
+      <header class="adm-top">
+        <button id="adm-back" class="btn-back" type="button" aria-label="Volver al inicio">
+          <span class="btn-back-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg></span>
+          <span class="btn-back-label">Inicio</span>
+        </button>
+        <div class="adm-title">
+          <span class="adm-shield" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z" /></svg></span>
+          <div><h1>Panel de administración</h1><p>Solo tu cuenta ve y usa estos cambios.</p></div>
+        </div>
+        <div class="adm-save">
+          <span id="adm-save-state" class="adm-save-state" data-state="clean">Todo guardado</span>
+          <button id="adm-discard" class="btn btn-ghost" type="button" disabled>Descartar</button>
+          <button id="adm-save" class="btn btn-primary adm-save-btn" type="button" disabled><span class="btn-spinner" aria-hidden="true"></span><span class="btn-label">Guardar cambios</span></button>
+        </div>
+      </header>
+
+      <div class="adm-body">
+        <nav class="adm-nav" aria-label="Secciones del panel">
+          <span class="adm-nav-pill" aria-hidden="true"></span>
+          <button class="adm-nav-item is-active" type="button" data-section="overview"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4zM14 20h6V11h-6zM4 20h6v-3H4zM14 7h6V4h-6z" /></svg><span>Resumen</span></button>
+          <button class="adm-nav-item" type="button" data-section="heroes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z" /></svg><span>Héroes</span><b id="adm-count-heroes" class="adm-nav-count">0</b></button>
+          <button class="adm-nav-item" type="button" data-section="enemies"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c4 0 7 3 7 7 0 3-2 5-3 6v3H8v-3c-1-1-3-3-3-6 0-4 3-7 7-7zM9 10h.01M15 10h.01M10 21h4" /></svg><span>Enemigos</span><b id="adm-count-enemies" class="adm-nav-count">0</b></button>
+          <button class="adm-nav-item" type="button" data-section="creations"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /></svg><span>Mis creaciones</span><b id="adm-count-creations" class="adm-nav-count">0</b></button>
+        </nav>
+
+        <main class="adm-main">
+          <section class="adm-section" data-section="overview">
+            <div class="adm-hero">
+              <div class="adm-hero-text">
+                <p class="eyebrow">Tu reglamento</p>
+                <h2>Ajusta el juego a tu medida</h2>
+                <p>Cambia la vida y el daño de cada héroe y enemigo, y crea tus propios héroes, enemigos y objetos. Todo se aplica a tus partidas y a tu editor, y nadie más lo ve.</p>
+              </div>
+              <div class="adm-hero-art" aria-hidden="true"><img src="/textures/ally.png" alt="" /><img src="/textures/hero-wizard-idle.png" alt="" /><img src="/textures/demon.png" alt="" /><img src="/textures/chest.png" alt="" /></div>
+            </div>
+            <div class="adm-kpis">
+              <button class="adm-kpi tone-blue" type="button" data-go-section="heroes"><span class="adm-kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z" /></svg></span><b id="adm-kpi-heroes">0</b><span>Héroes ajustados</span></button>
+              <button class="adm-kpi tone-red" type="button" data-go-section="enemies"><span class="adm-kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c4 0 7 3 7 7 0 3-2 5-3 6v3H8v-3c-1-1-3-3-3-6 0-4 3-7 7-7zM9 10h.01M15 10h.01M10 21h4" /></svg></span><b id="adm-kpi-enemies">0</b><span>Enemigos ajustados</span></button>
+              <button class="adm-kpi tone-gold" type="button" data-go-section="creations"><span class="adm-kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /></svg></span><b id="adm-kpi-creations">0</b><span>Creaciones propias</span></button>
+            </div>
+            <div class="adm-steps">
+              <div class="adm-step"><span>1</span><div><b>Ajusta</b><small>Mueve las barras de vida y daño: los cambios se ven al instante.</small></div></div>
+              <div class="adm-step"><span>2</span><div><b>Guarda</b><small>Pulsa «Guardar cambios», arriba a la derecha.</small></div></div>
+              <div class="adm-step"><span>3</span><div><b>Juega</b><small>Tus héroes salen al elegir héroe; tus enemigos y objetos, en la Biblioteca.</small></div></div>
+            </div>
+          </section>
+
+          <section class="adm-section" data-section="heroes" hidden>
+            <div class="adm-head"><div><h2>Héroes</h2><p>La vida y el daño de ataque de cada héroe en tus partidas.</p></div><button class="btn btn-ghost adm-reset-all" type="button" data-reset="heroes">Restablecer todos</button></div>
+            <div id="adm-heroes" class="adm-grid"></div>
+          </section>
+
+          <section class="adm-section" data-section="enemies" hidden>
+            <div class="adm-head"><div><h2>Enemigos</h2><p>La vida y el daño que hace cada enemigo.</p></div><button class="btn btn-ghost adm-reset-all" type="button" data-reset="enemies">Restablecer todos</button></div>
+            <label class="search adm-search"><svg class="icon" aria-hidden="true"><use href="#i-search" /></svg><input id="adm-enemy-search" type="search" placeholder="Buscar enemigo…" aria-label="Buscar enemigo" autocomplete="off" /></label>
+            <div id="adm-enemies" class="adm-grid"></div>
+          </section>
+
+          <section class="adm-section" data-section="creations" hidden>
+            <div class="adm-head"><div><h2>Mis creaciones</h2><p>Héroes, enemigos y objetos propios, basados en los del motor.</p></div><button id="adm-new" class="btn btn-primary adm-new" type="button"><span aria-hidden="true">＋</span> Nueva creación</button></div>
+            <div id="adm-filter" class="adm-filter" role="tablist" aria-label="Filtrar creaciones">
+              <span class="tab-pill" aria-hidden="true"></span>
+              <button class="adm-filter-item is-active" type="button" data-filter="all">Todas</button>
+              <button class="adm-filter-item" type="button" data-filter="hero">Héroes</button>
+              <button class="adm-filter-item" type="button" data-filter="enemy">Enemigos</button>
+              <button class="adm-filter-item" type="button" data-filter="object">Objetos</button>
+            </div>
+            <div id="adm-creations" class="adm-grid adm-grid-creations"></div>
+          </section>
+        </main>
+      </div>
+
+      <!-- The form of a creation: a drawer with a live preview. -->
+      <div id="adm-drawer-backdrop" class="adm-backdrop" hidden></div>
+      <aside id="adm-drawer" class="adm-drawer" hidden aria-label="Creación">
+        <form id="adm-form" class="adm-form" novalidate>
+          <header class="adm-drawer-head"><h3 id="adm-form-title">Nueva creación</h3><button id="adm-close" class="adm-close" type="button" aria-label="Cerrar">✕</button></header>
+          <div class="adm-form-body">
+            <div class="adm-preview" aria-hidden="true">
+              <span class="adm-preview-glow"></span>
+              <span id="adm-preview-sprite" class="adm-preview-sprite"></span>
+              <b id="adm-preview-name">Mi creación</b>
+              <small id="adm-preview-meta">Enemigo</small>
+            </div>
+            <div class="adm-field">
+              <span class="adm-label">Tipo</span>
+              <div id="adm-type" class="adm-type" role="radiogroup" aria-label="Tipo de creación">
+                <span class="tab-pill" aria-hidden="true"></span>
+                <button type="button" class="adm-type-item" data-type="hero">Héroe</button>
+                <button type="button" class="adm-type-item is-active" data-type="enemy">Enemigo</button>
+                <button type="button" class="adm-type-item" data-type="object">Objeto</button>
+              </div>
+            </div>
+            <label class="adm-field"><span class="adm-label-row"><span class="adm-label">Nombre</span><span id="adm-name-count" class="name-count">0/24</span></span><input id="adm-name" maxlength="24" placeholder="Ej.: Ogro de hielo" autocomplete="off" /></label>
+            <div class="adm-field"><span class="adm-label">Basado en</span><div id="adm-bases" class="adm-bases" role="radiogroup" aria-label="Basado en"></div></div>
+            <div class="adm-field adm-upload-field">
+              <span class="adm-label-row"><span class="adm-label">Imagen propia</span><span class="adm-label-note">Opcional</span></span>
+              <div id="adm-pictures" class="adm-pictures" role="radiogroup" aria-label="Imagen propia"></div>
+              <label class="adm-upload">
+                <input id="adm-upload" type="file" accept="image/png,image/jpeg,image/gif,image/webp" />
+                <span class="adm-upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5" /><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" /></svg></span>
+                <span class="adm-upload-text"><b>Subir mi imagen</b><small>PNG, JPG, GIF o WebP · hasta 5 MB · se revisa antes de guardarla</small></span>
+              </label>
+              <ol id="adm-scan" class="adm-scan" aria-live="polite" hidden>
+                <li data-check="type"><i aria-hidden="true"></i><span>Tipo de archivo</span><em></em></li>
+                <li data-check="size"><i aria-hidden="true"></i><span>Tamaño</span><em></em></li>
+                <li data-check="structure"><i aria-hidden="true"></i><span>Estructura del archivo</span><em></em></li>
+                <li data-check="content"><i aria-hidden="true"></i><span>Código oculto</span><em></em></li>
+                <li data-check="antivirus"><i aria-hidden="true"></i><span>Antivirus</span><em></em></li>
+                <li data-check="pixels"><i aria-hidden="true"></i><span>Píxeles de la imagen</span><em></em></li>
+                <li data-check="rebuilt"><i aria-hidden="true"></i><span>Copia limpia</span><em></em></li>
+              </ol>
+              <p id="adm-upload-error" class="form-message is-error" role="alert"></p>
+            </div>
+            <div class="adm-field" id="adm-colors-field"><span class="adm-label">Color</span><div id="adm-colors" class="adm-colors"></div></div>
+            <div id="adm-stats" class="adm-field adm-stats"></div>
+            <p id="adm-form-error" class="form-message is-error" role="alert"></p>
+          </div>
+          <footer class="adm-drawer-foot">
+            <button id="adm-delete" class="btn btn-ghost adm-delete" type="button" hidden>Eliminar</button>
+            <span class="spacer"></span>
+            <button id="adm-cancel" class="btn btn-ghost" type="button">Cancelar</button>
+            <button id="adm-submit" class="btn btn-primary" type="submit"><span class="btn-spinner" aria-hidden="true"></span><span class="btn-label">Crear</span></button>
+          </footer>
+        </form>
+      </aside>
     </section>
 
     <!-- SVG icons used by the editor (one stroke style, 24 px grid) -->
@@ -189,63 +595,80 @@
     <!-- The editor: laid out like a 2D engine (toolbar, left and right docks, viewport, status bar) -->
     <div id="app" class="app" hidden>
       <header class="topbar">
-        <button id="btn-home" class="brand brand-small" type="button" title="Volver al inicio">
-          <img src="/brand/emblem.png" alt="" width="30" />
-          <strong><span class="mark-pixel">PIXEL</span><span class="mark-forge">FORGE</span></strong>
-        </button>
-        <div class="project-field">
-          <svg class="icon" aria-hidden="true"><use href="#i-folder" /></svg>
-          <input id="project-name" class="project-name" type="text" maxlength="100" placeholder="Sin proyecto" aria-label="Nombre del proyecto" disabled />
+        <!-- Three zones: the centre (tools, Jugar, history) sits exactly in the middle. -->
+        <div class="topbar-left">
+          <button id="btn-back" class="btn-back" type="button" title="Volver al inicio" aria-label="Volver al inicio">
+            <span class="btn-back-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg></span>
+            <span class="btn-back-label">Inicio</span>
+          </button>
+          <span class="topbar-divider" aria-hidden="true"></span>
+          <button id="btn-home" class="brand brand-small" type="button" title="Volver al inicio">
+            <img src="/brand/emblem.png" alt="" width="30" />
+            <strong><span class="mark-pixel">PIXEL</span><span class="mark-forge">FORGE</span></strong>
+          </button>
+          <div class="project-field">
+            <svg class="icon" aria-hidden="true"><use href="#i-folder" /></svg>
+            <input id="project-name" class="project-name" type="text" maxlength="30" placeholder="Sin proyecto" aria-label="Nombre del proyecto (máximo 30 caracteres)" aria-describedby="project-name-count" disabled />
+            <span id="project-name-count" class="name-count" aria-live="polite">0/30</span>
+          </div>
         </div>
-
-        <div class="toolgroup" role="toolbar" aria-label="Herramientas">
-          <button class="tool is-active" data-tool="select" title="Seleccionar y mover (V)" aria-label="Seleccionar" aria-pressed="true"><svg class="icon"><use href="#i-select" /></svg></button>
-          <button class="tool" data-tool="hand" title="Mano: mover la vista (H)" aria-label="Mano" aria-pressed="false"><svg class="icon"><use href="#i-hand" /></svg></button>
-          <button class="tool" data-tool="brush" title="Pincel: colocar el objeto elegido (B)" aria-label="Pincel" aria-pressed="false"><svg class="icon"><use href="#i-brush" /></svg></button>
-          <button class="tool" data-tool="erase" title="Borrar objetos (E)" aria-label="Borrar" aria-pressed="false"><svg class="icon"><use href="#i-erase" /></svg></button>
+        <div class="topbar-center">
+          <div class="toolgroup" role="toolbar" aria-label="Herramientas">
+            <span class="tool-pill" aria-hidden="true"></span>
+            <button class="tool is-active" data-tool="select" title="Seleccionar y mover (V)" aria-label="Seleccionar" aria-pressed="true"><svg class="icon"><use href="#i-select" /></svg></button>
+            <button class="tool" data-tool="hand" title="Mano: mover la vista (H)" aria-label="Mano" aria-pressed="false"><svg class="icon"><use href="#i-hand" /></svg></button>
+            <button class="tool" data-tool="brush" title="Pincel: colocar el objeto elegido (B)" aria-label="Pincel" aria-pressed="false"><svg class="icon"><use href="#i-brush" /></svg></button>
+            <button class="tool" data-tool="erase" title="Borrar objetos (E)" aria-label="Borrar" aria-pressed="false"><svg class="icon"><use href="#i-erase" /></svg></button>
+          </div>
+          <div class="play-controls">
+            <button id="btn-play" class="btn btn-play" title="Probar el nivel (P)"><svg class="icon"><use href="#i-play" /></svg><span>Jugar</span></button>
+            <button id="btn-stop" class="btn btn-stop" title="Detener la partida (Esc)" hidden><svg class="icon"><use href="#i-stop" /></svg><span>Detener</span></button>
+          </div>
+          <div class="toolgroup" role="toolbar" aria-label="Historial">
+            <button id="btn-undo" class="tool" title="Deshacer (Ctrl+Z)" aria-label="Deshacer"><svg class="icon"><use href="#i-undo" /></svg></button>
+            <button id="btn-redo" class="tool" title="Rehacer (Ctrl+Y)" aria-label="Rehacer"><svg class="icon"><use href="#i-redo" /></svg></button>
+          </div>
         </div>
-        <div class="toolgroup" role="toolbar" aria-label="Historial">
-          <button id="btn-undo" class="tool" title="Deshacer (Ctrl+Z)" aria-label="Deshacer"><svg class="icon"><use href="#i-undo" /></svg></button>
-          <button id="btn-redo" class="tool" title="Rehacer (Ctrl+Y)" aria-label="Rehacer"><svg class="icon"><use href="#i-redo" /></svg></button>
-        </div>
-
-        <span class="spacer"></span>
-        <div class="play-controls">
-          <button id="btn-play" class="btn btn-play" title="Probar el nivel (P)"><svg class="icon"><use href="#i-play" /></svg><span>Jugar</span></button>
-          <button id="btn-stop" class="btn btn-stop" title="Detener la partida (Esc)" hidden><svg class="icon"><use href="#i-stop" /></svg><span>Detener</span></button>
-        </div>
-        <span class="spacer"></span>
-
-        <span id="save-state" class="save-state" data-state="clean">Guardado</span>
-        <button id="btn-save" class="btn btn-save" title="Guardar (Ctrl+S)">
-          <span class="btn-spinner" aria-hidden="true"></span>
-          <svg class="icon"><use href="#i-save" /></svg><span>Guardar</span>
-        </button>
-        <button id="btn-settings" class="tool gear" title="Ajustes" aria-label="Ajustes">
-          <svg viewBox="0 0 24 24" class="icon icon-filled" aria-hidden="true"><path d="M19.14 12.94a7.07 7.07 0 0 0 .05-.94 7.07 7.07 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.5.42l-.36 2.54c-.58.24-1.12.55-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.48a.5.5 0 0 0 .12.64l2.03 1.58a7.07 7.07 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.3.6.22l2.39-.96c.5.39 1.04.7 1.62.94l.36 2.54c.05.24.26.42.5.42h3.8c.25 0 .45-.18.5-.42l.36-2.54c.58-.24 1.12-.55 1.62-.94l2.39.96c.22.08.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z" /></svg>
-        </button>
-        <div class="user">
-          <span class="avatar" id="user-avatar" aria-hidden="true">?</span>
-          <span id="user-name" class="user-name"></span>
-          <button id="btn-logout" class="btn btn-ghost btn-small">Salir</button>
+        <div class="topbar-right">
+          <span id="save-state" class="save-state" data-state="clean">Guardado</span>
+          <button id="btn-save" class="btn btn-save" title="Guardar (Ctrl+S)">
+            <span class="btn-spinner" aria-hidden="true"></span>
+            <svg class="icon"><use href="#i-save" /></svg><span>Guardar</span>
+          </button>
+          <button id="btn-settings" class="tool gear" title="Ajustes" aria-label="Ajustes">
+            <svg viewBox="0 0 24 24" class="icon icon-filled" aria-hidden="true"><path d="M19.14 12.94a7.07 7.07 0 0 0 .05-.94 7.07 7.07 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.5.42l-.36 2.54c-.58.24-1.12.55-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.48a.5.5 0 0 0 .12.64l2.03 1.58a7.07 7.07 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.3.6.22l2.39-.96c.5.39 1.04.7 1.62.94l.36 2.54c.05.24.26.42.5.42h3.8c.25 0 .45-.18.5-.42l.36-2.54c.58-.24 1.12-.55 1.62-.94l2.39.96c.22.08.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z" /></svg>
+          </button>
+          <div class="user">
+            <button class="demo-tag demo-only" type="button" data-demo-signup title="Estás en la demo: crea una cuenta para guardar tu trabajo">Demo</button>
+            <span class="avatar" id="user-avatar" aria-hidden="true">?</span>
+            <span id="user-name" class="user-name"></span>
+            <button id="btn-logout" class="btn btn-ghost btn-small">Salir</button>
+          </div>
         </div>
       </header>
 
       <div id="dock-backdrop" class="dock-backdrop" hidden></div>
       <aside id="dock-left" class="dock dock-left" data-tabs>
         <nav class="dock-tabs" role="tablist" aria-label="Panel izquierdo">
+          <span class="tab-pill" aria-hidden="true"></span>
           <button class="dock-tab is-active" role="tab" aria-selected="true" data-tab="library"><svg class="icon"><use href="#i-library" /></svg>Biblioteca</button>
           <button class="dock-tab" role="tab" aria-selected="false" data-tab="scene"><svg class="icon"><use href="#i-layers" /></svg>Escena</button>
           <button class="dock-tab" role="tab" aria-selected="false" data-tab="projects"><svg class="icon"><use href="#i-folder" /></svg>Proyectos</button>
         </nav>
 
         <section class="dock-panel" role="tabpanel" data-panel="library">
-          <label class="search">
-            <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
-            <input id="library-search" type="search" placeholder="Buscar objetos…" aria-label="Buscar objetos" />
-          </label>
+          <div class="library-head">
+            <label class="search">
+              <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
+              <input id="library-search" type="search" placeholder="Buscar objetos…" aria-label="Buscar objetos" autocomplete="off" />
+              <button id="library-clear" class="search-clear" type="button" aria-label="Borrar búsqueda" hidden>✕</button>
+            </label>
+            <!-- Category filter: a lit pill slides to the chosen one. -->
+            <div id="library-filter" class="library-filter" role="toolbar" aria-label="Filtrar por categoría"><span class="tab-pill filter-pill" aria-hidden="true"></span></div>
+            <p class="library-count"><span id="library-count">0 objetos</span><span class="library-tip">Arrastra o haz clic</span></p>
+          </div>
           <div id="library" class="library"></div>
-          <p class="hint">Arrastra un objeto al mapa, o elígelo y pinta con clic. <kbd>Esc</kbd> vuelve a seleccionar.</p>
+          <p class="hint"><kbd>Esc</kbd> vuelve a seleccionar · <kbd>B</kbd> pincel · <kbd>E</kbd> borrar</p>
         </section>
 
         <section class="dock-panel" role="tabpanel" data-panel="scene" hidden>
@@ -267,10 +690,24 @@
 
       <main class="stage">
         <div id="game" class="game"></div>
+        <!-- A HUD-like frame over the viewport: corners that draw in and a label. -->
+        <div class="stage-frame" aria-hidden="true">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        </div>
+        <span class="stage-label" aria-hidden="true"><i></i>Vista de escena · 1600 × 960</span>
         <div id="drop-zone" class="drop-zone" hidden>Suelta para colocar</div>
 
         <div id="empty-state" class="empty-state" hidden>
           <div class="empty-card">
+            <div class="empty-art" aria-hidden="true">
+              <span class="empty-floor"></span>
+              <img class="ea ea-house" src="/textures/house.png" alt="" />
+              <img class="ea ea-tree" src="/textures/tree.png" alt="" />
+              <img class="ea ea-hero" src="/textures/player.png" alt="" />
+              <img class="ea ea-coin" src="/textures/coin.png" alt="" />
+              <img class="ea ea-slime" src="/textures/enemy-slime.png" alt="" />
+              <span class="ea-plus">+</span>
+            </div>
             <h2 id="empty-title">Tu escena está vacía</h2>
             <ol class="steps">
               <li><span class="step-n">1</span><div><strong>Coloca un jugador</strong><small>Arrástralo desde la Biblioteca: es el punto de inicio.</small></div></li>
@@ -320,6 +757,7 @@
 
       <aside id="dock-right" class="dock dock-right" data-tabs>
         <nav class="dock-tabs" role="tablist" aria-label="Panel derecho">
+          <span class="tab-pill" aria-hidden="true"></span>
           <button class="dock-tab is-active" role="tab" aria-selected="true" data-tab="inspector"><svg class="icon"><use href="#i-sliders" /></svg>Inspector</button>
           <button class="dock-tab" role="tab" aria-selected="false" data-tab="ai"><svg class="icon"><use href="#i-spark" /></svg>IA</button>
           <button class="dock-tab" role="tab" aria-selected="false" data-tab="progress"><svg class="icon"><use href="#i-trophy" /></svg>Progreso</button>
@@ -330,25 +768,57 @@
         </section>
 
         <section class="dock-panel" role="tabpanel" data-panel="ai" hidden>
-          <div class="panel-head"><span>Describe lo que quieres</span></div>
-          <form id="ai-form" class="form form-compact">
-            <textarea id="ai-prompt" rows="3" maxlength="500" placeholder="Ej.: un mago, 3 monedas y una casa en 400 300"></textarea>
-            <div class="chips" id="ai-examples">
-              <button type="button" class="chip" data-prompt="un aldeano, un caballero y un mago">Personajes</button>
-              <button type="button" class="chip" data-prompt="5 monedas y 2 enemigos">Monedas y enemigos</button>
-              <button type="button" class="chip" data-prompt="3 casas y 4 árboles">Aldea</button>
+          <!-- Only one AI request at a time: while it works, every AI control is off. -->
+          <div id="ai-working" class="ai-working" role="status" aria-live="polite" hidden>
+            <span class="ai-orb" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span><b id="ai-working-text">La IA está trabajando</b><small>Espera a que termine para pedir otra cosa.</small></span>
+          </div>
+
+          <div class="ai-card">
+            <div class="panel-head"><span>Pedir a la IA</span><span class="ai-badge">Texto</span></div>
+            <form id="ai-form" class="form form-compact">
+              <textarea id="ai-prompt" rows="3" maxlength="500" placeholder="Ej.: 3 tanques y 2 fusileros · borra los enemigos · elimina todo y pon 5 monedas" aria-describedby="ai-prompt-note"></textarea>
+              <p id="ai-prompt-note" class="ai-prompt-note" hidden>Escribe qué debe crear o borrar la IA, o elige un ejemplo.</p>
+              <div class="chips" id="ai-examples">
+                <button type="button" class="chip" data-prompt="un aldeano, un caballero y un mago">Personajes</button>
+                <button type="button" class="chip" data-prompt="5 monedas y 2 enemigos">Monedas y enemigos</button>
+                <button type="button" class="chip" data-prompt="3 casas y 4 árboles">Aldea</button>
+                <button type="button" class="chip" data-prompt="2 tanques, 4 fusileros y 3 barriles explosivos">Batalla</button>
+                <button type="button" class="chip" data-prompt="borra los enemigos">Borrar enemigos</button>
+                <button type="button" class="chip" data-prompt="elimina todo">Vaciar mapa</button>
+              </div>
+              <button id="btn-ai-ask" class="btn btn-ai btn-block" type="submit">
+                <span class="btn-spinner" aria-hidden="true"></span>
+                <svg class="icon" aria-hidden="true"><use href="#i-spark" /></svg>
+                <span class="btn-label">Pedir a la IA</span>
+              </button>
+            </form>
+          </div>
+
+          <div class="ai-card">
+            <div class="panel-head"><span>Dificultad</span><span id="ai-level-name" class="ai-badge">Medio</span></div>
+            <div id="ai-difficulty" class="levels" role="radiogroup" aria-label="Dificultad de la IA">
+              <button type="button" class="level" role="radio" aria-checked="false" data-level="easy"><span class="level-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span><b>Fácil</b><small>Suave</small></button>
+              <button type="button" class="level" role="radio" aria-checked="false" data-level="medium"><span class="level-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span><b>Medio</b><small>Justo</small></button>
+              <button type="button" class="level" role="radio" aria-checked="false" data-level="hard"><span class="level-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span><b>Difícil</b><small>Intenso</small></button>
+              <button type="button" class="level" role="radio" aria-checked="false" data-level="extreme"><span class="level-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span><b>Extremo</b><small>Brutal</small></button>
             </div>
-            <button class="btn btn-block" type="submit">Pedir a la IA</button>
-          </form>
-          <div class="divider"></div>
-          <div class="panel-head"><span>Obstáculos aprendidos</span></div>
-          <label class="field-inline">
-            <span>Cantidad</span>
-            <input id="ai-count" type="range" min="1" max="30" value="6" />
-            <output id="ai-count-value">6</output>
-          </label>
-          <button id="btn-ai-obstacles" class="btn btn-primary btn-block">La IA crea obstáculos</button>
-          <div id="ai-model" class="ai-model"></div>
+            <div id="ai-model" class="ai-model"></div>
+          </div>
+
+          <div class="ai-card">
+            <div class="panel-head"><span>Obstáculos aprendidos</span></div>
+            <label class="field-inline">
+              <span>Cantidad</span>
+              <input id="ai-count" type="range" min="1" max="30" value="6" />
+              <output id="ai-count-value">6</output>
+            </label>
+            <button id="btn-ai-obstacles" class="btn btn-primary btn-ai btn-block" type="button">
+              <span class="btn-spinner" aria-hidden="true"></span>
+              <svg class="icon" aria-hidden="true"><use href="#i-spark" /></svg>
+              <span class="btn-label">La IA crea obstáculos</span>
+            </button>
+          </div>
         </section>
 
         <section class="dock-panel" role="tabpanel" data-panel="progress" hidden>
@@ -447,14 +917,59 @@
     <div id="settings-backdrop" class="backdrop" hidden></div>
 
     <!-- Dialogs -->
-    <dialog id="new-project-dialog" class="dialog">
-      <form method="dialog" id="new-project-form" class="form">
-        <h3>Nuevo proyecto</h3>
-        <label class="field"><span>Nombre</span><input id="new-project-name" maxlength="100" required value="Mi juego" /></label>
-        <div id="templates" class="templates"></div>
+    <dialog id="new-project-dialog" class="dialog dialog-new">
+      <form method="dialog" id="new-project-form" class="form new-project">
+        <header class="np-head">
+          <span class="np-badge" aria-hidden="true"><img src="/brand/emblem.png" alt="" width="34" /></span>
+          <div>
+            <h3>Nuevo proyecto</h3>
+            <p>Empieza desde una plantilla o deja que la IA construya el mapa por ti.</p>
+          </div>
+        </header>
+
+        <label class="field np-name">
+          <span class="field-label-row"><span>Nombre del proyecto</span><span id="new-project-count" class="name-count">8/30</span></span>
+          <span class="np-input"><svg class="icon" aria-hidden="true"><use href="#i-folder" /></svg><input id="new-project-name" maxlength="30" required value="Mi juego" aria-describedby="new-project-count" /></span>
+        </label>
+
+        <div id="np-modes" class="np-modes" role="tablist" aria-label="Cómo empezar">
+          <span class="tab-pill" aria-hidden="true"></span>
+          <button type="button" class="np-mode is-active" role="tab" aria-selected="true" data-mode="template"><svg class="icon" aria-hidden="true"><use href="#i-library" /></svg>Plantilla</button>
+          <button type="button" class="np-mode" role="tab" aria-selected="false" data-mode="ai"><svg class="icon" aria-hidden="true"><use href="#i-spark" /></svg>Crear con IA</button>
+        </div>
+
+        <div class="np-panel" data-panel="template">
+          <div id="templates" class="templates"></div>
+        </div>
+
+        <div class="np-panel" data-panel="ai" hidden>
+          <label class="field np-prompt">
+            <span class="field-label-row"><span>Describe tu mapa</span><span id="np-prompt-count" class="name-count">0/500</span></span>
+            <textarea id="np-prompt" rows="3" maxlength="500" placeholder="Ej.: una aldea con 4 casas, 6 árboles, un lago con puente, 2 aldeanos y 8 monedas"></textarea>
+          </label>
+          <p class="np-tip">La IA entiende cantidades y objetos: casas, árboles, muros, lagos, puentes, monedas, cofres, enemigos, jefes, tanques, soldados… hasta 10 de cada uno y 30 en total.</p>
+          <div class="ideas" id="np-ideas">
+              <button type="button" class="idea" data-prompt="una aldea con 4 casas, 6 árboles, un lago con puente, 2 aldeanos y 8 monedas"><img src="/textures/house.png" alt="" /><span><b>Aldea tranquila</b><small>una aldea con 4 casas, 6 árboles, un lago con puente, 2 aldeanos y 8 monedas</small></span></button>
+              <button type="button" class="idea" data-prompt="una mazmorra con muros, 5 cofres, 3 fantasmas, 2 arañas y un demonio jefe"><img src="/textures/ghost.png" alt="" /><span><b>Mazmorra</b><small>una mazmorra con muros, 5 cofres, 3 fantasmas, 2 arañas y un demonio jefe</small></span></button>
+              <button type="button" class="idea" data-prompt="2 tanques, 4 fusileros, sacos terreros, 2 búnkeres y 3 barriles explosivos"><img src="/textures/tank.png" alt="" /><span><b>Campo de batalla</b><small>2 tanques, 4 fusileros, sacos terreros, 2 búnkeres y 3 barriles explosivos</small></span></button>
+              <button type="button" class="idea" data-prompt="un bosque con 8 árboles, 4 arbustos, un río, 3 slimes, un mago y 5 monedas"><img src="/textures/tree.png" alt="" /><span><b>Bosque encantado</b><small>un bosque con 8 árboles, 4 arbustos, un río, 3 slimes, un mago y 5 monedas</small></span></button>
+          </div>
+        </div>
+
+        <!-- While creating: the steps light up one by one and nothing else can be pressed. -->
+        <ol id="np-progress" class="np-progress" aria-live="polite" hidden>
+          <li data-step="1"><span class="np-dot"></span><span>Creando el proyecto</span></li>
+          <li data-step="2"><span class="np-dot"></span><span>La IA construye el mapa</span></li>
+          <li data-step="3"><span class="np-dot"></span><span>Abriendo el editor</span></li>
+        </ol>
+        <p id="np-error" class="form-message is-error" role="alert"></p>
+
         <div class="dialog-actions">
-          <button class="btn" value="cancel" formnovalidate>Cancelar</button>
-          <button class="btn btn-primary" value="create">Crear</button>
+          <button id="np-cancel" class="btn btn-ghost" value="cancel" formnovalidate>Cancelar</button>
+          <button id="np-create" class="btn btn-primary np-create" value="create">
+            <span class="btn-spinner" aria-hidden="true"></span>
+            <span class="btn-label">Crear</span>
+          </button>
         </div>
       </form>
     </dialog>
