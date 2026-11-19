@@ -33,4 +33,38 @@ describe("api cache", () => {
     forget("s");
     expect(await cached("s", 1000, async () => ({ theme: "dark" }))).toEqual({ theme: "dark" });
   });
+
+  it("does not store an answer that arrives after a logout", async () => {
+    let finish!: (value: string) => void;
+    const slow = cached("settings", 1000, () => new Promise<string>((resolve) => (finish = resolve)));
+    forgetAll(); // the user logs out while the request is still in the air
+    finish("data of the previous user");
+    await slow;
+    let calls = 0;
+    const fresh = await cached("settings", 1000, async () => {
+      calls += 1;
+      return "data of the new user";
+    });
+    expect(fresh).toBe("data of the new user");
+    expect(calls).toBe(1);
+  });
+
+  it("a late request does not remove the in-flight entry of a newer one", async () => {
+    let finishOld!: (value: string) => void;
+    const old = cached("k", 1000, () => new Promise<string>((resolve) => (finishOld = resolve)));
+    forgetAll();
+    let finishNew!: (value: string) => void;
+    const newer = cached("k", 1000, () => new Promise<string>((resolve) => (finishNew = resolve)));
+    finishOld("old");
+    await old;
+    let extraCalls = 0;
+    const shared = cached("k", 1000, async () => {
+      extraCalls += 1;
+      return "extra";
+    });
+    finishNew("new");
+    expect(await newer).toBe("new");
+    expect(await shared).toBe("new");
+    expect(extraCalls).toBe(0);
+  });
 });

@@ -3,6 +3,7 @@ import { playableHero, playableHeroes, type PlayableHero } from "../game/balance
 import { WEAPONS } from "../game/combat";
 import { spriteUrl } from "../game/sprites";
 import { byId, make } from "./dom";
+import { createHeroRing, stepHero } from "./heroRing";
 
 const STORAGE_KEY = "pixelforge-hero";
 
@@ -75,6 +76,7 @@ export function chooseHero(): Promise<string | null> {
   let chosen: string = heroes.some((hero) => hero.id === saved) ? saved! : playableHero(null).id;
   // Rebuilt every time: the account may have changed its heroes in the admin panel.
   list.replaceChildren(...heroes.map(card));
+  const ring = createHeroRing(heroes.map((hero) => hero.id), chosen);
   const paint = () => {
     for (const button of list.querySelectorAll<HTMLButtonElement>(".hero")) {
       const on = button.dataset.hero === chosen;
@@ -86,7 +88,16 @@ export function chooseHero(): Promise<string | null> {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>(".hero");
     if (button === null) return;
     chosen = button.dataset.hero!;
+    ring.select((id) => id === chosen);
     paint();
+  };
+  list.onkeydown = (event) => {
+    const next = stepHero(ring, event.key);
+    if (next === undefined) return;
+    event.preventDefault();
+    chosen = next;
+    paint();
+    list.querySelector<HTMLButtonElement>(`[data-hero="${chosen}"]`)?.focus();
   };
   list.ondblclick = () => dialog.close("play");
   paint();

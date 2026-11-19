@@ -1,4 +1,6 @@
 import { CATEGORIES, KIND_INFO, type GameObject, type Kind } from "../model/GameObject";
+import { LinkedList } from "../structures/LinkedList";
+import { Tree, type TreeNode } from "../structures/Tree";
 import { byId, make } from "./dom";
 import { iconElement } from "./Library";
 
@@ -7,15 +9,42 @@ export interface TreeGroup {
   objects: GameObject[];
 }
 
-/** The scene's objects grouped by kind, in the library order (only kinds that appear). */
-export function groupByKind(objects: Iterable<GameObject>): TreeGroup[] {
-  const byKind = new Map<Kind, GameObject[]>();
-  for (const object of objects) {
-    if (!byKind.has(object.kind)) byKind.set(object.kind, []);
-    byKind.get(object.kind)!.push(object);
-  }
+/** What a node of the scene tree holds: the scene itself, a kind, or one object. */
+export type SceneNode =
+  | { type: "scene" }
+  | { type: "kind"; kind: Kind }
+  | { type: "object"; object: GameObject };
+
+/** The scene as a Tree: scene -> kind (in library order, only kinds that appear) -> its objects. */
+export function buildSceneTree(objects: Iterable<GameObject>): Tree<SceneNode> {
+  const tree = new Tree<SceneNode>({ type: "scene" });
+  const kinds = new Map<Kind, TreeNode<SceneNode>>();
   const order = CATEGORIES.flatMap((category) => category.kinds);
-  return order.filter((kind) => byKind.has(kind)).map((kind) => ({ kind, objects: byKind.get(kind)! }));
+  const present = new Set<Kind>();
+  const all = new LinkedList<GameObject>();
+  for (const object of objects) {
+    present.add(object.kind);
+    all.add(object);
+  }
+  for (const kind of order) {
+    if (present.has(kind)) kinds.set(kind, tree.root.addChild({ type: "kind", kind }));
+  }
+  for (const object of all) kinds.get(object.kind)!.addChild({ type: "object", object });
+  return tree;
+}
+
+/** The scene's objects grouped by kind, read from the first two levels of the scene tree. */
+export function groupByKind(objects: Iterable<GameObject>): TreeGroup[] {
+  const groups: TreeGroup[] = [];
+  for (const kindNode of buildSceneTree(objects).root.children) {
+    if (kindNode.value.type !== "kind") continue;
+    const members: GameObject[] = [];
+    for (const leaf of kindNode.children) {
+      if (leaf.value.type === "object") members.push(leaf.value.object);
+    }
+    groups.push({ kind: kindNode.value.kind, objects: members });
+  }
+  return groups;
 }
 
 interface TreeActions {
